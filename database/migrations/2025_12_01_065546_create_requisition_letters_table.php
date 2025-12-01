@@ -13,7 +13,25 @@ return new class extends Migration
     {
         Schema::create('requisition_letters', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            
+            // FK ke Master (Penghubung ke PT dan Karyawan)
+            $table->integer('company_id')->index();
+            $table->integer('requester_id')->index();
+            
+            $table->string('rl_no', 50)->unique(); // Nomor Surat
+            $table->date('request_date');
+            
+            // Status Flow (Draft -> Approved)
+            $table->enum('status_flow', ['DRAFT', 'ON_PROGRESS', 'APPROVED', 'REJECTED'])->default('DRAFT');
+            
+            // Atribut Opsional (Untuk mengakomodir PT ACS/CTP)
+            $table->string('subject', 255)->nullable();        // Hal
+            $table->string('to_department', 100)->nullable();  // Kepada
+            $table->string('attachment_count', 50)->nullable(); // Lampiran
+            $table->text('remark')->nullable();                // Penggunaan/Detail
+            
+            $table->timestamps(); // Created_at & Updated_at
+            $table->softDeletes(); // Agar data tidak hilang permanen
         });
     }
 
