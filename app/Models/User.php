@@ -45,4 +45,14 @@ class User extends Authenticatable
     public function department() {
         return $this->belongsTo(Department::class, 'department_id', 'department_id');
     }
+
+    public function getEmailForPasswordReset()
+    {
+        return $this->email_work;
+    }
+
+    public function getEmailForVerification()
+    {
+        return $this->email_work;
+    }
 }

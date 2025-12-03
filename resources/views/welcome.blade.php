@@ -6,69 +6,65 @@
     <title>RL Monitoring - PT Amarin Group</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="antialiased font-sans">
+<body class="antialiased bg-gray-50 dark:bg-gray-900 font-sans">
 
-    <div class="relative min-h-screen bg-gray-900 flex flex-col justify-center items-center bg-[url('https://images.unsplash.com/photo-1500916434205-0c77489c6cf7?q=80&w=2574&auto=format&fit=crop')] bg-cover bg-center bg-no-repeat">
+    <div class="relative flex flex-col items-center justify-center min-h-screen overflow-hidden selection:bg-blue-500 selection:text-white">
 
-        <div class="absolute inset-0 bg-gradient-to-br from-blue-900/90 to-gray-900/90 mix-blend-multiply"></div>
-        <div class="absolute inset-0 bg-black/40"></div>
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+            <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[100px]"></div>
+            <div class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-cyan-300/10 blur-[100px]"></div>
+            <div class="absolute -bottom-[20%] left-[20%] w-[60%] h-[40%] rounded-full bg-blue-600/10 blur-[100px]"></div>
+        </div>
 
-        <div class="relative z-10 w-full max-w-md px-6 py-10 bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl dark:bg-gray-800/95 border-t-4 border-blue-600 animate-fade-in-up mx-4">
+        <div class="relative z-10 w-full max-w-4xl px-6 text-center">
 
-            <div class="text-center mb-8">
-                <div class="flex justify-center mb-6">
-                    <img src="{{ asset('images/Logo_PT_ASM.jpg') }}"
-                         alt="PT Amarin Group"
-                         class="h-20 w-auto object-contain drop-shadow-md mix-blend-multiply dark:mix-blend-normal">
-                </div>
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-white tracking-tight uppercase">
-                    PT Amarin Group
-                </h2>
-                <div class="w-16 h-1 bg-blue-600 mx-auto my-3 rounded-full"></div>
-                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 tracking-wide">
-                    REQUISITION LETTER SYSTEM
-                </p>
+            <div class="flex justify-center mb-10 transform hover:scale-105 transition duration-500">
+                <img src="{{ asset('images/Logo_PT_ASM.jpg') }}"
+                     alt="PT Amarin Group Logo"
+                     class="h-16 md:h-20 w-auto object-contain drop-shadow-xl rounded-lg bg-transparent mix-blend-multiply dark:mix-blend-normal">
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-4 mb-12">
+                <h1 class="text-4xl font-extrabold tracking-tight leading-tight text-gray-900 md:text-5xl lg:text-6xl dark:text-white">
+                    PT AMARIN GROUP
+                </h1>
+                <p class="text-lg font-medium text-gray-600 lg:text-2xl sm:px-16 dark:text-gray-300 max-w-2xl mx-auto">
+                    Requisition Letter (RL) Monitoring System
+                </p>
+                <div class="w-24 h-1 bg-blue-600 mx-auto rounded-full mt-6"></div>
+            </div>
+
+            <div class="flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-6">
+
                 @if (Route::has('login'))
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="flex items-center justify-center w-full px-5 py-4 text-sm font-semibold text-white transition-all duration-200 bg-blue-700 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 shadow-lg hover:shadow-blue-500/30 group">
-                            <span>Buka Dashboard</span>
-                            <svg class="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        <a href="{{ url('/dashboard') }}" class="group relative inline-flex justify-center items-center py-3.5 px-8 text-base font-semibold text-center text-white rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-900 shadow-lg hover:shadow-xl transition-all duration-200">
+                            Masuk ke Dashboard
+                            <svg class="w-4 h-4 ms-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9"/>
                             </svg>
                         </a>
-
-                        <div class="text-center mt-4">
-                            <span class="text-xs text-gray-500">Anda sudah login sebagai <strong>{{ Auth::user()->full_name ?? 'User' }}</strong></span>
-                        </div>
                     @else
-                        <a href="{{ route('login') }}" class="flex items-center justify-center w-full px-5 py-4 text-sm font-semibold text-white transition-all duration-200 bg-blue-700 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 shadow-lg hover:shadow-blue-500/30 group">
-                            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                        <a href="{{ route('login') }}" class="group relative inline-flex justify-center items-center py-3.5 px-10 text-base font-semibold text-center text-white rounded-full bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-900 shadow-lg hover:shadow-xl transition-all duration-200">
+                            Login Pegawai
+                            <svg class="w-4 h-4 ms-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9"/>
                             </svg>
-                            <span>Masuk ke Portal</span>
                         </a>
-
-                        <div class="mt-6 text-center border-t border-gray-100 pt-4 dark:border-gray-700">
-                            <p class="text-xs text-gray-400">
-                                Mengalami kendala akses? <br>
-                                <a href="#" class="text-blue-600 hover:underline dark:text-blue-400">Hubungi IT Support (ITSM)</a>
-                            </p>
-                        </div>
                     @endauth
                 @endif
             </div>
-        </div>
-        <div class="absolute bottom-6 w-full text-center">
-            <p class="text-xs text-blue-200/60 font-light tracking-widest uppercase">
-                &copy; {{ date('Y') }} PT Amarin Ship Management. Internal Use Only.
-            </p>
+
+            <div class="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800">
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    &copy; {{ date('Y') }} IT Department - PT Amarin Ship Management. All rights reserved.
+                </p>
+                {{-- <p class="text-xs text-gray-400 mt-2">Internal Use Only</p> --}}
+            </div>
         </div>
     </div>
 </body>
