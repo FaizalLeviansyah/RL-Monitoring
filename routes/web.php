@@ -3,12 +3,13 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\RequisitionController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Cari baris Route::get('/dashboard'...) dan GANTI jadi ini:
+// Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
@@ -19,6 +20,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-
+// Route of Requisition
+Route::resource('requisitions', RequisitionController::class);
 
 require __DIR__.'/auth.php';
