@@ -5,40 +5,34 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Company;
 use App\Models\Department;
-use App\Models\User; // Pastikan model User ada fillable 'position_id'
-use Illuminate\Support\Facades\DB; // Untuk insert manual ke tbl_position
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class MasterDataSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. BUAT COMPANY & DEPT (Sama seperti sebelumnya)
-        $asm = Company::firstOrCreate(['company_code' => 'ASM'], ['company_name' => 'PT Amarin Ship Management', 'logo_path' => 'logo_asm.png']);
-        $deptIT = Department::firstOrCreate(['department_name' => 'IT Department', 'company_id' => $asm->company_id]);
+        // 1. BUAT COMPANY & DEPT
+        $asm = Company::firstOrCreate(
+            ['company_code' => 'ASM'],
+            ['company_name' => 'PT Amarin Ship Management', 'logo_path' => 'logo_asm.png']
+        );
 
-        // 2. BUAT MASTER JABATAN (POSITION) - PENTING!
-        // Kita isi tabel tbl_position milik Mas Hendri
-        // Gunakan DB::table karena mungkin Bapak belum buat Model Position
-        $posStaff = DB::connection('mysql_master')->table('tbl_position')->insertGetId([
-            'position_name' => 'Staff',
-            'company_id' => $asm->company_id
-        ]);
+        $deptIT = Department::firstOrCreate(
+            ['department_name' => 'IT Department', 'company_id' => $asm->company_id],
+            ['description' => 'Information Technology']
+        );
 
-        $posManager = DB::connection('mysql_master')->table('tbl_position')->insertGetId([
-            'position_name' => 'Manager',
-            'company_id' => $asm->company_id
-        ]);
+        // 2. BUAT MASTER JABATAN (POSITION)
+        // Kita buat fungsi helper kecil biar kodenya rapi & tidak error duplicate
+        $posStaff = $this->createPosition($asm->company_id, 'Staff');
+        $posManager = $this->createPosition($asm->company_id, 'Manager');
+        $posDirector = $this->createPosition($asm->company_id, 'Director');
 
-        $posDirector = DB::connection('mysql_master')->table('tbl_position')->insertGetId([
-            'position_name' => 'Director',
-            'company_id' => $asm->company_id
-        ]);
-
-        // 3. BUAT USER (Pakai position_id)
-
+        // 3. BUAT USER
         // User Budi (Staff)
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email_work' => 'budi@amarin.com'],
             [
                 'employee_code' => 'EMP001',
@@ -46,13 +40,14 @@ class MasterDataSeeder extends Seeder
                 'password' => Hash::make('password123'),
                 'company_id' => $asm->company_id,
                 'department_id' => $deptIT->department_id,
-                'position_id' => $posStaff, // <-- INI KUNCINYA (Angka ID)
-                'phone' => '081234567890'
+                'position_id' => $posStaff,
+                'phone' => '081234567890',
+                'employment_status' => 'Active'
             ]
         );
 
         // User Eko (Manager)
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email_work' => 'eko@amarin.com'],
             [
                 'employee_code' => 'EMP002',
@@ -60,11 +55,30 @@ class MasterDataSeeder extends Seeder
                 'password' => Hash::make('password123'),
                 'company_id' => $asm->company_id,
                 'department_id' => $deptIT->department_id,
-                'position_id' => $posManager, // <-- Pakai ID Manager
-                'phone' => '081298765432'
+                'position_id' => $posManager,
+                'phone' => '081298765432',
+                'employment_status' => 'Active'
             ]
         );
+    }
 
-        // ... dst untuk Director
+    // Helper untuk Cek dulu sebelum Insert Position
+    private function createPosition($companyId, $name)
+    {
+        $existing = DB::connection('mysql_master')->table('tbl_position')
+            ->where('company_id', $companyId)
+            ->where('position_name', $name)
+            ->value('position_id');
+
+        if ($existing) {
+            return $existing;
+        }
+
+        return DB::connection('mysql_master')->table('tbl_position')->insertGetId([
+            'position_name' => $name,
+            'company_id' => $companyId,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
     }
 }

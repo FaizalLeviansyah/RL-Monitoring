@@ -10,35 +10,26 @@ class UserAppAccessSeeder extends Seeder
 {
     public function run(): void
     {
-        // Ambil User berdasarkan email
-        $budi = User::where('email_work', 'budi@amarin.com')->first();
-        $eko = User::where('email_work', 'eko@amarin.com')->first();
-        $bos = User::where('email_work', 'bos@amarin.com')->first();
+        $users = [
+            'budi@amarin.com',
+            'eko@amarin.com',
+            // 'bos@amarin.com' // Uncomment jika user bos sudah dibuat di MasterDataSeeder
+        ];
 
-        // Beri Akses ke Aplikasi 'RL-MONITORING'
+        foreach ($users as $email) {
+            $user = User::where('email_work', $email)->first();
 
-        if ($budi) {
-            UserApplicationAccess::create([
-                'user_id' => $budi->employee_id,
-                'app_code' => 'RL-MONITORING',
-                'is_active' => true
-            ]);
-        }
-
-        if ($eko) {
-            UserApplicationAccess::create([
-                'user_id' => $eko->employee_id,
-                'app_code' => 'RL-MONITORING',
-                'is_active' => true
-            ]);
-        }
-
-        if ($bos) {
-            UserApplicationAccess::create([
-                'user_id' => $bos->employee_id,
-                'app_code' => 'RL-MONITORING',
-                'is_active' => true
-            ]);
+            if ($user) {
+                UserApplicationAccess::updateOrCreate(
+                    [
+                        'user_id' => $user->employee_id,
+                        'app_code' => 'RL-MONITORING'
+                    ],
+                    [
+                        'is_active' => true
+                    ]
+                );
+            }
         }
     }
 }
