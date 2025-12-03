@@ -1,42 +1,62 @@
 <x-app-layout>
+    <div class="mb-4">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
+        <p class="text-gray-500 dark:text-gray-400">Welcome back, {{ Auth::user()->full_name }}!</p>
+    </div>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-6 dark:border-gray-700 dark:bg-gray-800">
-            <div class="w-full">
-                <h3 class="text-base font-normal text-gray-500 dark:text-gray-400">Total Permintaan</h3>
-                <span class="text-2xl font-bold leading-none text-gray-900 sm:text-3xl dark:text-white">{{ $myTotal }}</span>
-                <p class="text-base font-normal text-gray-500 dark:text-gray-400">RL Document</p>
+
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div class="flex flex-row items-center justify-between">
+                <div class="flex flex-col">
+                    <dt class="mb-2 text-3xl font-extrabold text-blue-600 dark:text-blue-400">{{ $myTotal }}</dt>
+                    <dd class="text-gray-500 dark:text-gray-400">Total Permintaan</dd>
+                </div>
+                <div class="p-2 bg-blue-100 rounded-lg dark:bg-blue-900">
+                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-300" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/></svg>
+                </div>
             </div>
         </div>
 
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-6 dark:border-gray-700 dark:bg-gray-800">
-            <div class="w-full">
-                <h3 class="text-base font-normal text-gray-500 dark:text-gray-400">Menunggu Approval</h3>
-                <span class="text-2xl font-bold leading-none text-orange-500 sm:text-3xl dark:text-orange-400">{{ $myPending }}</span>
-                <p class="text-base font-normal text-gray-500 dark:text-gray-400">Need Action</p>
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div class="flex flex-row items-center justify-between">
+                <div class="flex flex-col">
+                    <dt class="mb-2 text-3xl font-extrabold text-orange-500 dark:text-orange-400">{{ $myPending }}</dt>
+                    <dd class="text-gray-500 dark:text-gray-400">Menunggu Approval</dd>
+                </div>
+                <div class="p-2 bg-orange-100 rounded-lg dark:bg-orange-900">
+                    <svg class="w-6 h-6 text-orange-600 dark:text-orange-300" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                </div>
             </div>
         </div>
 
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-6 dark:border-gray-700 dark:bg-gray-800">
-            <div class="w-full">
-                <h3 class="text-base font-normal text-gray-500 dark:text-gray-400">Disetujui</h3>
-                <span class="text-2xl font-bold leading-none text-green-500 sm:text-3xl dark:text-green-400">{{ $myApproved }}</span>
-                <p class="text-base font-normal text-gray-500 dark:text-gray-400">Approved</p>
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div class="flex flex-row items-center justify-between">
+                <div class="flex flex-col">
+                    <dt class="mb-2 text-3xl font-extrabold text-green-500 dark:text-green-400">{{ $myApproved }}</dt>
+                    <dd class="text-gray-500 dark:text-gray-400">Disetujui</dd>
+                </div>
+                <div class="p-2 bg-green-100 rounded-lg dark:bg-green-900">
+                    <svg class="w-6 h-6 text-green-600 dark:text-green-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                </div>
             </div>
         </div>
 
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-6 dark:border-gray-700 dark:bg-gray-800">
-            <div class="w-full">
-                <h3 class="text-base font-normal text-gray-500 dark:text-gray-400">Ditolak</h3>
-                <span class="text-2xl font-bold leading-none text-red-500 sm:text-3xl dark:text-red-400">{{ $myRejected }}</span>
-                <p class="text-base font-normal text-gray-500 dark:text-gray-400">Rejected</p>
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div class="flex flex-row items-center justify-between">
+                <div class="flex flex-col">
+                    <dt class="mb-2 text-3xl font-extrabold text-red-500 dark:text-red-400">{{ $myRejected }}</dt>
+                    <dd class="text-gray-500 dark:text-gray-400">Ditolak</dd>
+                </div>
+                <div class="p-2 bg-red-100 rounded-lg dark:bg-red-900">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                </div>
             </div>
         </div>
-
     </div>
 
     <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Aktivitas Terakhir</h3>
-        <p class="text-gray-500 dark:text-gray-400">Belum ada data permintaan.</p>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Recent Activities</h3>
+        <p class="text-sm text-gray-500">Belum ada aktivitas.</p>
     </div>
 </x-app-layout>

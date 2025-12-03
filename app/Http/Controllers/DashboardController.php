@@ -10,27 +10,27 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Ambil User yang sedang login (dari database Master)
+        // Ambil data user yang sedang login
         $user = Auth::user();
 
-        // --- LOGIC HITUNG-HITUNGAN (STATS) ---
+        // --- LOGIC HITUNG STATISTIK (Berdasarkan Requester) ---
 
-        // 1. Total Semua Request Saya
+        // 1. Total Surat Saya
         $myTotal = RequisitionLetter::where('requester_id', $user->employee_id)->count();
 
-        // 2. Yang Masih 'On Progress' (Menunggu Approval)
+        // 2. Menunggu (On Progress / Draft)
         $myPending = RequisitionLetter::where('requester_id', $user->employee_id)
-                        ->where('status_flow', 'ON_PROGRESS')->count();
+                        ->whereIn('status_flow', ['ON_PROGRESS', 'DRAFT'])->count();
 
-        // 3. Yang Sudah Selesai/Approved
+        // 3. Disetujui
         $myApproved = RequisitionLetter::where('requester_id', $user->employee_id)
                         ->where('status_flow', 'APPROVED')->count();
 
-        // 4. Yang Ditolak
+        // 4. Ditolak
         $myRejected = RequisitionLetter::where('requester_id', $user->employee_id)
                         ->where('status_flow', 'REJECTED')->count();
 
-        // Kirim data ini ke tampilan (View)
+        // Kirim variabel ke View dashboard
         return view('dashboard', compact('myTotal', 'myPending', 'myApproved', 'myRejected'));
     }
 }

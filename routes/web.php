@@ -8,7 +8,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-//dashboard
+// Cari baris Route::get('/dashboard'...) dan GANTI jadi ini:
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
