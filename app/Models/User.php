@@ -2,22 +2,24 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+// Import Model Lain
+use App\Models\Position;
+use App\Models\Company;
+use App\Models\Department;
+
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    // --- KONEKSI KE DATABASE MASTER ---
     protected $connection = 'mysql_master';
     protected $table = 'tbl_employee';
     protected $primaryKey = 'employee_id';
 
-    // Agar timestamp mengikuti standar Mas Hendri (created_at, updated_at)
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';
 
@@ -28,8 +30,8 @@ class User extends Authenticatable
         'password',
         'company_id',
         'department_id',
+        'position_id', // <--- WAJIB DITAMBAHKAN (Tadi kurang ini)
         'phone',
-        'role', // Jika ada kolom role
         'is_deleted'
     ];
 
@@ -46,13 +48,11 @@ class User extends Authenticatable
         return $this->belongsTo(Department::class, 'department_id', 'department_id');
     }
 
-    public function getEmailForPasswordReset()
-    {
-        return $this->email_work;
+    public function position() {
+        return $this->belongsTo(Position::class, 'position_id', 'position_id');
     }
-
-    public function getEmailForVerification()
-    {
+    // Fungsi bawaan login (jika perlu)
+    public function getEmailForPasswordReset() {
         return $this->email_work;
     }
 }
