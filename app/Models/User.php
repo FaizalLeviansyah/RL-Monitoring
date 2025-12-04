@@ -43,11 +43,9 @@ class User extends Authenticatable
     public function company() {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
-
     public function department() {
         return $this->belongsTo(Department::class, 'department_id', 'department_id');
     }
-
     public function position() {
         return $this->belongsTo(Position::class, 'position_id', 'position_id');
     }
