@@ -84,4 +84,15 @@ class RequisitionController extends Controller
         });
         return redirect()->route('dashboard')->with('success', 'Requisition Letter created successfully!');
     }
+
+    // 3. TAMPILKAN DETAIL SURAT (Untuk Review)
+    public function show($id)
+    {
+        // Ambil data surat beserta relasinya (Items, User, Approvals)
+        // Hapus 'department' dari array with()
+        $rl = RequisitionLetter::with(['items', 'requester.department', 'approvalQueues.approver', 'company'])
+                ->findOrFail($id);
+
+        return view('requisitions.show', compact('rl'));
+    }
 }

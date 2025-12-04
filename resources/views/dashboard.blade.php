@@ -101,15 +101,15 @@
                                 <span class="bg-gray-100 text-gray-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">Draft</span>
                             @endif
                         </td>
+
                         <td class="px-6 py-4">
-                            <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Detail</a>
+                            <a href="{{ route('requisitions.show', $rl->id) }}" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Detail</a>
                         </td>
                     </tr>
                     @empty
                     <tr>
                         <td colspan="5" class="px-6 py-4 text-center">Tidak ada data permintaan terbaru.</td>
                     </tr>
-                    @endforelse
                 </tbody>
             </table>
         </div>
