@@ -16,4 +16,16 @@ class RequisitionItem extends Model
     public function supplyHistories() {
         return $this->hasMany(SupplyHistory::class, 'rl_item_id', 'id');
     }
+
+    // Hitung berapa yang sudah diterima
+    public function getSuppliedQtyAttribute()
+    {
+        return $this->supplyHistories->sum('qty_received');
+    }
+
+    // Hitung sisa yang belum datang
+    public function getRemainingQtyAttribute()
+    {
+        return $this->qty - $this->supplied_qty;
+    }
 }

@@ -18,10 +18,18 @@
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900">
             <div>
                 <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
+                    <img src="{{ asset('images/Logo_PT_ASM.jpg') }}"
+                     alt="PT Amarin Group Logo"
+                     class="h-16 md:h-20 w-auto object-contain drop-shadow-xl rounded-lg bg-transparent mix-blend-multiply dark:mix-blend-normal">
+                    {{-- <x-application-logo class="w-20 h-20 fill-current text-gray-500" /> --}}
                 </a>
             </div>
-
+            <div>
+                <br>
+                <p class="text-lg font-medium text-gray-600 lg:text-2xl sm:px-16 dark:text-gray-300 max-w-2xl mx-auto">
+                    Requisition Letter (RL) Monitoring System
+                </p>
+            </div>
             <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg">
                 {{ $slot }}
             </div>

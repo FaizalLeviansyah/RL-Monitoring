@@ -13,13 +13,11 @@
 <body class="antialiased bg-gray-50 dark:bg-gray-900 font-sans">
 
     <div class="relative flex flex-col items-center justify-center min-h-screen overflow-hidden selection:bg-blue-500 selection:text-white">
-
         <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
             <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/10 blur-[100px]"></div>
             <div class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-cyan-300/10 blur-[100px]"></div>
             <div class="absolute -bottom-[20%] left-[20%] w-[60%] h-[40%] rounded-full bg-blue-600/10 blur-[100px]"></div>
         </div>
-
         <div class="relative z-10 w-full max-w-4xl px-6 text-center">
 
             <div class="flex justify-center mb-10 transform hover:scale-105 transition duration-500">
@@ -30,7 +28,7 @@
 
             <div class="space-y-4 mb-12">
                 <h1 class="text-4xl font-extrabold tracking-tight leading-tight text-gray-900 md:text-5xl lg:text-6xl dark:text-white">
-                    PT AMARIN GROUP
+                    PT CARAKA ONE SYSTEM
                 </h1>
                 <p class="text-lg font-medium text-gray-600 lg:text-2xl sm:px-16 dark:text-gray-300 max-w-2xl mx-auto">
                     Requisition Letter (RL) Monitoring System

@@ -77,7 +77,6 @@ class DashboardController extends Controller
                             ->limit(10)
                             ->get();
         }
-
         return view('dashboard', compact(
             'myTotal', 'myPending', 'myApproved', 'myRejected', 'recent_rls'
         ));

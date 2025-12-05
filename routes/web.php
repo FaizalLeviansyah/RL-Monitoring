@@ -5,32 +5,36 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RequisitionController;
 use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\SupplyController;
 
+// Halaman Depan
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+// Group Auth (Hanya bisa diakses login)
+Route::middleware(['auth', 'verified'])->group(function () {
 
-Route::middleware('auth')->group(function () {
+    // 1. DASHBOARD
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // 2. PROFILE (Bawaan Breeze)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
 
-// Route of Requisition
-Route::resource('requisitions', RequisitionController::class);
-
-// Route Approval Simple
-Route::post('/approval/action', [ApprovalController::class, 'action'])->name('approval.action');
-
-// --- TAMBAHAN BARU (SOLUSI ERROR PDF) ---
+    // 3. REQUISITION (CRUD Utama)
+    Route::resource('requisitions', RequisitionController::class);
+    // Print PDF
     Route::get('/requisitions/{id}/print', [RequisitionController::class, 'printPdf'])->name('requisitions.print');
 
-    // --- TAMBAHAN BARU (SOLUSI APPROVAL TANPA POPUP) ---
+    // 4. APPROVAL (Action Manager)
     Route::post('/approval/action', [ApprovalController::class, 'action'])->name('approval.action');
+
+    // 5. SUPPLY TRACKING (Penerimaan Barang)
+    // Kita gunakan nama 'supply.store' agar cocok dengan show.blade.php
+    Route::post('/supply/store', [SupplyController::class, 'store'])->name('supply.store');
+
+});
 
 require __DIR__.'/auth.php';
