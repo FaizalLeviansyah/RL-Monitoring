@@ -168,12 +168,11 @@
                 <strong>{{ $myPendingApproval->level_order == 1 ? 'Manager' : 'Director' }}</strong>.
             </p>
 
-            <div class="flex gap-4">
                 <form action="#" method="POST">
                     @csrf
                     <input type="hidden" name="queue_id" value="{{ $myPendingApproval->id }}">
                     <input type="hidden" name="action" value="APPROVE">
-                    <button type="submit" class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none dark:focus:ring-green-800 flex items-center">
+                    <button type="button" onclick="requestOtp({{ $myPendingApproval->id }})" class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none dark:focus:ring-green-800 flex items-center">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         Setujui (Approve)
                     </button>
@@ -192,4 +191,120 @@
         </div>
         @endif
     </div>
+
+    <div id="otp-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full bg-gray-900/50 backdrop-blur-sm">
+        <div class="relative p-4 w-full max-w-md max-h-full">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                <div class="p-4 md:p-5 text-center">
+                    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Masukkan Kode OTP</h3>
+                    <p class="text-sm text-gray-500 mb-4">Kode dikirim ke WhatsApp Anda.</p>
+
+                    <input type="text" id="otp_input" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-4 text-center tracking-[1em] font-bold" placeholder="123456" maxlength="6">
+
+                    <button id="btn-verify" type="button" class="text-white bg-blue-600 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center">
+                        Verifikasi
+                    </button>
+                    <button data-modal-hide="otp-modal" type="button" class="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </x-app-layout>
+
+<script>
+        let currentQueueId = null;
+
+        // Fungsi Membuka Modal (Manual CSS)
+        function showModal() {
+            const modal = document.getElementById('otp-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex'); // Paksa tampil
+        }
+
+        // Fungsi Menutup Modal
+        function hideModal() {
+            const modal = document.getElementById('otp-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            // Reset input
+            document.getElementById('otp_input').value = '';
+        }
+
+        // 1. LOGIC REQUEST OTP
+        async function requestOtp(queueId) {
+            currentQueueId = queueId;
+            console.log("Mengirim Request OTP untuk Queue ID:", queueId);
+
+            try {
+                const response = await fetch("{{ route('approval.request-otp') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({ queue_id: queueId })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Response:", data);
+
+                if(data.success) {
+                    // Munculkan Alert berisi Kode OTP (Untuk Debugging)
+                    alert('OTP Terkirim ke WhatsApp!\n\n[DEBUG MODE] Kode Anda: ' + data.debug_otp);
+
+                    // Tampilkan Modal secara manual
+                    showModal();
+                } else {
+                    alert('Gagal mengirim OTP: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan sistem. Silakan cek Console (F12).');
+            }
+        }
+
+        // 2. LOGIC VERIFIKASI OTP
+        document.getElementById('btn-verify').addEventListener('click', async () => {
+            const otp = document.getElementById('otp_input').value;
+
+            if(!otp) {
+                alert('Harap masukkan kode OTP!');
+                return;
+            }
+
+            try {
+                const response = await fetch("{{ route('approval.verify-otp') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({ queue_id: currentQueueId, otp_input: otp })
+                });
+
+                const data = await response.json();
+
+                if(data.success) {
+                    alert('✅ DOKUMEN BERHASIL DISETUJUI!');
+                    hideModal();
+                    location.reload(); // Refresh halaman agar status berubah Hijau
+                } else {
+                    alert('❌ GAGAL: ' + (data.error || 'Kode OTP Salah!'));
+                }
+            } catch (error) {
+                console.error('Error Verify:', error);
+                alert('Gagal verifikasi. Cek koneksi internet.');
+            }
+        });
+
+        // Event Listener untuk Tombol Tutup (X dan Batal)
+        document.querySelectorAll('[data-modal-hide="otp-modal"]').forEach(button => {
+            button.addEventListener('click', hideModal);
+        });
+    </script>

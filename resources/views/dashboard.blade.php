@@ -5,7 +5,6 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-
         <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div class="flex flex-row items-center justify-between">
                 <div class="flex flex-col">
@@ -56,9 +55,6 @@
     </div>
 
     <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Recent Activities</h3>
-        <p class="text-sm text-gray-500">Belum ada aktivitas.</p>
-        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-bold text-gray-900 dark:text-white">Recent Requisitions</h3>
             <a href="#" class="text-sm text-blue-600 hover:underline dark:text-blue-500">View All</a>
@@ -81,27 +77,23 @@
                         <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             {{ $rl->rl_no }}
                         </th>
-
                         <td class="px-6 py-4">
                             {{ \Carbon\Carbon::parse($rl->request_date)->format('d M Y') }}
                         </td>
-
                         <td class="px-6 py-4">
-                            {{ Str::limit($rl->subject, 30) }}
+                            {{ str($rl->subject)->limit(30) }}
                         </td>
-
                         <td class="px-6 py-4">
                             @if($rl->status_flow == 'ON_PROGRESS')
-                                <span class="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">Pending</span>
+                                <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">Pending</span>
                             @elseif($rl->status_flow == 'APPROVED')
-                                <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Approved</span>
+                                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Approved</span>
                             @elseif($rl->status_flow == 'REJECTED')
-                                <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">Rejected</span>
+                                <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">Rejected</span>
                             @else
-                                <span class="bg-gray-100 text-gray-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">Draft</span>
+                                <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">Draft</span>
                             @endif
                         </td>
-
                         <td class="px-6 py-4">
                             <a href="{{ route('requisitions.show', $rl->id) }}" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Detail</a>
                         </td>
@@ -110,10 +102,9 @@
                     <tr>
                         <td colspan="5" class="px-6 py-4 text-center">Tidak ada data permintaan terbaru.</td>
                     </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
-    </div>
-</x-app-layout>
     </div>
 </x-app-layout>

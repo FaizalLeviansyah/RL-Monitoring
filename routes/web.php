@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RequisitionController;
+use App\Http\Controllers\ApprovalController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -22,5 +23,9 @@ Route::middleware('auth')->group(function () {
 
 // Route of Requisition
 Route::resource('requisitions', RequisitionController::class);
+
+// Route Approval (OTP)
+Route::post('/approval/request-otp', [ApprovalController::class, 'requestOtp'])->name('approval.request-otp');
+Route::post('/approval/verify-otp', [ApprovalController::class, 'verifyOtp'])->name('approval.verify-otp');
 
 require __DIR__.'/auth.php';
