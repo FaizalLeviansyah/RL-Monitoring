@@ -9,7 +9,7 @@ use App\Models\ApprovalQueue;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-
+use Barryvdh\DomPDF\Facade\Pdf; // Tambahkan use ini di paling atas
 class RequisitionController extends Controller
 {
     // 1. TAMPILKAN FORM
@@ -94,5 +94,18 @@ class RequisitionController extends Controller
                 ->findOrFail($id);
 
         return view('requisitions.show', compact('rl'));
+    }
+
+    // 4. PRINT PDF
+// 4. CETAK PDF
+    public function printPdf($id)
+    {
+        $rl = RequisitionLetter::with(['items', 'requester.department', 'company'])
+                ->findOrFail($id);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('requisitions.pdf', compact('rl'));
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->stream('RL-'.$rl->rl_no.'.pdf');
     }
 }

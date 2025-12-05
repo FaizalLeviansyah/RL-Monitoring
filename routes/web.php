@@ -24,8 +24,13 @@ Route::middleware('auth')->group(function () {
 // Route of Requisition
 Route::resource('requisitions', RequisitionController::class);
 
-// Route Approval (OTP)
-Route::post('/approval/request-otp', [ApprovalController::class, 'requestOtp'])->name('approval.request-otp');
-Route::post('/approval/verify-otp', [ApprovalController::class, 'verifyOtp'])->name('approval.verify-otp');
+// Route Approval Simple
+Route::post('/approval/action', [ApprovalController::class, 'action'])->name('approval.action');
+
+// --- TAMBAHAN BARU (SOLUSI ERROR PDF) ---
+    Route::get('/requisitions/{id}/print', [RequisitionController::class, 'printPdf'])->name('requisitions.print');
+
+    // --- TAMBAHAN BARU (SOLUSI APPROVAL TANPA POPUP) ---
+    Route::post('/approval/action', [ApprovalController::class, 'action'])->name('approval.action');
 
 require __DIR__.'/auth.php';
