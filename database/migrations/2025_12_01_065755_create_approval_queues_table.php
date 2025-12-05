@@ -22,7 +22,7 @@ return new class extends Migration
             $table->enum('status', ['PENDING', 'APPROVED', 'REJECTED'])->default('PENDING');
 
             // Metode Approval (Online/Manual)
-            $table->enum('method', ['ONLINE_OTP', 'MANUAL_UPLOAD'])->nullable();
+            $table->string('method')->nullable(); // Ubah jadi String bebas
             $table->string('otp_code', 255)->nullable();
             $table->string('attachment', 255)->nullable(); // Bukti TTD Manual
             $table->dateTime('approved_at')->nullable();

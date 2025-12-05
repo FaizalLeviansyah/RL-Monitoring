@@ -35,6 +35,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Kita gunakan nama 'supply.store' agar cocok dengan show.blade.php
     Route::post('/supply/store', [SupplyController::class, 'store'])->name('supply.store');
 
+    // Route untuk Halaman List per Status (Draft, Approved, dll)
+    Route::get('/requisitions/status/{status}', [RequisitionController::class, 'listByStatus'])
+        ->name('requisitions.status');
+
 });
 
 require __DIR__.'/auth.php';

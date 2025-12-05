@@ -82,14 +82,41 @@
                         <span class="flex-1 ms-3 whitespace-nowrap">Create New RL</span>
                     </a>
                 </li>
+                <li class="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700"></li>
+
                 <li>
-                    <a href="{{ route('requisitions.create') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->routeIs('requisitions.create') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
-                        <svg class="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M5 5V.13a2.96 2.96 0 0 0-1.293.749L.879 3.707A2.96 2.96 0 0 0 .13 5H5Z"/>
-                            <path d="M6.737 11.061a2.961 2.961 0 0 1 .81-1.515l6.117-6.116A4.839 4.839 0 0 1 16 2.141V2a1.97 1.97 0 0 0-1.933-2H7v5a2 2 0 0 1-2 2H0v11a1.969 1.969 0 0 0 1.933 2h12.134A1.97 1.97 0 0 0 16 18v-3.093l-1.546 1.546c-.413.413-.94.695-1.513.81l-3.4.679a2.947 2.947 0 0 1-1.85-.227 2.96 2.96 0 0 1-1.635-3.257l.681-3.397Z"/>
-                            <path d="M8.961 16a.93.93 0 0 0 .189-.019l3.4-.679a.961.961 0 0 0 .53-.271l6.119-6.117a2.937 2.937 0 0 0-4.152-4.152l-6.117 6.119a.96.96 0 0 0-.271.53l-.679 3.4a.939.939 0 0 0 1.28 1.28l-.3.303Z"/>
+                    <a href="{{ route('requisitions.status', 'draft') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->is('requisitions/status/draft') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        <span class="flex-1 ms-3 whitespace-nowrap">Draft RL</span>
+                        <span class="ms-3">Drafts</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('requisitions.status', 'on_progress') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->is('requisitions/status/on_progress') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                        <svg class="w-5 h-5 text-orange-500 transition duration-75 group-hover:text-orange-600" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="ms-3">Waiting Approval</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('requisitions.status', 'approved') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->is('requisitions/status/approved') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                        <svg class="w-5 h-5 text-green-500 transition duration-75 group-hover:text-green-600" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="ms-3">Approved</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('requisitions.status', 'rejected') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->is('requisitions/status/rejected') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                        <svg class="w-5 h-5 text-red-500 transition duration-75 group-hover:text-red-600" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="ms-3">Rejected</span>
                     </a>
                 </li>
             </ul>

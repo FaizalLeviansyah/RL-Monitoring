@@ -108,4 +108,43 @@ class RequisitionController extends Controller
 
         return $pdf->stream('RL-'.$rl->rl_no.'.pdf');
     }
+
+    // ... (kode method sebelumnya: printPdf dll)
+
+    // 5. HALAMAN LIST BERDASARKAN STATUS
+    public function listByStatus($status)
+    {
+        // Validasi status agar user tidak ketik sembarangan di URL
+        $validStatuses = ['DRAFT', 'ON_PROGRESS', 'APPROVED', 'REJECTED'];
+        $statusUpper = strtoupper($status);
+
+        if (!in_array($statusUpper, $validStatuses)) {
+            abort(404); // Halaman tidak ditemukan jika status ngawur
+        }
+
+        $user = Auth::user();
+        $query = RequisitionLetter::with(['requester.department', 'company'])
+                    ->where('status_flow', $statusUpper)
+                    ->orderBy('created_at', 'desc');
+
+        // LOGIC ROLE:
+        // Staff hanya lihat punya sendiri.
+        // Manager/Direktur bisa lihat semua (atau filter per departemen jika perlu).
+
+        // Cek apakah dia Approver (Manager/Director)
+        $isApprover = false;
+        if ($user->position && in_array($user->position->position_name, ['Manager', 'Director'])) {
+            $isApprover = true;
+        }
+
+        // Jika Staff Biasa, filter punya sendiri
+        if (!$isApprover) {
+             $query->where('requester_id', $user->employee_id);
+        }
+
+        // Gunakan Pagination (10 baris per halaman) biar tidak berat
+        $requisitions = $query->paginate(10);
+
+        return view('requisitions.index', compact('requisitions', 'status', 'statusUpper'));
+    }
 }
