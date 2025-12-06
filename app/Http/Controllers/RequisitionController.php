@@ -86,18 +86,21 @@ class RequisitionController extends Controller
     }
 
     // 3. TAMPILKAN DETAIL SURAT (Untuk Review)
-    public function show($id)
+public function show($id)
     {
-        // Ambil data surat beserta relasinya (Items, User, Approvals)
-        // Hapus 'department' dari array with()
-        $rl = RequisitionLetter::with(['items', 'requester.department', 'approvalQueues.approver', 'company'])
-                ->findOrFail($id);
-
+        // UPDATE: Tambahkan 'items.supplyHistories.receiver' di dalam with()
+        // Agar kita bisa ambil data history dan nama penerimanya
+        $rl = RequisitionLetter::with([
+            'items.supplyHistories.receiver', 
+            'requester.department', 
+            'approvalQueues.approver', 
+            'company'
+        ])->findOrFail($id);
         return view('requisitions.show', compact('rl'));
     }
 
     // 4. PRINT PDF
-// 4. CETAK PDF
+    // 4. CETAK PDF
     public function printPdf($id)
     {
         $rl = RequisitionLetter::with(['items', 'requester.department', 'company'])

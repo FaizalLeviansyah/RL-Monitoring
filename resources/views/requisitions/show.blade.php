@@ -134,8 +134,62 @@
                             </td>
                             <td class="px-6 py-4 text-center font-bold">{{ $item->qty }} {{ $item->uom }}</td>
 
-                            <td class="px-6 py-4 text-center text-green-600 font-bold">
-                                {{ $item->supplied_qty }}
+<td class="px-6 py-4 text-center">
+                                <div class="flex flex-col items-center">
+                                    <span class="text-green-600 font-bold text-lg">{{ $item->supplied_qty }}</span>
+                                    
+                                    @if($item->supplied_qty > 0)
+                                        <button type="button" onclick="toggleModal('history-modal-{{ $item->id }}')" class="text-xs text-blue-600 hover:text-blue-800 hover:underline mt-1 flex items-center">
+                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            Riwayat
+                                        </button>
+
+                                        <div id="history-modal-{{ $item->id }}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-[60] justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full bg-gray-900/50 backdrop-blur-sm">
+                                            <div class="relative p-4 w-full max-w-2xl max-h-full">
+                                                <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                                                    <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                                                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                                                            Riwayat: {{ $item->item_name }}
+                                                        </h3>
+                                                        <button type="button" onclick="toggleModal('history-modal-{{ $item->id }}')" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center">
+                                                            <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                                                        </button>
+                                                    </div>
+                                                    <div class="p-4 md:p-5 space-y-4">
+                                                        <div class="relative overflow-x-auto">
+                                                            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                                                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                                                    <tr>
+                                                                        <th class="px-4 py-2">Tanggal</th>
+                                                                        <th class="px-4 py-2">Penerima</th>
+                                                                        <th class="px-4 py-2 text-center">Qty</th>
+                                                                        <th class="px-4 py-2 text-center">Bukti Foto</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @foreach($item->supplyHistories as $history)
+                                                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                                                        <td class="px-4 py-2">{{ $history->created_at->format('d M Y H:i') }}</td>
+                                                                        <td class="px-4 py-2">{{ $history->receiver->full_name ?? '-' }}</td>
+                                                                        <td class="px-4 py-2 text-center font-bold">{{ $history->qty_received }}</td>
+                                                                        <td class="px-4 py-2 text-center">
+                                                                            @if($history->photo_proof)
+                                                                                <a href="{{ asset('storage/' . $history->photo_proof) }}" target="_blank" class="text-blue-600 hover:underline text-xs">Lihat Foto</a>
+                                                                            @else
+                                                                                <span class="text-gray-400 text-xs">-</span>
+                                                                            @endif
+                                                                        </td>
+                                                                    </tr>
+                                                                    @endforeach
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
                             </td>
 
                             <td class="px-6 py-4 text-center text-red-600 font-bold">
@@ -262,6 +316,15 @@
             const modal = document.getElementById('supply-modal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+        }
+
+        // Fungsi Universal Buka/Tutup Modal berdasarkan ID
+        function toggleModal(modalID) {
+            const modal = document.getElementById(modalID);
+            if (modal) {
+                modal.classList.toggle('hidden');
+                modal.classList.toggle('flex');
+            }
         }
     </script>
 </x-app-layout>
