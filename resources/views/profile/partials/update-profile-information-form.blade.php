@@ -20,12 +20,12 @@
 
         <div>
             <x-input-label for="name" :value="__('Nama Lengkap')" />
-            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full bg-gray-100 cursor-not-allowed" :value="old('name', $user->full_name)" disabled />
+            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full bg-gray-100 cursor-not-allowed text-gray-500" :value="old('name', $user->full_name)" readonly />
         </div>
 
         <div>
             <x-input-label for="email" :value="__('Email Kerja')" />
-            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full bg-gray-100 cursor-not-allowed" :value="old('email', $user->email_work)" disabled />
+            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full bg-gray-100 cursor-not-allowed text-gray-500" :value="old('email', $user->email_work)" readonly />
         </div>
         
         <div>
