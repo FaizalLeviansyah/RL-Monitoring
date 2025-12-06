@@ -1,5 +1,213 @@
-{{-- TAMPILAN VERSI 2 --}}
+{{-- TAMPILAN VERSI 3  --}}
 <x-app-layout>
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                Dashboard Overview
+            </h1>
+            <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Selamat datang, <span class="font-bold text-blue-600 text-base">{{ Auth::user()->full_name }}</span>
+            </div>
+            <div class="mt-2 flex gap-2">
+                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300 border border-blue-200">
+                    {{ Auth::user()->position->position_name ?? 'Staff' }}
+                </span>
+                <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300 border border-gray-200">
+                    {{ $isApprover ? 'Role: Approver' : 'Role: Requester' }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="text-right">
+            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                {{ \Carbon\Carbon::now()->format('l, d F Y') }}
+            </div>
+            <div class="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-widest" id="realtime-clock">
+                00:00:00
+            </div>
+            <div class="text-xs text-gray-400 mt-1 flex justify-end items-center gap-1">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                System Live
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        <div class="flex flex-col p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Total</dt>
+            <dd class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ $countTotal }}</dd>
+        </div>
+        <div class="flex flex-col p-4 bg-white border-l-4 border-gray-400 rounded-r-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Draft</dt>
+            <dd class="text-2xl font-extrabold text-gray-600 dark:text-gray-300">{{ $countDraft }}</dd>
+        </div>
+        <div class="flex flex-col p-4 bg-white border-l-4 border-orange-400 rounded-r-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-orange-500 dark:text-orange-400 text-xs uppercase font-bold tracking-wider">Waiting</dt>
+            <dd class="text-2xl font-extrabold text-orange-600 dark:text-orange-400">{{ $countPending }}</dd>
+        </div>
+        <div class="flex flex-col p-4 bg-white border-l-4 border-green-400 rounded-r-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-green-500 dark:text-green-400 text-xs uppercase font-bold tracking-wider">Approved</dt>
+            <dd class="text-2xl font-extrabold text-green-600 dark:text-green-400">{{ $countApproved }}</dd>
+        </div>
+        <div class="flex flex-col p-4 bg-white border-l-4 border-red-400 rounded-r-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-red-500 dark:text-red-400 text-xs uppercase font-bold tracking-wider">Rejected</dt>
+            <dd class="text-2xl font-extrabold text-red-600 dark:text-red-400">{{ $countRejected }}</dd>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+        <div class="p-5 bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-xl dark:from-gray-800 dark:to-gray-900 dark:border-gray-700">
+            <h3 class="text-sm font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                Master Data
+            </h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center text-sm border-b border-blue-100 dark:border-gray-700 pb-2">
+                    <span class="text-gray-600 dark:text-gray-400">Karyawan</span>
+                    <span class="font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-700 px-2 py-0.5 rounded shadow-sm">{{ $countEmployees }}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm border-b border-blue-100 dark:border-gray-700 pb-2">
+                    <span class="text-gray-600 dark:text-gray-400">Departemen</span>
+                    <span class="font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-700 px-2 py-0.5 rounded shadow-sm">{{ $countDepartments }}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-600 dark:text-gray-400">Perusahaan</span>
+                    <span class="font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-700 px-2 py-0.5 rounded shadow-sm">{{ $countCompanies }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <a href="{{ route('requisitions.create') }}" class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 group dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
+                <div class="p-3 mb-2 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors duration-200 dark:bg-blue-900 dark:text-blue-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </div>
+                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Buat RL Baru</span>
+            </a>
+
+            <a href="{{ route('requisitions.status', 'draft') }}" class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200 group dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
+                <div class="p-3 mb-2 bg-gray-100 text-gray-600 rounded-full group-hover:bg-gray-600 group-hover:text-white transition-colors duration-200 dark:bg-gray-700 dark:text-gray-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </div>
+                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Draft Saya</span>
+            </a>
+
+            <a href="{{ route('requisitions.status', 'on_progress') }}" class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:bg-orange-50 hover:border-orange-200 transition-all duration-200 group dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
+                <div class="p-3 mb-2 bg-orange-100 text-orange-600 rounded-full group-hover:bg-orange-500 group-hover:text-white transition-colors duration-200 dark:bg-orange-900 dark:text-orange-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Cek Status</span>
+            </a>
+
+            <a href="{{ route('profile.edit') }}" class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:bg-purple-50 hover:border-purple-200 transition-all duration-200 group dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
+                <div class="p-3 mb-2 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors duration-200 dark:bg-purple-900 dark:text-purple-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </div>
+                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Settings</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <h3 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">Analisis Status</h3>
+            <div id="status-chart" class="w-full"></div>
+        </div>
+
+        <div class="lg:col-span-2 p-6 bg-white border border-gray-200 rounded-xl shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Aktivitas Terbaru</h3>
+                <a href="{{ route('requisitions.status', 'on_progress') }}" class="text-sm text-blue-600 hover:underline dark:text-blue-500">Lihat Semua</a>
+            </div>
+            
+            <div class="relative overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">RL No</th>
+                            <th class="px-4 py-3">Subject</th>
+                            <th class="px-4 py-3 text-center">Status</th>
+                            <th class="px-4 py-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($recent_rls as $rl)
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                {{ $rl->rl_no }}
+                                <div class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($rl->request_date)->format('d/m/Y') }}</div>
+                            </td>
+                            <td class="px-4 py-3">
+                                {{ str($rl->subject)->limit(25) }}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                @php
+                                    $status = $rl->status_flow;
+                                    if($isApprover) {
+                                        $myQ = $rl->approvalQueues->where('approver_id', Auth::user()->employee_id)->first();
+                                        $status = $myQ ? $myQ->status : $status;
+                                    }
+                                @endphp
+
+                                @if($status == 'PENDING' || $status == 'ON_PROGRESS')
+                                    <span class="bg-orange-100 text-orange-800 text-[10px] font-medium px-2 py-0.5 rounded-full dark:bg-orange-900 dark:text-orange-300">Wait</span>
+                                @elseif($status == 'APPROVED')
+                                    <span class="bg-green-100 text-green-800 text-[10px] font-medium px-2 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">OK</span>
+                                @elseif($status == 'REJECTED')
+                                    <span class="bg-red-100 text-red-800 text-[10px] font-medium px-2 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300">No</span>
+                                @else
+                                    <span class="bg-gray-100 text-gray-800 text-[10px] font-medium px-2 py-0.5 rounded-full dark:bg-gray-700 dark:text-gray-300">Draft</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <a href="{{ route('requisitions.show', $rl->id) }}" class="text-blue-600 hover:text-blue-900">
+                                    <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="4" class="px-4 py-4 text-center">No Data.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 1. CHART CONFIG
+            const chartData = {{ $chartData }}; 
+            const options = {
+                series: [{ name: 'Jumlah', data: chartData }],
+                chart: { height: 250, type: 'bar', toolbar: { show: false }, fontFamily: 'Figtree, sans-serif' },
+                plotOptions: { bar: { borderRadius: 2, columnWidth: '40%', distributed: true } },
+                colors: ['#9CA3AF', '#F97316', '#22C55E', '#EF4444'],
+                dataLabels: { enabled: false },
+                legend: { show: false },
+                xaxis: { categories: ['Draft', 'Pending', 'Approved', 'Rejected'], labels: { style: { fontSize: '10px' } } },
+                grid: { borderColor: '#f1f1f1' }
+            };
+            new ApexCharts(document.querySelector("#status-chart"), options).render();
+
+            // 2. REALTIME CLOCK (INOVASI BARU)
+            function updateClock() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-GB', { hour12: false });
+                document.getElementById('realtime-clock').innerText = timeString;
+            }
+            setInterval(updateClock, 1000);
+            updateClock(); // Run immediately
+        });
+    </script>
+</x-app-layout>
+
+{{-- TAMPILAN VERSI 2 --}}
+{{-- <x-app-layout>
     <div class="flex justify-between items-end mb-4">
         <div>
             <h1 class="text-xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
@@ -188,7 +396,7 @@
             new ApexCharts(document.querySelector("#status-chart"), options).render();
         });
     </script>
-</x-app-layout>
+</x-app-layout> --}}
 
 {{-- TAMPILAN VERSI 1  --}}
 {{-- <x-app-layout>
