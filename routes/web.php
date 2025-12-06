@@ -39,6 +39,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/requisitions/status/{status}', [RequisitionController::class, 'listByStatus'])
         ->name('requisitions.status');
 
+    // Route Submit Draft
+    Route::post('/requisitions/{id}/submit-draft', [RequisitionController::class, 'submitDraft'])
+        ->name('requisitions.submit-draft');
+
 });
 
 require __DIR__.'/auth.php';

@@ -6,7 +6,7 @@
             <a href="{{ route('dashboard') }}" class="text-gray-500 hover:underline">Back to Dashboard</a>
         </div>
 
-        <form action="{{ route('requisitions.store') }}" method="POST">
+        <form id="rlForm" action="{{ route('requisitions.store') }}" method="POST">
             @csrf
 
             <div class="p-6 mb-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
@@ -77,9 +77,12 @@
                     </table>
                 </div>
             </div>
-            <div class="flex justify-end">
-                <button type="submit" class="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-8 py-3 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none dark:focus:ring-green-800">
-                    Submit Requisition
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="submit" name="action" value="draft" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 transition-all shadow-sm">
+                    Simpan sebagai Draft
+                </button>
+                <button type="submit" name="action" value="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none transition-all shadow-md">
+                    Ajukan Approval (Submit)
                 </button>
             </div>
         </form>
@@ -115,4 +118,23 @@
             itemIndex++;
         }
     </script>
+    <script>
+    // Script Item (yang sudah ada biarkan saja) ...
+    let itemIndex = 1;
+    function addItemRow() { ... }
+
+    // --- TAMBAHAN BARU: CEGAH DOUBLE SUBMIT ---
+    document.getElementById('rlForm').addEventListener('submit', function(e) {
+        // Cari tombol submit yang ditekan
+        const submitter = e.submitter;
+        
+        // Ubah text tombol jadi "Processing..." dan disable biar gak bisa diklik lagi
+        // Kita gunakan setTimeout 0 agar data form (value=draft/submit) sempat terkirim dulu
+        setTimeout(() => {
+            submitter.disabled = true;
+            submitter.innerText = 'Processing...';
+            submitter.classList.add('opacity-50', 'cursor-not-allowed');
+        }, 0);
+    });
+</script>
 </x-app-layout>

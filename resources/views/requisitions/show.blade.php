@@ -17,7 +17,7 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-
+            
             <div class="lg:col-span-2 p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
                 <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white border-b pb-2">Informasi Umum</h3>
                 <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
@@ -60,8 +60,8 @@
 
             <div class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700 h-fit">
                 <h3 class="mb-6 text-lg font-semibold text-gray-900 dark:text-white border-b pb-4">Posisi Dokumen</h3>
-
-                <ol class="relative border-l-2 border-gray-200 dark:border-gray-700 ms-3">
+                
+                <ol class="relative border-l-2 border-gray-200 dark:border-gray-700 ms-3">                  
                     <li class="mb-10 ms-6">
                         <span class="absolute flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full -start-4 ring-4 ring-white dark:ring-gray-900 dark:bg-blue-900">
                             <svg class="w-4 h-4 text-blue-800 dark:text-blue-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"><path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"/></svg>
@@ -83,11 +83,11 @@
                                 <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             @endif
                         </span>
-
+                        
                         <h3 class="mb-1 text-base font-semibold text-gray-900 dark:text-white">
                             Approval {{ $queue->level_order == 1 ? 'Manager' : 'Director' }}
                         </h3>
-
+                        
                         <div class="p-3 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-700 dark:border-gray-600">
                             <div class="flex items-center justify-between mb-2">
                                 <div class="text-sm font-normal text-gray-500 dark:text-gray-400">Penyetuju:</div>
@@ -133,8 +133,8 @@
                                 <div class="text-xs text-gray-500">{{ $item->description }}</div>
                             </td>
                             <td class="px-6 py-4 text-center font-bold">{{ $item->qty }} {{ $item->uom }}</td>
-
-<td class="px-6 py-4 text-center">
+                            
+                            <td class="px-6 py-4 text-center">
                                 <div class="flex flex-col items-center">
                                     <span class="text-green-600 font-bold text-lg">{{ $item->supplied_qty }}</span>
                                     
@@ -163,7 +163,7 @@
                                                                         <th class="px-4 py-2">Tanggal</th>
                                                                         <th class="px-4 py-2">Penerima</th>
                                                                         <th class="px-4 py-2 text-center">Qty</th>
-                                                                        <th class="px-4 py-2 text-center">Bukti Foto</th>
+                                                                        <th class="px-4 py-2 text-center">Bukti</th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
@@ -174,9 +174,9 @@
                                                                         <td class="px-4 py-2 text-center font-bold">{{ $history->qty_received }}</td>
                                                                         <td class="px-4 py-2 text-center">
                                                                             @if($history->photo_proof)
-                                                                                <a href="{{ asset('storage/' . $history->photo_proof) }}" target="_blank" class="text-blue-600 hover:underline text-xs">Lihat Foto</a>
+                                                                                <a href="{{ asset('storage/' . $history->photo_proof) }}" target="_blank" class="text-blue-600 hover:underline text-xs">Foto</a>
                                                                             @else
-                                                                                <span class="text-gray-400 text-xs">-</span>
+                                                                                -
                                                                             @endif
                                                                         </td>
                                                                     </tr>
@@ -191,7 +191,7 @@
                                     @endif
                                 </div>
                             </td>
-
+                            
                             <td class="px-6 py-4 text-center text-red-600 font-bold">
                                 {{ $item->remaining_qty }}
                             </td>
@@ -206,7 +206,7 @@
 
                             <td class="px-6 py-4 text-center">
                                 @if($rl->status_flow == 'APPROVED' && $item->remaining_qty > 0)
-                                    <button onclick="openSupplyModal({{ $item->id }}, '{{ $item->item_name }}', {{ $item->remaining_qty }})"
+                                    <button onclick="openSupplyModal({{ $item->id }}, '{{ $item->item_name }}', {{ $item->remaining_qty }})" 
                                             class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-xs px-3 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none">
                                         Terima
                                     </button>
@@ -228,17 +228,33 @@
             $myPendingApproval = $rl->approvalQueues->where('approver_id', $currentUser->employee_id)->where('status', 'PENDING')->first();
         @endphp
 
+        @if($rl->status_flow == 'DRAFT' && $currentUser->employee_id == $rl->requester_id)
+        <div class="fixed bottom-0 left-0 z-50 w-full h-20 bg-white border-t border-gray-200 dark:bg-gray-800 dark:border-gray-600 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex items-center justify-center gap-4 animate-bounce-up">
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300 mr-2 hidden sm:inline">
+                Dokumen ini masih <strong>DRAFT</strong>. Silakan ajukan jika sudah siap:
+            </span>
+            
+            <form action="{{ route('requisitions.submit-draft', $rl->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin data sudah benar dan ingin mengajukan approval?');">
+                @csrf
+                <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-8 py-3 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none flex items-center shadow-md transition-transform transform hover:scale-105">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    Ajukan Sekarang (Submit)
+                </button>
+            </form>
+        </div>
+        @endif
+
         @if($myPendingApproval)
         <div class="fixed bottom-0 left-0 z-50 w-full h-20 bg-white border-t border-gray-200 dark:bg-gray-800 dark:border-gray-600 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex items-center justify-center gap-4 animate-bounce-up">
             <span class="text-sm font-medium text-gray-600 dark:text-gray-300 mr-2 hidden sm:inline">
                 Anda memiliki akses untuk memproses dokumen ini:
             </span>
-
+            
             <form action="{{ route('approval.action') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin menyetujui dokumen ini?');">
                 @csrf
                 <input type="hidden" name="queue_id" value="{{ $myPendingApproval->id }}">
                 <input type="hidden" name="action" value="APPROVE">
-
+                
                 <button type="submit" class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-6 py-3 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none flex items-center shadow-md">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     Setujui (Approve)
@@ -249,7 +265,7 @@
                 @csrf
                 <input type="hidden" name="queue_id" value="{{ $myPendingApproval->id }}">
                 <input type="hidden" name="action" value="REJECT">
-
+                
                 <button type="submit" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-6 py-3 dark:bg-red-600 dark:hover:bg-red-700 focus:outline-none flex items-center shadow-md">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     Tolak (Reject)
@@ -271,11 +287,11 @@
                         <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
                     </button>
                 </div>
-
+                
                 <form action="{{ route('supply.store') }}" method="POST" enctype="multipart/form-data" class="p-4 md:p-5">
                     @csrf
                     <input type="hidden" name="item_id" id="modal_item_id">
-
+                    
                     <div class="mb-4">
                         <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nama Barang</label>
                         <input type="text" id="modal_item_name" class="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 cursor-not-allowed" disabled>
@@ -300,12 +316,13 @@
     </div>
 
     <script>
+        // Fungsi untuk Modal Supply
         function openSupplyModal(id, name, maxQty) {
             document.getElementById('modal_item_id').value = id;
             document.getElementById('modal_item_name').value = name;
             document.getElementById('modal_max_qty').innerText = maxQty;
             document.getElementById('modal_qty_input').max = maxQty;
-            document.getElementById('modal_qty_input').value = maxQty;
+            document.getElementById('modal_qty_input').value = maxQty; 
 
             const modal = document.getElementById('supply-modal');
             modal.classList.remove('hidden');
@@ -318,7 +335,7 @@
             modal.classList.remove('flex');
         }
 
-        // Fungsi Universal Buka/Tutup Modal berdasarkan ID
+        // Fungsi Universal Buka/Tutup Modal berdasarkan ID (Untuk History Log)
         function toggleModal(modalID) {
             const modal = document.getElementById(modalID);
             if (modal) {
@@ -327,4 +344,5 @@
             }
         }
     </script>
+
 </x-app-layout>

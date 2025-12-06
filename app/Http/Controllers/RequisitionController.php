@@ -27,7 +27,7 @@ class RequisitionController extends Controller
         $request->validate([
             'request_date' => 'required|date',
             'subject' => 'nullable|string|max:255',
-            'items' => 'required|array|min:1', // Wajib minimal 1 barang
+            'items' => 'required|array|min:1',
             'items.*.item_name' => 'required|string',
             'items.*.qty' => 'required|integer|min:1',
             'items.*.uom' => 'required|string',
@@ -37,13 +37,18 @@ class RequisitionController extends Controller
         DB::transaction(function () use ($request) {
             $user = Auth::user();
 
+$status = ($request->action === 'draft') ? 'DRAFT' : 'ON_PROGRESS';
+
             // A. SIMPAN HEADER SURAT
             $rl = RequisitionLetter::create([
                 'company_id' => $user->company_id,
                 'requester_id' => $user->employee_id,
-                'rl_no' => RequisitionLetter::generateNumber(), // Generate lagi saat save biar aman
+                'rl_no' => RequisitionLetter::generateNumber(),
                 'request_date' => $request->request_date,
-                'status_flow' => 'ON_PROGRESS', // Langsung jalan
+                
+                // PERBAIKAN DISINI: Gunakan variabel $status, jangan 'ON_PROGRESS'
+                'status_flow' => $status, 
+                
                 'subject' => $request->subject,
                 'to_department' => $request->to_department,
                 'remark' => $request->remark,
@@ -61,28 +66,27 @@ class RequisitionController extends Controller
                 ]);
             }
 
-            // C. GENERATE APPROVAL QUEUE (AUTO)
-            // Skenario: Cari Manager di perusahaan yg sama
-            // (Nanti logic ini bisa dipercanggih, sementara kita hardcode logic dulu)
+            // 4. GENERATE APPROVAL (HANYA JIKA SUBMIT / ON_PROGRESS)
+            // Kalau Draft, jangan panggil manager dulu.
+            if ($status === 'ON_PROGRESS') {
+                $manager = User::where('company_id', $user->company_id)
+                            ->whereHas('position', function($q) {
+                                $q->where('position_name', 'Manager');
+                            })->first();
 
-            // Level 1: Manager (Cari User yg jabatannya Manager di Company user)
-            // Note: Ini contoh simplifikasi. Nanti kita bisa pakai position_id yg Bapak buat.
-            $manager = User::where('company_id', $user->company_id)
-                        ->whereHas('position', function($q) {
-                            $q->where('position_name', 'Manager');
-                        })->first();
-
-            if ($manager) {
-                ApprovalQueue::create([
-                    'rl_id' => $rl->id,
-                    'approver_id' => $manager->employee_id,
-                    'level_order' => 1,
-                    'status' => 'PENDING'
-                ]);
+                if ($manager) {
+                    ApprovalQueue::create([
+                        'rl_id' => $rl->id,
+                        'approver_id' => $manager->employee_id,
+                        'level_order' => 1,
+                        'status' => 'PENDING'
+                    ]);
+                }
             }
-            // Level 2: Director ... (Bisa ditambahkan nanti)
         });
-        return redirect()->route('dashboard')->with('success', 'Requisition Letter created successfully!');
+
+        $msg = ($request->action === 'draft') ? 'Draft berhasil disimpan!' : 'Permintaan berhasil diajukan!';
+        return redirect()->route('dashboard')->with('success', $msg);
     }
 
     // 3. TAMPILKAN DETAIL SURAT (Untuk Review)
@@ -149,5 +153,50 @@ public function show($id)
         $requisitions = $query->paginate(10);
 
         return view('requisitions.index', compact('requisitions', 'status', 'statusUpper'));
+    }
+
+    // 6. SUBMIT DARI DRAFT (Action dari Halaman Detail)
+    public function submitDraft($id)
+    {
+        $rl = RequisitionLetter::findOrFail($id);
+
+        // Security Check: Pastikan statusnya masih DRAFT
+        if ($rl->status_flow != 'DRAFT') {
+            return back()->with('error', 'Dokumen ini sudah diajukan atau diproses.');
+        }
+
+        // Security Check: Pastikan yang submit adalah pembuatnya sendiri
+        if (Auth::user()->employee_id != $rl->requester_id) {
+            return back()->with('error', 'Anda tidak memiliki akses.');
+        }
+
+        DB::transaction(function () use ($rl) {
+            // 1. Update Status Jadi ON_PROGRESS
+            $rl->update(['status_flow' => 'ON_PROGRESS']);
+
+            // 2. GENERATE APPROVAL QUEUE (Copy Logic dari Store)
+            // Karena saat Draft approval belum dibuat, sekarang saatnya dibuat.
+            
+            $manager = User::where('company_id', $rl->company_id)
+                        ->whereHas('position', function($q) {
+                            $q->where('position_name', 'Manager');
+                        })->first();
+
+            if ($manager) {
+                // Cek dulu biar gak duplikat (safety)
+                $existingQueue = ApprovalQueue::where('rl_id', $rl->id)->exists();
+                
+                if (!$existingQueue) {
+                    ApprovalQueue::create([
+                        'rl_id' => $rl->id,
+                        'approver_id' => $manager->employee_id,
+                        'level_order' => 1,
+                        'status' => 'PENDING'
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('dashboard')->with('success', 'Draft berhasil diajukan untuk approval!');
     }
 }

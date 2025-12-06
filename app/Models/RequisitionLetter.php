@@ -33,43 +33,43 @@ class RequisitionLetter extends Model
     public function otpLogs() {
         return $this->hasMany(OtpAuditLog::class, 'rl_id', 'id');
     }
+
     /**
      * FUNGSI GENERATE NOMOR SURAT OTOMATIS
      * Format: RL/COMPANY/DEPT/TAHUN/BULAN/URUTAN
-     * Contoh: RL/ASM/IT/2025/XII/001
+     * Contoh: RL/ASM/IT/2025/XII/0001
      */
     public static function generateNumber()
     {
         $user = auth()->user();
 
-        // 1. Ambil Kode Company & Dept (Dari relasi user)
-        // Kita pakai optional() untuk jaga-jaga kalau datanya null
+        // 1. Ambil Kode Company & Dept
         $companyCode = optional($user->company)->company_code ?? 'GEN';
-        // Ambil 3 huruf pertama departemen, misal IT, HRD, FIN
         $deptCode = strtoupper(substr(optional($user->department)->department_name ?? 'GEN', 0, 3));
 
         $year = date('Y');
         $month = date('n'); // 1-12
         $monthRomawi = self::getRomawi($month);
 
-        // 2. Cari urutan terakhir bulan ini untuk Company ini
+        // 2. Cari surat terakhir bulan ini & tahun ini
         $lastRL = self::where('company_id', $user->company_id)
                     ->whereYear('created_at', $year)
                     ->whereMonth('created_at', $month)
                     ->orderBy('id', 'desc')
                     ->first();
 
-        // 3. Tentukan nomor urut
+        // 3. Tentukan nomor urut (REVISI 4 DIGIT DISINI)
         if ($lastRL) {
-            // Ambil 3 digit terakhir dari nomor surat terakhir
-            $lastNumber = (int) substr($lastRL->rl_no, -3);
+            // Ambil 4 digit terakhir dari string nomor surat (Misal .../0005 -> 5)
+            // Pastikan offset substr benar (-4 untuk 4 digit)
+            $lastNumber = (int) substr($lastRL->rl_no, -4); 
             $newNumber = $lastNumber + 1;
         } else {
             $newNumber = 1;
         }
 
-        // 4. Format jadi 3 digit (001, 002, dst)
-        $sequence = sprintf("%03d", $newNumber);
+        // 4. Format jadi 4 digit (0001, 0002, dst)
+        $sequence = sprintf("%04d", $newNumber);
 
         // 5. Gabungkan
         return "RL/{$companyCode}/{$deptCode}/{$year}/{$monthRomawi}/{$sequence}";
