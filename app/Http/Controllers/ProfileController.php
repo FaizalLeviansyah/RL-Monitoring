@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -24,15 +25,35 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        // Kita TIDAK update $request->user()->fill(...) untuk nama/email
+        // Karena nama & email dikunci oleh IT.
+        
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // 1. LOGIC UPLOAD FOTO PROFIL
+        if ($request->hasFile('photo')) {
+            // Hapus foto lama jika ada
+            if ($user->profile_photo_path) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+            // Simpan foto baru
+            $path = $request->file('photo')->store('profile-photos', 'public');
+            $user->profile_photo_path = $path;
         }
 
-        $request->user()->save();
+        // 2. LOGIC UPLOAD TTD DIGITAL (Saran Tambahan)
+        if ($request->hasFile('signature')) {
+            if ($user->signature_path) {
+                Storage::disk('public')->delete($user->signature_path);
+            }
+            $pathSign = $request->file('signature')->store('signatures', 'public');
+            $user->signature_path = $pathSign;
+        }
+
+        // Simpan perubahan (hanya kolom foto/ttd yang berubah)
+        $user->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
