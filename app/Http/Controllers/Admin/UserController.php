@@ -16,14 +16,16 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with(['company', 'department', 'position']);
+        // PERBAIKAN: Tambahkan ->where('is_deleted', 0)
+        $query = User::with(['company', 'department', 'position'])
+                     ->where('is_deleted', 0); // <--- INI KUNCINYA
 
-        // 1. Filter by Company (PT)
+        // Filter by Company (PT)
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->company_id);
         }
 
-        // 2. Search by Name/Email
+        // Search by Name/Email
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('full_name', 'like', '%'.$request->search.'%')
@@ -32,8 +34,7 @@ class UserController extends Controller
         }
 
         $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
-        
-        $companies = Company::all(); // Untuk dropdown filter
+        $companies = Company::all();
 
         return view('admin.users.index', compact('users', 'companies'));
     }
@@ -48,19 +49,19 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        // Validasi & Logic Store (Sama seperti sebelumnya)
         $request->validate([
             'full_name' => 'required|string|max:255',
             'email_work' => 'required|email|unique:mysql_master.tbl_employee,email_work',
+            'password' => 'required|string|min:8',
             'company_id' => 'required',
             'department_id' => 'required',
             'position_id' => 'required',
-            'password' => 'required|min:6',
         ]);
 
         DB::transaction(function () use ($request) {
-            // 1. Simpan ke MASTER DATABASE (tbl_employee)
             $user = User::create([
-                'employee_code' => 'MAN-' . rand(1000,9999), // Auto generate code
+                'employee_code' => 'MAN-' . rand(1000,9999),
                 'full_name' => $request->full_name,
                 'email_work' => $request->email_work,
                 'password' => Hash::make($request->password),
@@ -68,10 +69,10 @@ class UserController extends Controller
                 'department_id' => $request->department_id,
                 'position_id' => $request->position_id,
                 'phone' => $request->phone,
-                'employment_status' => 'Active'
+                'employment_status' => 'Active',
+                'is_deleted' => 0
             ]);
 
-            // 2. Beri Akses Login ke Aplikasi Ini (TRANSACTION DATABASE)
             UserApplicationAccess::create([
                 'user_id' => $user->employee_id,
                 'app_code' => 'RL-MONITORING',
@@ -79,8 +80,69 @@ class UserController extends Controller
             ]);
         });
 
-        return redirect()->route('admin.users.index')->with('success', 'User berhasil didaftarkan & diberi akses!');
+        return redirect()->route('admin.users.index')->with('success', 'User berhasil dibuat!');
     }
 
-    // (Method Edit & Update bisa ditambahkan dengan pola serupa)
-}
+    // --- PASTIKAN METHOD INI ADA & DI DALAM CLASS ---
+    public function edit($id)
+    {
+        $user = User::findOrFail($id);
+        $companies = Company::all();
+        $departments = Department::all();
+        $positions = Position::all();
+
+        return view('admin.users.edit', compact('user', 'companies', 'departments', 'positions'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'full_name' => 'required|string|max:255',
+            'email_work' => 'required|email|unique:mysql_master.tbl_employee,email_work,'.$id.',employee_id',
+            'company_id' => 'required',
+            'department_id' => 'required',
+            'position_id' => 'required',
+        ]);
+
+        DB::transaction(function () use ($request, $user) {
+            $dataToUpdate = [
+                'full_name' => $request->full_name,
+                'email_work' => $request->email_work,
+                'phone' => $request->phone,
+                'company_id' => $request->company_id,
+                'department_id' => $request->department_id,
+                'position_id' => $request->position_id,
+                'employment_status' => $request->employment_status,
+            ];
+
+            if ($request->filled('password')) {
+                $dataToUpdate['password'] = Hash::make($request->password);
+            }
+
+            $user->update($dataToUpdate);
+        });
+
+        return redirect()->route('admin.users.index')->with('success', 'User updated!');
+    }
+
+    public function destroy($id)
+        {
+            $user = User::findOrFail($id);
+
+            DB::transaction(function () use ($user) {
+                // 1. Matikan Akses Login
+                UserApplicationAccess::where('user_id', $user->employee_id)
+                    ->update(['is_active' => false]);
+
+                // 2. Tandai User sebagai Terhapus (Soft Delete Manual)
+                $user->update([
+                    'employment_status' => 'Resigned',
+                    'is_deleted' => 1 // <--- Ini yang membuat dia hilang dari index nanti
+                ]);
+            });
+
+            return redirect()->route('admin.users.index')->with('success', 'User berhasil dinonaktifkan.');
+        }
+    }

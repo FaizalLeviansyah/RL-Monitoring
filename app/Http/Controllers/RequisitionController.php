@@ -45,10 +45,10 @@ $status = ($request->action === 'draft') ? 'DRAFT' : 'ON_PROGRESS';
                 'requester_id' => $user->employee_id,
                 'rl_no' => RequisitionLetter::generateNumber(),
                 'request_date' => $request->request_date,
-                
+
                 // PERBAIKAN DISINI: Gunakan variabel $status, jangan 'ON_PROGRESS'
-                'status_flow' => $status, 
-                
+                'status_flow' => $status,
+
                 'subject' => $request->subject,
                 'to_department' => $request->to_department,
                 'remark' => $request->remark,
@@ -95,9 +95,9 @@ public function show($id)
         // UPDATE: Tambahkan 'items.supplyHistories.receiver' di dalam with()
         // Agar kita bisa ambil data history dan nama penerimanya
         $rl = RequisitionLetter::with([
-            'items.supplyHistories.receiver', 
-            'requester.department', 
-            'approvalQueues.approver', 
+            'items.supplyHistories.receiver',
+            'requester.department',
+            'approvalQueues.approver',
             'company'
         ])->findOrFail($id);
         return view('requisitions.show', compact('rl'));
@@ -176,7 +176,7 @@ public function show($id)
 
             // 2. GENERATE APPROVAL QUEUE (Copy Logic dari Store)
             // Karena saat Draft approval belum dibuat, sekarang saatnya dibuat.
-            
+
             $manager = User::where('company_id', $rl->company_id)
                         ->whereHas('position', function($q) {
                             $q->where('position_name', 'Manager');
@@ -185,7 +185,6 @@ public function show($id)
             if ($manager) {
                 // Cek dulu biar gak duplikat (safety)
                 $existingQueue = ApprovalQueue::where('rl_id', $rl->id)->exists();
-                
                 if (!$existingQueue) {
                     ApprovalQueue::create([
                         'rl_id' => $rl->id,

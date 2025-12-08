@@ -31,9 +31,8 @@ class ProfileUpdateRequest extends FormRequest
                     ->ignore($this->user()->employee_id, 'employee_id'),
             ],
 
-            // 3. Validasi Foto (DISINI TEMPATNYA)
-            // jpg, jpeg, png, webp semua bisa masuk kategori 'image'
-            'photo' => ['nullable', 'image', 'max:2048'], // Max 2MB
+            // 3. Validasi Foto Profil
+            'photo' => ['nullable', 'image', 'max:4048'], // Max 2MB
         ];
     }
 }
