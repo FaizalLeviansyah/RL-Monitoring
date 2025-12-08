@@ -43,6 +43,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/requisitions/{id}/submit-draft', [RequisitionController::class, 'submitDraft'])
         ->name('requisitions.submit-draft');
 
+    // Group khusus Super Admin
+    Route::middleware(['auth', 'verified', 'can:super_admin'])->prefix('admin')->name('admin.')->group(function () {
+    
+    // User Management
+    Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+    // Master Data Lain (Company/Dept) bisa ditambah disini
+    });
 });
 
 require __DIR__.'/auth.php';

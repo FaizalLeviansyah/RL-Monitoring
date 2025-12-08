@@ -13,6 +13,7 @@ class UserAppAccessSeeder extends Seeder
         $users = [
             'budi@amarin.com',
             'eko@amarin.com',
+            'admin@amarin.group',
             // 'bos@amarin.com' // Uncomment jika user bos sudah dibuat di MasterDataSeeder
         ];
 

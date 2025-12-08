@@ -23,7 +23,7 @@ class ApprovalController extends Controller
         if ($queue->approver_id != $user->employee_id) {
             return back()->with('error', 'Anda tidak memiliki akses untuk approval ini.');
         }
-
+        
         // Tentukan Status Baru
         $newStatus = ($request->action == 'APPROVE') ? 'APPROVED' : 'REJECTED';
 

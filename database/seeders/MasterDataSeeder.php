@@ -25,10 +25,12 @@ class MasterDataSeeder extends Seeder
         );
 
         // 2. BUAT MASTER JABATAN (POSITION)
-        // Kita buat fungsi helper kecil biar kodenya rapi & tidak error duplicate
         $posStaff = $this->createPosition($asm->company_id, 'Staff');
         $posManager = $this->createPosition($asm->company_id, 'Manager');
         $posDirector = $this->createPosition($asm->company_id, 'Director');
+        
+        // --- TAMBAHAN BARU (SUPER ADMIN) ---
+        $posSuperAdmin = $this->createPosition($asm->company_id, 'Super Admin');
 
         // 3. BUAT USER
         // User Budi (Staff)
@@ -60,7 +62,23 @@ class MasterDataSeeder extends Seeder
                 'employment_status' => 'Active'
             ]
         );
-    }
+
+        // 4. BUAT USER SUPER ADMIN (DIMASUKKAN KE SINI)
+        User::updateOrCreate(
+            ['email_work' => 'admin@amarin.group'], // Email khusus
+            [
+                'employee_code' => 'SA001',
+                'full_name' => 'IT Super Administrator',
+                'password' => Hash::make('password123'),
+                'company_id' => $asm->company_id, // Base di ASM
+                'department_id' => $deptIT->department_id,
+                'position_id' => $posSuperAdmin, // Kuncinya disini
+                'phone' => '08129999999',
+                'employment_status' => 'Active'
+            ]
+        );
+
+    } // <--- BATAS AKHIR FUNGSI RUN (Jangan taruh kode di bawah ini)
 
     // Helper untuk Cek dulu sebelum Insert Position
     private function createPosition($companyId, $name)
