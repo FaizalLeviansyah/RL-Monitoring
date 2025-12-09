@@ -6,19 +6,19 @@
                     <ol class="inline-flex items-center space-x-1 text-sm font-medium md:space-x-2">
                         <li class="inline-flex items-center">
                             <a href="{{ route('dashboard') }}" class="inline-flex items-center text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white">
-                                <svg class="w-5 h-5 mr-2.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+                                <svg class="w-5 h-5 mr-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
                                 Home
                             </a>
                         </li>
                         <li>
                             <div class="flex items-center">
-                                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
                                 <a href="{{ route('admin.users.index') }}" class="ml-1 text-gray-700 hover:text-primary-600 md:ml-2 dark:text-gray-300 dark:hover:text-white">Users</a>
                             </div>
                         </li>
                         <li>
                             <div class="flex items-center">
-                                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
                                 <span class="ml-1 text-gray-400 md:ml-2 dark:text-gray-500" aria-current="page">Edit User</span>
                             </div>
                         </li>
@@ -51,7 +51,7 @@
                     <div class="col-span-2 sm:col-span-1">
                         <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">New Password</label>
                         <input type="text" name="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave blank if you don't want to change the password.</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Biarkan kosong jika tidak ingin mengganti password.</p>
                     </div>
 
                     <div class="col-span-2 sm:col-span-1">
@@ -65,10 +65,11 @@
 
                     <div class="col-span-2 sm:col-span-1">
                         <label for="company_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Company (PT)</label>
-                        <select name="company_id" id="company_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
+                        <select name="company_id" id="company_id" onchange="loadMasterData(this.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
+                            <option value="">Select Company</option>
                             @foreach($companies as $comp)
                                 <option value="{{ $comp->company_id }}" {{ $user->company_id == $comp->company_id ? 'selected' : '' }}>
-                                    {{ $comp->company_name }} ({{ $comp->company_code }})
+                                    {{ $comp->company_name }}
                                 </option>
                             @endforeach
                         </select>
@@ -77,23 +78,16 @@
                     <div class="col-span-2 sm:col-span-1">
                         <label for="department_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Department</label>
                         <select name="department_id" id="department_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
-                            @foreach($departments as $dept)
-                                <option value="{{ $dept->department_id }}" {{ $user->department_id == $dept->department_id ? 'selected' : '' }}>
-                                    {{ $dept->department_name }}
-                                </option>
-                            @endforeach
+                            <option value="">Select Company First</option>
                         </select>
                     </div>
 
                     <div class="col-span-2">
                         <label for="position_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Position / Role</label>
                         <select name="position_id" id="position_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
-                            @foreach($positions as $pos)
-                                <option value="{{ $pos->position_id }}" {{ $user->position_id == $pos->position_id ? 'selected' : '' }}>
-                                    {{ $pos->position_name }}
-                                </option>
-                            @endforeach
+                            <option value="">Select Company First</option>
                         </select>
+                        <p class="mt-1 text-xs text-blue-500">Note: 'Manager' & 'Director' will have approval rights.</p>
                     </div>
                 </div>
 
@@ -104,4 +98,70 @@
             </form>
         </div>
     </div>
+
+    <script>
+        // Data lama user (dikirim dari controller)
+        // Kita gunakan optional chaining (?.) untuk safety jika data null (walau seharusnya tidak)
+        const oldDeptId = "{{ $user->department_id }}";
+        const oldPosId = "{{ $user->position_id }}";
+        const currentCompanyId = document.getElementById('company_id').value;
+
+        // Fungsi Utama Load Data
+        async function loadMasterData(companyId, isInit = false) {
+            const deptSelect = document.getElementById('department_id');
+            const posSelect = document.getElementById('position_id');
+
+            // Reset options hanya menampilkan Loading...
+            deptSelect.innerHTML = '<option value="">Loading...</option>';
+            posSelect.innerHTML = '<option value="">Loading...</option>';
+
+            if (!companyId) {
+                deptSelect.innerHTML = '<option value="">Select Company First</option>';
+                posSelect.innerHTML = '<option value="">Select Company First</option>';
+                return;
+            }
+
+            try {
+                // 1. Fetch Departments
+                const resDept = await fetch(`/api/get-departments/${companyId}`);
+                const dataDept = await resDept.json();
+
+                deptSelect.innerHTML = '<option value="">Select Department</option>';
+                dataDept.forEach(dept => {
+                    const opt = document.createElement('option');
+                    opt.value = dept.department_id;
+                    opt.textContent = dept.department_name;
+                    // Auto select jika ini inisialisasi awal dan ID cocok
+                    if(isInit && dept.department_id == oldDeptId) opt.selected = true;
+                    deptSelect.appendChild(opt);
+                });
+
+                // 2. Fetch Positions
+                const resPos = await fetch(`/api/get-positions/${companyId}`);
+                const dataPos = await resPos.json();
+
+                posSelect.innerHTML = '<option value="">Select Position</option>';
+                dataPos.forEach(pos => {
+                    const opt = document.createElement('option');
+                    opt.value = pos.position_id;
+                    opt.textContent = pos.position_name;
+                    // Auto select jika ini inisialisasi awal dan ID cocok
+                    if(isInit && pos.position_id == oldPosId) opt.selected = true;
+                    posSelect.appendChild(opt);
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                deptSelect.innerHTML = '<option value="">Error loading data</option>';
+                posSelect.innerHTML = '<option value="">Error loading data</option>';
+            }
+        }
+
+        // Jalankan saat halaman pertama kali dibuka untuk mengisi data awal
+        document.addEventListener('DOMContentLoaded', () => {
+            if(currentCompanyId) {
+                loadMasterData(currentCompanyId, true);
+            }
+        });
+    </script>
 </x-app-layout>

@@ -6,95 +6,106 @@ use Illuminate\Database\Seeder;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\User;
+use App\Models\Position; // Pastikan Model Position diimport
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 class MasterDataSeeder extends Seeder
 {
-public function run(): void
+    public function run(): void
     {
-        // 1. UPDATE DATA COMPANY (Format Nama Lengkap)
-        $asm = Company::updateOrCreate(
-            ['company_code' => 'ASM'],
-            ['company_name' => 'ASM (Amarin Ship Management)', 'logo_path' => 'logo_asm.png']
-        );
+        // --- 0. BERSIHKAN DATA LAMA (TRUNCATE) ---
+        // Kita matikan Foreign Key Check dulu biar bisa truncate tanpa error
+        Schema::connection('mysql_master')->disableForeignKeyConstraints();
 
-        $acs = Company::updateOrCreate(
-            ['company_code' => 'ACS'],
-            ['company_name' => 'ACS (Amarin Crewing Services)', 'logo_path' => 'logo_acs.png']
-        );
+        // Kosongkan tabel Master agar tidak ada duplikat (RESET TOTAL)
+        // Hati-hati: Ini akan menghapus semua user/dept lama di database master
+        DB::connection('mysql_master')->table('tbl_employee')->truncate();
+        DB::connection('mysql_master')->table('tbl_department')->truncate();
+        DB::connection('mysql_master')->table('tbl_position')->truncate();
+        DB::connection('mysql_master')->table('tbl_company')->truncate();
 
-        $ctp = Company::updateOrCreate(
-            ['company_code' => 'CTP'],
-            ['company_name' => 'CTP (Caraka Tirta Pratama)', 'logo_path' => 'logo_ctp.png']
-        );
+        Schema::connection('mysql_master')->enableForeignKeyConstraints();
 
-        // 2. UPDATE DEPARTEMEN SESUAI REQUEST
+        // --- 1. BUAT COMPANY ---
+        $asm = Company::create(['company_code' => 'ASM', 'company_name' => 'ASM (Amarin Ship Management)', 'logo_path' => 'Logo_PT_ASM.jpg']);
+        $acs = Company::create(['company_code' => 'ACS', 'company_name' => 'ACS (Amarin Crewing Services)', 'logo_path' => 'Logo_PT_ACS.png']);
+        $ctp = Company::create(['company_code' => 'CTP', 'company_name' => 'CTP (Caraka Tirta Pratama)', 'logo_path' => 'Logo_PT_CTP.jpg']);
 
-        // A. Departemen ASM (Sesuai Capture Excel Bapak - Saya isi default umum dulu, silakan tambah)
-        $deptsASM = ['IT', 'HR', 'Finance', 'Technical', 'Marine', 'Purchasing'];
+        // --- 2. BUAT DEPARTEMEN (Sesuai Request) ---
+
+        // A. PT ASM
+        $deptsASM = ['IT (Information Technology)', 'HR (Human-Resource)', 'Finance', 'Technical', 'Marine', 'Purchasing'];
         foreach ($deptsASM as $deptName) {
-            Department::firstOrCreate(['company_id' => $asm->company_id, 'department_name' => $deptName]);
+            Department::create(['company_id' => $asm->company_id, 'department_name' => $deptName]);
         }
 
-        // B. Departemen ACS (Amarin Crewing Services)
-        $deptsACS = ['HR', 'Finance', 'Crewing Operation', 'TI'];
+        // B. PT ACS
+        $deptsACS = ['HR (Human-Resource)', 'Finance', 'Crewing Operation', 'IT (Information Technology)'];
         foreach ($deptsACS as $deptName) {
-            Department::firstOrCreate(['company_id' => $acs->company_id, 'department_name' => $deptName]);
+            Department::create(['company_id' => $acs->company_id, 'department_name' => $deptName]);
         }
 
-        // C. Departemen CTP (Caraka Tirta Pratama)
-        $deptsCTP = ['HR (Human Resource)', 'Finance', 'Administration', 'Logistik', 'Claim'];
+        // C. PT CTP
+        $deptsCTP = ['HR (Human-Resource)', 'Finance', 'Administration', 'Logistik', 'Claim'];
         foreach ($deptsCTP as $deptName) {
-            Department::firstOrCreate(['company_id' => $ctp->company_id, 'department_name' => $deptName]);
+            Department::create(['company_id' => $ctp->company_id, 'department_name' => $deptName]);
         }
 
-        // 3. BUAT POSISI (JABATAN)
-        // Kita butuh posisi ini untuk dropdown user nanti
+        // --- 3. BUAT POSISI (JABATAN) ---
         $positions = ['Staff', 'Manager', 'Director', 'Super Admin'];
-
-        // Loop untuk membuat posisi di setiap PT (Agar fleksibel)
         foreach ([$asm, $acs, $ctp] as $company) {
             foreach ($positions as $posName) {
-                $this->createPosition($company->company_id, $posName);
+                // Gunakan Helper atau Create langsung
+                DB::connection('mysql_master')->table('tbl_position')->insert([
+                    'position_name' => $posName,
+                    'company_id' => $company->company_id,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
             }
         }
 
-        // 4. SUPER ADMIN USER (Default di ASM)
-        $posSuperAdminASM = $this->createPosition($asm->company_id, 'Super Admin');
-
-        User::updateOrCreate(
-            ['email_work' => 'admin@amarin.group'],
-            [
-                'employee_code' => 'SA001',
-                'full_name' => 'IT Super Administrator',
-                'password' => Hash::make('password123'),
-                'company_id' => $asm->company_id,
-                'department_id' => Department::where('company_id', $asm->company_id)->where('department_name', 'IT')->first()->department_id,
-                'position_id' => $posSuperAdminASM,
-                'phone' => '08129999999',
-                'employment_status' => 'Active'
-            ]
-        );
-    }
-
-    // Helper untuk Cek dulu sebelum Insert Position
-    private function createPosition($companyId, $name)
-    {
-        $existing = DB::connection('mysql_master')->table('tbl_position')
-            ->where('company_id', $companyId)
-            ->where('position_name', $name)
+        // --- 4. BUAT USER SUPER ADMIN ---
+        // Ambil ID Posisi Super Admin di ASM
+        $posSuperAdminASM = DB::connection('mysql_master')->table('tbl_position')
+            ->where('company_id', $asm->company_id)
+            ->where('position_name', 'Super Admin')
             ->value('position_id');
 
-        if ($existing) {
-            return $existing;
-        }
+        // Ambil ID Dept IT di ASM
+        $deptIT_ASM = Department::where('company_id', $asm->company_id)
+            ->where('department_name', 'like', 'IT%') // Pakai like biar aman
+            ->first()
+            ->department_id;
 
-        return DB::connection('mysql_master')->table('tbl_position')->insertGetId([
-            'position_name' => $name,
-            'company_id' => $companyId,
-            'created_at' => now(),
-            'updated_at' => now()
+        User::create([
+            'employee_code' => 'SA001',
+            'full_name' => 'IT Super Administrator',
+            'email_work' => 'admin@amarin.group',
+            'password' => Hash::make('password123'),
+            'company_id' => $asm->company_id,
+            'department_id' => $deptIT_ASM,
+            'position_id' => $posSuperAdminASM,
+            'phone' => '08129999999',
+            'employment_status' => 'Active'
+        ]);
+
+        // --- 5. BUAT USER DUMMY LAIN (Budi & Eko) ---
+        $posStaffASM = DB::connection('mysql_master')->table('tbl_position')->where('company_id', $asm->company_id)->where('position_name', 'Staff')->value('position_id');
+        $posMgrASM = DB::connection('mysql_master')->table('tbl_position')->where('company_id', $asm->company_id)->where('position_name', 'Manager')->value('position_id');
+
+        User::create([
+            'employee_code' => 'EMP001', 'full_name' => 'Budi Santoso', 'email_work' => 'budi@amarin.com',
+            'password' => Hash::make('password123'), 'company_id' => $asm->company_id, 'department_id' => $deptIT_ASM,
+            'position_id' => $posStaffASM, 'phone' => '081234567890', 'employment_status' => 'Active'
+        ]);
+
+        User::create([
+            'employee_code' => 'EMP002', 'full_name' => 'Eko Prasetyo', 'email_work' => 'eko@amarin.com',
+            'password' => Hash::make('password123'), 'company_id' => $asm->company_id, 'department_id' => $deptIT_ASM,
+            'position_id' => $posMgrASM, 'phone' => '081298765432', 'employment_status' => 'Active'
         ]);
     }
 }

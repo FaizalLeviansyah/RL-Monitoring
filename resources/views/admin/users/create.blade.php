@@ -51,13 +51,15 @@
                         <input type="text" name="password" id="password" value="password123" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Default: password123 (User can change later)</p>
                     </div>
+
                     <div class="col-span-2 sm:col-span-1">
                         <label for="phone" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Phone Number</label>
                         <input type="text" name="phone" id="phone" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="e.g. 08123456789">
                     </div>
+
                     <div class="col-span-2 sm:col-span-1">
                         <label for="company_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Company (PT)</label>
-                        <select name="company_id" id="company_id" onchange="loadDepartments(this.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
+                        <select name="company_id" id="company_id" onchange="loadMasterData(this.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
                             <option value="">Select Company</option>
                             @foreach($companies as $comp)
                                 <option value="{{ $comp->company_id }}">
@@ -74,23 +76,10 @@
                             </select>
                     </div>
 
-                    <div class="col-span-2 sm:col-span-1">
-                        <label for="department_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Department</label>
-                        <select name="department_id" id="department_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
-                            <option value="">Select Department</option>
-                            @foreach($departments as $dept)
-                                <option value="{{ $dept->department_id }}">{{ $dept->department_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
                     <div class="col-span-2">
                         <label for="position_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Position / Role</label>
                         <select name="position_id" id="position_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
-                            <option value="">Select Position</option>
-                            @foreach($positions as $pos)
-                                <option value="{{ $pos->position_id }}">{{ $pos->position_name }}</option>
-                            @endforeach
+                             <option value="">Select Company First</option>
                         </select>
                         <p class="mt-1 text-xs text-blue-500">Note: 'Manager' & 'Director' will have approval rights.</p>
                     </div>
@@ -104,33 +93,50 @@
         </div>
     </div>
     <script>
-    async function loadDepartments(companyId) {
+    async function loadMasterData(companyId) {
+        // Load Departments
         const deptSelect = document.getElementById('department_id');
-
-        // Reset Dropdown
         deptSelect.innerHTML = '<option value="">Loading...</option>';
+
+        // Load Positions (BARU)
+        const posSelect = document.getElementById('position_id');
+        posSelect.innerHTML = '<option value="">Loading...</option>';
 
         if (!companyId) {
             deptSelect.innerHTML = '<option value="">Select Company First</option>';
+            posSelect.innerHTML = '<option value="">Select Company First</option>';
             return;
         }
 
         try {
-            // Panggil API yang kita buat di Step 2
-            const response = await fetch(`/api/get-departments/${companyId}`);
-            const data = await response.json();
+            // 1. Fetch Departments
+            const resDept = await fetch(`/api/get-departments/${companyId}`);
+            const dataDept = await resDept.json();
 
-            // Isi ulang dropdown
             deptSelect.innerHTML = '<option value="">Select Department</option>';
-            data.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept.department_id;
-                option.textContent = dept.department_name;
-                deptSelect.appendChild(option);
+            dataDept.forEach(dept => {
+                const opt = document.createElement('option');
+                opt.value = dept.department_id; // Pastikan pakai PK yang benar
+                opt.textContent = dept.department_name;
+                deptSelect.appendChild(opt);
             });
+
+            // 2. Fetch Positions (BARU)
+            const resPos = await fetch(`/api/get-positions/${companyId}`);
+            const dataPos = await resPos.json();
+
+            posSelect.innerHTML = '<option value="">Select Position</option>';
+            dataPos.forEach(pos => {
+                const opt = document.createElement('option');
+                opt.value = pos.position_id; // Pastikan pakai PK yang benar
+                opt.textContent = pos.position_name;
+                posSelect.appendChild(opt);
+            });
+
         } catch (error) {
-            console.error('Error loading departments:', error);
-            deptSelect.innerHTML = '<option value="">Error loading data</option>';
+            console.error('Error loading data:', error);
+            deptSelect.innerHTML = '<option value="">Error</option>';
+            posSelect.innerHTML = '<option value="">Error</option>';
         }
     }
 </script>

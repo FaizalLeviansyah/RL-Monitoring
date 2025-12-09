@@ -10,13 +10,15 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        // Kita pakai Schema::connection karena ini tabel Master
-        Schema::connection('mysql_master')->table('tbl_employee', function (Blueprint $table) {
-            $table->string('profile_photo_path', 2048)->nullable()->after('email_work');
-            $table->string('signature_path', 2048)->nullable()->after('profile_photo_path'); // Saran: Sekalian buat TTD Digital
-        });
-    }
+        {
+            // Cek dulu: Kalau kolom 'profile_photo_path' BELUM ADA, baru ditambahkan
+            if (!Schema::connection('mysql_master')->hasColumn('tbl_employee', 'profile_photo_path')) {
+                Schema::connection('mysql_master')->table('tbl_employee', function (Blueprint $table) {
+                    $table->string('profile_photo_path', 2048)->nullable()->after('email_work');
+                    $table->string('signature_path', 2048)->nullable()->after('profile_photo_path');
+                });
+            }
+        }
 
     public function down(): void
     {
