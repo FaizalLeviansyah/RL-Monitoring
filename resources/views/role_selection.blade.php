@@ -11,6 +11,16 @@
     <div class="max-w-4xl w-full px-6 text-center">
 
         <div class="mb-10">
+            <div class="flex justify-center mb-6">
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" onclick="return confirm('Anda yakin akan Log Out dan kembali ke menu utama?');" class="group inline-flex items-center px-5 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-full shadow-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 dark:hover:text-red-400 dark:hover:border-red-800 transition-all duration-200">
+                        <svg class="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        Kembali ke Menu Utama (Log Out)
+                    </button>
+                </form>
+            </div>
+
             <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Selamat Datang, {{ Auth::user()->full_name }}</h1>
             <p class="text-gray-500 dark:text-gray-400">Pilih mode akses dashboard Anda hari ini.</p>
         </div>
