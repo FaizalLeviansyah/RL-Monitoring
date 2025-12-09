@@ -11,74 +11,72 @@ use Illuminate\Support\Facades\Hash;
 
 class MasterDataSeeder extends Seeder
 {
-    public function run(): void
+public function run(): void
     {
-        // 1. BUAT COMPANY & DEPT
-        $asm = Company::firstOrCreate(
+        // 1. UPDATE DATA COMPANY (Format Nama Lengkap)
+        $asm = Company::updateOrCreate(
             ['company_code' => 'ASM'],
-            ['company_name' => 'PT Amarin Ship Management', 'logo_path' => 'logo_asm.png']
+            ['company_name' => 'ASM (Amarin Ship Management)', 'logo_path' => 'logo_asm.png']
         );
 
-        $deptIT = Department::firstOrCreate(
-            ['department_name' => 'IT Department', 'company_id' => $asm->company_id],
-            ['description' => 'Information Technology']
+        $acs = Company::updateOrCreate(
+            ['company_code' => 'ACS'],
+            ['company_name' => 'ACS (Amarin Crewing Services)', 'logo_path' => 'logo_acs.png']
         );
 
-        // 2. BUAT MASTER JABATAN (POSITION)
-        $posStaff = $this->createPosition($asm->company_id, 'Staff');
-        $posManager = $this->createPosition($asm->company_id, 'Manager');
-        $posDirector = $this->createPosition($asm->company_id, 'Director');
-        
-        // --- TAMBAHAN BARU (SUPER ADMIN) ---
-        $posSuperAdmin = $this->createPosition($asm->company_id, 'Super Admin');
+        $ctp = Company::updateOrCreate(
+            ['company_code' => 'CTP'],
+            ['company_name' => 'CTP (Caraka Tirta Pratama)', 'logo_path' => 'logo_ctp.png']
+        );
 
-        // 3. BUAT USER
-        // User Budi (Staff)
+        // 2. UPDATE DEPARTEMEN SESUAI REQUEST
+
+        // A. Departemen ASM (Sesuai Capture Excel Bapak - Saya isi default umum dulu, silakan tambah)
+        $deptsASM = ['IT', 'HR', 'Finance', 'Technical', 'Marine', 'Purchasing'];
+        foreach ($deptsASM as $deptName) {
+            Department::firstOrCreate(['company_id' => $asm->company_id, 'department_name' => $deptName]);
+        }
+
+        // B. Departemen ACS (Amarin Crewing Services)
+        $deptsACS = ['HR', 'Finance', 'Crewing Operation', 'TI'];
+        foreach ($deptsACS as $deptName) {
+            Department::firstOrCreate(['company_id' => $acs->company_id, 'department_name' => $deptName]);
+        }
+
+        // C. Departemen CTP (Caraka Tirta Pratama)
+        $deptsCTP = ['HR (Human Resource)', 'Finance', 'Administration', 'Logistik', 'Claim'];
+        foreach ($deptsCTP as $deptName) {
+            Department::firstOrCreate(['company_id' => $ctp->company_id, 'department_name' => $deptName]);
+        }
+
+        // 3. BUAT POSISI (JABATAN)
+        // Kita butuh posisi ini untuk dropdown user nanti
+        $positions = ['Staff', 'Manager', 'Director', 'Super Admin'];
+
+        // Loop untuk membuat posisi di setiap PT (Agar fleksibel)
+        foreach ([$asm, $acs, $ctp] as $company) {
+            foreach ($positions as $posName) {
+                $this->createPosition($company->company_id, $posName);
+            }
+        }
+
+        // 4. SUPER ADMIN USER (Default di ASM)
+        $posSuperAdminASM = $this->createPosition($asm->company_id, 'Super Admin');
+
         User::updateOrCreate(
-            ['email_work' => 'budi@amarin.com'],
-            [
-                'employee_code' => 'EMP001',
-                'full_name' => 'Budi Santoso',
-                'password' => Hash::make('password123'),
-                'company_id' => $asm->company_id,
-                'department_id' => $deptIT->department_id,
-                'position_id' => $posStaff,
-                'phone' => '081234567890',
-                'employment_status' => 'Active'
-            ]
-        );
-
-        // User Eko (Manager)
-        User::updateOrCreate(
-            ['email_work' => 'eko@amarin.com'],
-            [
-                'employee_code' => 'EMP002',
-                'full_name' => 'Eko Prasetyo',
-                'password' => Hash::make('password123'),
-                'company_id' => $asm->company_id,
-                'department_id' => $deptIT->department_id,
-                'position_id' => $posManager,
-                'phone' => '081298765432',
-                'employment_status' => 'Active'
-            ]
-        );
-
-        // 4. BUAT USER SUPER ADMIN (DIMASUKKAN KE SINI)
-        User::updateOrCreate(
-            ['email_work' => 'admin@amarin.group'], // Email khusus
+            ['email_work' => 'admin@amarin.group'],
             [
                 'employee_code' => 'SA001',
                 'full_name' => 'IT Super Administrator',
                 'password' => Hash::make('password123'),
-                'company_id' => $asm->company_id, // Base di ASM
-                'department_id' => $deptIT->department_id,
-                'position_id' => $posSuperAdmin, // Kuncinya disini
+                'company_id' => $asm->company_id,
+                'department_id' => Department::where('company_id', $asm->company_id)->where('department_name', 'IT')->first()->department_id,
+                'position_id' => $posSuperAdminASM,
                 'phone' => '08129999999',
                 'employment_status' => 'Active'
             ]
         );
-
-    } // <--- BATAS AKHIR FUNGSI RUN (Jangan taruh kode di bawah ini)
+    }
 
     // Helper untuk Cek dulu sebelum Insert Position
     private function createPosition($companyId, $name)

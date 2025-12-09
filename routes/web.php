@@ -45,11 +45,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Group khusus Super Admin
     Route::middleware(['auth', 'verified', 'can:super_admin'])->prefix('admin')->name('admin.')->group(function () {
-
     // User Management
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
     // Master Data Lain (Company/Dept) bisa ditambah disini
     });
+
+    // API Internal untuk Dynamic Dropdown
+    Route::get('/api/get-departments/{company_id}', function ($company_id) {
+        return \App\Models\Department::where('company_id', $company_id)->get();
+    })->name('api.departments');
 });
 
 require __DIR__.'/auth.php';

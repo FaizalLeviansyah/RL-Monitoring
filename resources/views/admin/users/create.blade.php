@@ -57,12 +57,21 @@
                     </div>
                     <div class="col-span-2 sm:col-span-1">
                         <label for="company_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Company (PT)</label>
-                        <select name="company_id" id="company_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
+                        <select name="company_id" id="company_id" onchange="loadDepartments(this.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
                             <option value="">Select Company</option>
                             @foreach($companies as $comp)
-                                <option value="{{ $comp->company_id }}">{{ $comp->company_name }} ({{ $comp->company_code }})</option>
+                                <option value="{{ $comp->company_id }}">
+                                    {{ $comp->company_name }}
+                                </option>
                             @endforeach
                         </select>
+                    </div>
+
+                    <div class="col-span-2 sm:col-span-1">
+                        <label for="department_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Department</label>
+                        <select name="department_id" id="department_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
+                            <option value="">Select Company First</option>
+                            </select>
                     </div>
 
                     <div class="col-span-2 sm:col-span-1">
@@ -94,4 +103,35 @@
             </form>
         </div>
     </div>
+    <script>
+    async function loadDepartments(companyId) {
+        const deptSelect = document.getElementById('department_id');
+
+        // Reset Dropdown
+        deptSelect.innerHTML = '<option value="">Loading...</option>';
+
+        if (!companyId) {
+            deptSelect.innerHTML = '<option value="">Select Company First</option>';
+            return;
+        }
+
+        try {
+            // Panggil API yang kita buat di Step 2
+            const response = await fetch(`/api/get-departments/${companyId}`);
+            const data = await response.json();
+
+            // Isi ulang dropdown
+            deptSelect.innerHTML = '<option value="">Select Department</option>';
+            data.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept.department_id;
+                option.textContent = dept.department_name;
+                deptSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading departments:', error);
+            deptSelect.innerHTML = '<option value="">Error loading data</option>';
+        }
+    }
+</script>
 </x-app-layout>
