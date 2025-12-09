@@ -104,15 +104,26 @@ public function show($id)
     }
 
     // 4. PRINT PDF
-    // 4. CETAK PDF
+// Jangan lupa import di paling atas:
+    // use Barryvdh\DomPDF\Facade\Pdf;
+
     public function printPdf($id)
     {
-        $rl = RequisitionLetter::with(['items', 'requester.department', 'company'])
-                ->findOrFail($id);
+        // Ambil data lengkap dengan relasi ke Approval
+        $rl = RequisitionLetter::with([
+            'items', 
+            'requester.department', 
+            'company',
+            'approvalQueues.approver.position' // Ambil data approver & jabatannya
+        ])->findOrFail($id);
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('requisitions.pdf', compact('rl'));
+        // Load View khusus PDF
+        $pdf = Pdf::loadView('requisitions.pdf', compact('rl'));
+        
+        // Setup Kertas A4 Potrait
         $pdf->setPaper('a4', 'portrait');
 
+        // Render (Stream = Buka di browser, Download = Langsung unduh file)
         return $pdf->stream('RL-'.$rl->rl_no.'.pdf');
     }
 
