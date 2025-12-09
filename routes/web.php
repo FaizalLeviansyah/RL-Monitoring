@@ -56,7 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('api.departments');
 
     // API Internal untuk Dynamic Dropdown
-// 1. Get Departments
+    // 1. Get Departments
     Route::get('/api/get-departments/{company_id}', function ($company_id) {
         return \App\Models\Department::where('company_id', $company_id)->get();
     })->name('api.departments');
@@ -65,6 +65,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/api/get-positions/{company_id}', function ($company_id) {
         return \App\Models\Position::where('company_id', $company_id)->get();
     })->name('api.positions');
+
+    // Route untuk memilih peran (Switch Role)
+    Route::get('/dashboard/select-role/{role}', [DashboardController::class, 'selectRole'])
+        ->name('dashboard.select_role');
 });
 
 require __DIR__.'/auth.php';

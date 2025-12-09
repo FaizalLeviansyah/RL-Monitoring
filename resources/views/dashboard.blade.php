@@ -1,149 +1,170 @@
 {{-- TAMPILAN VERSI 3  --}}
 <x-app-layout>
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                Dashboard Overview
-            </h1>
-            <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Selamat datang, <span class="font-bold text-blue-600 text-base">{{ Auth::user()->full_name }}</span>
-            </div>
-            <div class="mt-2 flex gap-2">
-                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300 border border-blue-200">
-                    {{ Auth::user()->position->position_name ?? 'Staff' }}
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Halo, <span class="font-semibold text-blue-600">{{ Auth::user()->full_name }}</span>
+                <span class="bg-gray-100 text-gray-800 text-xs font-bold px-2 py-0.5 rounded ml-2 border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    Mode: {{ $viewType ?? 'Requester' }}
                 </span>
-                <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300 border border-gray-200">
-                    {{ $isApprover ? 'Role: Approver' : 'Role: Requester' }}
-                </span>
-            </div>
+            </p>
         </div>
-        
+
         <div class="text-right">
-            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                {{ \Carbon\Carbon::now()->format('l, d F Y') }}
+            <div class="text-xs text-gray-400 font-medium mb-1">{{ now()->format('l, d F Y') }}</div>
+
+            @if($isApprover)
+            <div class="inline-flex items-center justify-center bg-gray-900 text-green-400 font-mono font-bold text-xl px-3 py-1.5 rounded-lg shadow-md border border-gray-700 tracking-widest digital-clock">
+                <span id="clock-hours">00</span>
+                <span class="animate-pulse mx-1">:</span>
+                <span id="clock-minutes">00</span>
+                <span class="animate-pulse mx-1">:</span>
+                <span id="clock-seconds" class="text-green-600 text-lg">00</span>
             </div>
-            <div class="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-widest" id="realtime-clock">
-                00:00:00
+            @endif
+
+            @if($isApprover)
+            <div class="mt-2">
+                <a href="{{ route('dashboard.select_role', 'reset') }}" class="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center justify-end transition-colors">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                    Ganti Mode (Switch Role)
+                </a>
             </div>
-            <div class="text-xs text-gray-400 mt-1 flex justify-end items-center gap-1">
-                <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                System Live
-            </div>
+            @endif
         </div>
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        <div class="flex flex-col p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
-            <dt class="mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Total</dt>
-            <dd class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ $countTotal }}</dd>
+
+        <div class="flex flex-col p-3 bg-white border border-gray-200 rounded-lg shadow-xs dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold tracking-wider">Total</dt>
+            <dd class="text-2xl font-bold text-gray-900 dark:text-white">{{ $countTotal }}</dd>
         </div>
-        <div class="flex flex-col p-4 bg-white border-l-4 border-gray-400 rounded-r-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
-            <dt class="mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Draft</dt>
-            <dd class="text-2xl font-extrabold text-gray-600 dark:text-gray-300">{{ $countDraft }}</dd>
+
+        <div class="flex flex-col p-3 bg-white border-l-4 border-gray-400 rounded-r-lg shadow-xs dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold tracking-wider">Draft</dt>
+            <dd class="text-2xl font-bold text-gray-600 dark:text-gray-300">{{ $countDraft }}</dd>
         </div>
-        <div class="flex flex-col p-4 bg-white border-l-4 border-orange-400 rounded-r-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
-            <dt class="mb-1 text-orange-500 dark:text-orange-400 text-xs uppercase font-bold tracking-wider">Waiting</dt>
-            <dd class="text-2xl font-extrabold text-orange-600 dark:text-orange-400">{{ $countPending }}</dd>
+
+        <div class="flex flex-col p-3 bg-white border-l-4 border-orange-400 rounded-r-lg shadow-xs dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-orange-500 dark:text-orange-400 text-xs uppercase font-semibold tracking-wider">Waiting</dt>
+            <dd class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ $countPending }}</dd>
         </div>
-        <div class="flex flex-col p-4 bg-white border-l-4 border-green-400 rounded-r-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
-            <dt class="mb-1 text-green-500 dark:text-green-400 text-xs uppercase font-bold tracking-wider">Approved</dt>
-            <dd class="text-2xl font-extrabold text-green-600 dark:text-green-400">{{ $countApproved }}</dd>
+
+        <div class="flex flex-col p-3 bg-white border-l-4 border-green-400 rounded-r-lg shadow-xs dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-green-500 dark:text-green-400 text-xs uppercase font-semibold tracking-wider">Approved</dt>
+            <dd class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $countApproved }}</dd>
         </div>
-        <div class="flex flex-col p-4 bg-white border-l-4 border-red-400 rounded-r-xl shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700">
-            <dt class="mb-1 text-red-500 dark:text-red-400 text-xs uppercase font-bold tracking-wider">Rejected</dt>
-            <dd class="text-2xl font-extrabold text-red-600 dark:text-red-400">{{ $countRejected }}</dd>
+
+        <div class="flex flex-col p-3 bg-white border-l-4 border-red-400 rounded-r-lg shadow-xs dark:bg-gray-800 dark:border-gray-700">
+            <dt class="mb-1 text-red-500 dark:text-red-400 text-xs uppercase font-semibold tracking-wider">Rejected</dt>
+            <dd class="text-2xl font-bold text-red-600 dark:text-red-400">{{ $countRejected }}</dd>
         </div>
     </div>
 
+    @if($isApprover)
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-        <div class="p-5 bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-xl dark:from-gray-800 dark:to-gray-900 dark:border-gray-700">
-            <h3 class="text-sm font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                Master Data
-            </h3>
-            <div class="space-y-3">
-                <div class="flex justify-between items-center text-sm border-b border-blue-100 dark:border-gray-700 pb-2">
-                    <span class="text-gray-600 dark:text-gray-400">Karyawan</span>
-                    <span class="font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-700 px-2 py-0.5 rounded shadow-sm">{{ $countEmployees }}</span>
+
+        <div class="p-4 bg-blue-50 border border-blue-100 rounded-lg dark:bg-gray-800 dark:border-gray-700">
+            <h3 class="text-sm font-bold text-blue-800 dark:text-blue-300 mb-3">Data Master</h3>
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs">
+                    <span class="text-gray-600 dark:text-gray-400">Employees</span>
+                    <span class="font-bold text-gray-900 dark:text-white">{{ $countEmployees }}</span>
                 </div>
-                <div class="flex justify-between items-center text-sm border-b border-blue-100 dark:border-gray-700 pb-2">
-                    <span class="text-gray-600 dark:text-gray-400">Departemen</span>
-                    <span class="font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-700 px-2 py-0.5 rounded shadow-sm">{{ $countDepartments }}</span>
+                <div class="flex justify-between text-xs">
+                    <span class="text-gray-600 dark:text-gray-400">Departments</span>
+                    <span class="font-bold text-gray-900 dark:text-white">{{ $countDepartments }}</span>
                 </div>
-                <div class="flex justify-between items-center text-sm">
-                    <span class="text-gray-600 dark:text-gray-400">Perusahaan</span>
-                    <span class="font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-700 px-2 py-0.5 rounded shadow-sm">{{ $countCompanies }}</span>
+                <div class="flex justify-between text-xs">
+                    <span class="text-gray-600 dark:text-gray-400">Companies</span>
+                    <span class="font-bold text-gray-900 dark:text-white">{{ $countCompanies }}</span>
                 </div>
             </div>
         </div>
 
-        <div class="lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <a href="{{ route('requisitions.create') }}" class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 group dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
-                <div class="p-3 mb-2 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors duration-200 dark:bg-blue-900 dark:text-blue-300">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <div class="lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <a href="{{ route('requisitions.create') }}" class="flex items-center p-3 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-blue-50 hover:border-blue-300 transition dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 group">
+                <div class="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 dark:bg-blue-900">
+                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </div>
-                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Buat RL Baru</span>
+                <div class="ml-3">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Action</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white">Buat RL Baru</p>
+                </div>
             </a>
-
-            <a href="{{ route('requisitions.status', 'draft') }}" class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200 group dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
-                <div class="p-3 mb-2 bg-gray-100 text-gray-600 rounded-full group-hover:bg-gray-600 group-hover:text-white transition-colors duration-200 dark:bg-gray-700 dark:text-gray-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <a href="{{ route('requisitions.status', 'draft') }}" class="flex items-center p-3 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-gray-50 transition dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 group">
+                <div class="p-2 bg-gray-100 rounded-lg group-hover:bg-gray-200 dark:bg-gray-700">
+                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </div>
-                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Draft Saya</span>
+                <div class="ml-3">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Go to</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white">Draft Saya</p>
+                </div>
             </a>
-
-            <a href="{{ route('requisitions.status', 'on_progress') }}" class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:bg-orange-50 hover:border-orange-200 transition-all duration-200 group dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
-                <div class="p-3 mb-2 bg-orange-100 text-orange-600 rounded-full group-hover:bg-orange-500 group-hover:text-white transition-colors duration-200 dark:bg-orange-900 dark:text-orange-300">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <a href="{{ route('requisitions.status', 'on_progress') }}" class="flex items-center p-3 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-orange-50 hover:border-orange-300 transition dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 group">
+                <div class="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 dark:bg-orange-900">
+                    <svg class="w-5 h-5 text-orange-600 dark:text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Cek Status</span>
+                <div class="ml-3">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Check</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white">Pending</p>
+                </div>
             </a>
-
-            <a href="{{ route('profile.edit') }}" class="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:bg-purple-50 hover:border-purple-200 transition-all duration-200 group dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
-                <div class="p-3 mb-2 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors duration-200 dark:bg-purple-900 dark:text-purple-300">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <a href="{{ route('profile.edit') }}" class="flex items-center p-3 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-purple-50 hover:border-purple-300 transition dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 group">
+                <div class="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 dark:bg-purple-900">
+                    <svg class="w-5 h-5 text-purple-600 dark:text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
-                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">Settings</span>
+                <div class="ml-3">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Settings</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white">Akun</p>
+                </div>
             </a>
         </div>
     </div>
+    @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h3 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">Analisis Status</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 h-fit">
+            <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Grafik Status</h3>
             <div id="status-chart" class="w-full"></div>
         </div>
 
-        <div class="lg:col-span-2 p-6 bg-white border border-gray-200 rounded-xl shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div class="lg:col-span-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Aktivitas Terbaru</h3>
-                <a href="{{ route('requisitions.status', 'on_progress') }}" class="text-sm text-blue-600 hover:underline dark:text-blue-500">Lihat Semua</a>
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white">Aktivitas Terbaru</h3>
+
+                @if($isApprover)
+                     <a href="{{ route('requisitions.status', 'on_progress') }}" class="text-xs text-blue-600 hover:underline dark:text-blue-500">Lihat Antrian</a>
+                @else
+                     <a href="{{ route('requisitions.status', 'on_progress') }}" class="text-xs text-blue-600 hover:underline dark:text-blue-500">Lihat Semua</a>
+                @endif
             </div>
-            
+
             <div class="relative overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <table class="w-full text-xs text-left text-gray-500 dark:text-gray-400">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
-                            <th class="px-4 py-3">RL No</th>
-                            <th class="px-4 py-3">Subject</th>
-                            <th class="px-4 py-3 text-center">Status</th>
-                            <th class="px-4 py-3 text-right">Action</th>
+                            <th class="px-3 py-2">RL No</th>
+                            <th class="px-3 py-2">Subject</th>
+                            <th class="px-3 py-2 text-center">Status</th>
+                            <th class="px-3 py-2 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($recent_rls as $rl)
                         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                            <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                            <td class="px-3 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                                 {{ $rl->rl_no }}
                                 <div class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($rl->request_date)->format('d/m/Y') }}</div>
                             </td>
-                            <td class="px-4 py-3">
-                                {{ str($rl->subject)->limit(25) }}
+                            <td class="px-3 py-2">
+                                {{ str($rl->subject)->limit(30) }}
                             </td>
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-3 py-2 text-center">
                                 @php
                                     $status = $rl->status_flow;
                                     if($isApprover) {
@@ -162,14 +183,14 @@
                                     <span class="bg-gray-100 text-gray-800 text-[10px] font-medium px-2 py-0.5 rounded-full dark:bg-gray-700 dark:text-gray-300">Draft</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="px-3 py-2 text-right">
                                 <a href="{{ route('requisitions.show', $rl->id) }}" class="text-blue-600 hover:text-blue-900">
                                     <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                 </a>
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="px-4 py-4 text-center">No Data.</td></tr>
+                        <tr><td colspan="4" class="px-3 py-4 text-center">No Data.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -181,7 +202,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // 1. CHART CONFIG
-            const chartData = {{ $chartData }}; 
+            const chartData = {{ $chartData }};
             const options = {
                 series: [{ name: 'Jumlah', data: chartData }],
                 chart: { height: 250, type: 'bar', toolbar: { show: false }, fontFamily: 'Figtree, sans-serif' },
@@ -194,14 +215,22 @@
             };
             new ApexCharts(document.querySelector("#status-chart"), options).render();
 
-            // 2. REALTIME CLOCK (INOVASI BARU)
+            // 2. REALTIME CLOCK (UPDATE KEREN)
             function updateClock() {
                 const now = new Date();
-                const timeString = now.toLocaleTimeString('en-GB', { hour12: false });
-                document.getElementById('realtime-clock').innerText = timeString;
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const s = String(now.getSeconds()).padStart(2, '0');
+
+                // Update elemen ID jika ada
+                if(document.getElementById('clock-hours')) {
+                    document.getElementById('clock-hours').innerText = h;
+                    document.getElementById('clock-minutes').innerText = m;
+                    document.getElementById('clock-seconds').innerText = s;
+                }
             }
             setInterval(updateClock, 1000);
-            updateClock(); // Run immediately
+            updateClock();
         });
     </script>
 </x-app-layout>
@@ -222,7 +251,7 @@
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        
+
         <div class="flex flex-col p-3 bg-white border border-gray-200 rounded-lg shadow-xs dark:bg-gray-800 dark:border-gray-700">
             <dt class="mb-1 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold tracking-wider">Total</dt>
             <dd class="text-2xl font-bold text-gray-900 dark:text-white">{{ $countTotal }}</dd>
@@ -250,7 +279,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-        
+
         <div class="p-4 bg-blue-50 border border-blue-100 rounded-lg dark:bg-gray-800 dark:border-gray-700">
             <h3 class="text-sm font-bold text-blue-800 dark:text-blue-300 mb-3">Data Master</h3>
             <div class="space-y-2">
@@ -313,7 +342,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        
+
         <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Grafik Status</h3>
             <div id="status-chart" class="w-full"></div>
@@ -324,7 +353,7 @@
                 <h3 class="text-sm font-bold text-gray-900 dark:text-white">Aktivitas Terbaru</h3>
                 <a href="#" class="text-xs text-blue-600 hover:underline dark:text-blue-500">Lihat Semua</a>
             </div>
-            
+
             <div class="relative overflow-x-auto">
                 <table class="w-full text-xs text-left text-gray-500 dark:text-gray-400">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -382,7 +411,7 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const chartData = {{ $chartData }}; 
+            const chartData = {{ $chartData }};
             const options = {
                 series: [{ name: 'Jumlah', data: chartData }],
                 chart: { height: 250, type: 'bar', toolbar: { show: false }, fontFamily: 'Figtree, sans-serif' }, // Height dikecilkan
@@ -404,7 +433,7 @@
         <div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
             <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                Halo, <span class="font-semibold text-blue-600">{{ Auth::user()->full_name }}</span>! 
+                Halo, <span class="font-semibold text-blue-600">{{ Auth::user()->full_name }}</span>!
                 Anda login sebagai <span class="badge bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">{{ Auth::user()->position->position_name ?? 'Staff' }}</span>
             </p>
         </div>
@@ -534,7 +563,7 @@
                     <input type="text" id="table-search" class="block p-2 text-xs text-gray-900 border border-gray-300 rounded-lg w-50 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Cari No RL...">
                 </div>
             </div>
-            
+
             <div class="relative overflow-x-auto rounded-lg">
                 <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -592,7 +621,7 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const chartData = {{ $chartData }}; 
+            const chartData = {{ $chartData }};
             const options = {
                 series: [{ name: 'Jumlah', data: chartData }],
                 chart: { height: 300, type: 'bar', toolbar: { show: false }, fontFamily: 'Figtree, sans-serif' },
