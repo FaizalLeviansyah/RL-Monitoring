@@ -15,13 +15,9 @@
         <div class="text-right">
             <div class="text-xs text-gray-400 font-medium mb-1">{{ now()->format('l, d F Y') }}</div>
 
-            @if($isApprover)
+            @if(($viewType ?? '') == 'Approver')
             <div class="inline-flex items-center justify-center bg-gray-900 text-green-400 font-mono font-bold text-xl px-3 py-1.5 rounded-lg shadow-md border border-gray-700 tracking-widest digital-clock">
-                <span id="clock-hours">00</span>
-                <span class="animate-pulse mx-1">:</span>
-                <span id="clock-minutes">00</span>
-                <span class="animate-pulse mx-1">:</span>
-                <span id="clock-seconds" class="text-green-600 text-lg">00</span>
+                <span id="clock-hours">00</span><span class="animate-pulse mx-1">:</span><span id="clock-minutes">00</span><span class="animate-pulse mx-1">:</span><span id="clock-seconds" class="text-green-600 text-lg">00</span>
             </div>
             @endif
 
@@ -29,7 +25,7 @@
             <div class="mt-2">
                 <a href="{{ route('dashboard.select_role', 'reset') }}" class="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center justify-end transition-colors">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                    Ganti Mode (Switch Role)
+                    Ganti Mode
                 </a>
             </div>
             @endif
@@ -64,9 +60,9 @@
         </div>
     </div>
 
-    @if($isApprover)
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
 
+        @if(($viewType ?? '') == 'Approver')
         <div class="p-4 bg-blue-50 border border-blue-100 rounded-lg dark:bg-gray-800 dark:border-gray-700">
             <h3 class="text-sm font-bold text-blue-800 dark:text-blue-300 mb-3">Data Master</h3>
             <div class="space-y-2">
@@ -84,8 +80,11 @@
                 </div>
             </div>
         </div>
+        @endif
 
-        <div class="lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="{{ ($viewType ?? '') == 'Approver' ? 'lg:col-span-3' : 'lg:col-span-4' }} grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+            @if(($viewType ?? '') == 'Requester')
             <a href="{{ route('requisitions.create') }}" class="flex items-center p-3 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-blue-50 hover:border-blue-300 transition dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 group">
                 <div class="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 dark:bg-blue-900">
                     <svg class="w-5 h-5 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -104,15 +103,18 @@
                     <p class="text-sm font-bold text-gray-900 dark:text-white">Draft Saya</p>
                 </div>
             </a>
+            @endif
+
             <a href="{{ route('requisitions.status', 'on_progress') }}" class="flex items-center p-3 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-orange-50 hover:border-orange-300 transition dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 group">
                 <div class="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 dark:bg-orange-900">
                     <svg class="w-5 h-5 text-orange-600 dark:text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div class="ml-3">
                     <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Check</p>
-                    <p class="text-sm font-bold text-gray-900 dark:text-white">Pending</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white">{{ ($viewType ?? '') == 'Approver' ? 'Antrian' : 'Pending' }}</p>
                 </div>
             </a>
+
             <a href="{{ route('profile.edit') }}" class="flex items-center p-3 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-purple-50 hover:border-purple-300 transition dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 group">
                 <div class="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 dark:bg-purple-900">
                     <svg class="w-5 h-5 text-purple-600 dark:text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -124,7 +126,6 @@
             </a>
         </div>
     </div>
-    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
@@ -137,7 +138,7 @@
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-sm font-bold text-gray-900 dark:text-white">Aktivitas Terbaru</h3>
 
-                @if($isApprover)
+                @if(($viewType ?? '') == 'Approver')
                      <a href="{{ route('requisitions.status', 'on_progress') }}" class="text-xs text-blue-600 hover:underline dark:text-blue-500">Lihat Antrian</a>
                 @else
                      <a href="{{ route('requisitions.status', 'on_progress') }}" class="text-xs text-blue-600 hover:underline dark:text-blue-500">Lihat Semua</a>
@@ -167,7 +168,8 @@
                             <td class="px-3 py-2 text-center">
                                 @php
                                     $status = $rl->status_flow;
-                                    if($isApprover) {
+                                    // Logic status khusus approver (lihat status antrian dia, bukan status global)
+                                    if(($viewType ?? '') == 'Approver') {
                                         $myQ = $rl->approvalQueues->where('approver_id', Auth::user()->employee_id)->first();
                                         $status = $myQ ? $myQ->status : $status;
                                     }
@@ -201,7 +203,7 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // 1. CHART CONFIG
+            // Chart Config
             const chartData = {{ $chartData }};
             const options = {
                 series: [{ name: 'Jumlah', data: chartData }],
@@ -215,14 +217,12 @@
             };
             new ApexCharts(document.querySelector("#status-chart"), options).render();
 
-            // 2. REALTIME CLOCK (UPDATE KEREN)
+            // Realtime Clock
             function updateClock() {
                 const now = new Date();
                 const h = String(now.getHours()).padStart(2, '0');
                 const m = String(now.getMinutes()).padStart(2, '0');
                 const s = String(now.getSeconds()).padStart(2, '0');
-
-                // Update elemen ID jika ada
                 if(document.getElementById('clock-hours')) {
                     document.getElementById('clock-hours').innerText = h;
                     document.getElementById('clock-minutes').innerText = m;

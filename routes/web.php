@@ -69,6 +69,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route untuk memilih peran (Switch Role)
     Route::get('/dashboard/select-role/{role}', [DashboardController::class, 'selectRole'])
         ->name('dashboard.select_role');
+
+    Route::get('/department-activities', [App\Http\Controllers\DepartmentActivityController::class, 'index'])
+        ->name('activities.department');
 });
 
 require __DIR__.'/auth.php';
