@@ -10,11 +10,14 @@ class UserAppAccessSeeder extends Seeder
 {
     public function run(): void
     {
+        // DAFTAR EMAIL YANG BOLEH LOGIN (Sesuai MasterDataSeeder)
         $users = [
-            'budi@amarin.com',
-            'eko@amarin.com',
-            'admin@amarin.group',
-            // 'bos@amarin.com' // Uncomment jika user bos sudah dibuat di MasterDataSeeder
+            'admin@amarin.com',      // Super Admin
+            'hendri@amarin.com',     // Manager IT
+            'faizal@amarin.com',     // Staff IT
+            'dinesh@amarin.com',     // Direktur
+            'crewing1@amarin.com',   // Staff ACS
+            'logistik1@caraka.com',  // Staff CTP (Domain Caraka)
         ];
 
         foreach ($users as $email) {
@@ -27,7 +30,8 @@ class UserAppAccessSeeder extends Seeder
                         'app_code' => 'RL-MONITORING'
                     ],
                     [
-                        'is_active' => true
+                        'is_active' => true,
+                        'valid_until' => null
                     ]
                 );
             }

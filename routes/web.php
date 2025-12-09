@@ -72,6 +72,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/department-activities', [App\Http\Controllers\DepartmentActivityController::class, 'index'])
         ->name('activities.department');
+
+    // Group khusus Super Admin
+    Route::middleware(['auth', 'verified', 'can:super_admin'])->prefix('admin')->name('admin.')->group(function () {
+        // User Management
+        Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+
+        // NEW: Global Monitoring
+        Route::get('/monitoring', [\App\Http\Controllers\Admin\GlobalMonitoringController::class, 'index'])->name('monitoring.index');
+    });
 });
 
 require __DIR__.'/auth.php';

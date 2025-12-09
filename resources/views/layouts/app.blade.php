@@ -62,23 +62,16 @@
     @php
         $userPos = Auth::user()->position->position_name ?? '';
         $isSuperAdmin = $userPos === 'Super Admin';
+        $isApprover = in_array($userPos, ['Manager', 'Director']);
+        // Requester adalah user yang BUKAN Super Admin dan BUKAN Approver
+        $isRequester = !$isSuperAdmin && !$isApprover;
 
-        // Cek Jabatan Asli
-        $isRealApprover = in_array($userPos, ['Manager', 'Director']);
-
-        // Cek Mode yang sedang aktif (dari Session)
+        // Cek Mode yang sedang aktif (dari Session) untuk Manager/Director yang Switch Role
         $currentMode = session('active_role');
 
         // TENTUKAN MENU APA YANG MUNCUL
-        // 1. Menu Requester (Create, Draft) muncul jika:
-        //    - Dia Staff Biasa (Bukan Approver)
-        //    - ATAU Dia Manager TAPI sedang mode 'requester'
-        $showRequesterMenu = !$isSuperAdmin && (!$isRealApprover || $currentMode == 'requester');
-
-        // 2. Menu Monitoring (Waiting, Approved) muncul jika:
-        //    - Bukan Super Admin (karena super admin punya menu sendiri)
-        //    - Defaultnya muncul untuk semua, tapi nanti Controller yang filter datanya
-        $showMonitoringMenu = !$isSuperAdmin;
+        $showRequesterMenu = !$isSuperAdmin && ($isRequester || $currentMode == 'requester');
+        $showMonitoringMenu = !$isSuperAdmin; // Defaultnya muncul untuk semua kecuali super admin
     @endphp
 
     <aside id="logo-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700 shadow-lg" aria-label="Sidebar">
@@ -100,6 +93,12 @@
                         <a href="{{ route('admin.users.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-purple-50 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.users.*') ? 'bg-purple-100 text-purple-600' : '' }}">
                             <svg class="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
                             <span class="ms-3">Manage Users</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.monitoring.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-teal-50 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.monitoring.index') ? 'bg-teal-100 text-teal-600' : '' }}">
+                            <svg class="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            <span class="ms-3">Global Monitoring</span>
                         </a>
                     </li>
                 @endif
