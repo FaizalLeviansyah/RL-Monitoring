@@ -209,4 +209,57 @@ public function show($id)
 
         return redirect()->route('dashboard')->with('success', 'Draft berhasil diajukan untuk approval!');
     }
+    // Method Khusus untuk Preview (Tanpa Simpan Database)
+    public function previewTemp(Request $request)
+    {
+        // 1. Validasi Input
+        $validated = $request->validate([
+            'request_date' => 'required|date',
+            'subject' => 'required|string',
+            'items' => 'required|array',
+            'items.*.item_name' => 'required',
+            'items.*.qty' => 'required',
+        ]);
+
+        // 2. Buat Dummy Object Requisition Letter (In Memory)
+        $rl = new RequisitionLetter();
+        $rl->rl_no = 'DRAFT-PREVIEW-001'; // Nomor Sementara
+        $rl->request_date = $request->request_date;
+        $rl->subject = $request->subject;
+        $rl->to_department = 'Purchasing / Procurement'; // Default
+        $rl->priority = $request->priority;
+        $rl->required_date = $request->required_date;
+        $rl->status_flow = 'DRAFT';
+        
+        // 3. Set Relasi Dummy (PENTING!)
+        
+        // A. Relasi Requester (Ambil User Login + Load Dept & Position)
+        $user = Auth::user()->load(['department', 'position']); 
+        $rl->setRelation('requester', $user);
+        
+        // B. Relasi Company (Ambil dari User)
+        $rl->setRelation('company', $user->company);
+        
+        // C. Relasi Items (Looping data dari Form)
+        $items = collect(); // Koleksi kosong
+        if($request->has('items')){
+            foreach ($request->items as $itemData) {
+                // Buat object item sementara
+                $item = new \App\Models\RequisitionItem($itemData);
+                $items->push($item);
+            }
+        }
+        $rl->setRelation('items', $items);
+
+        // D. Relasi Approval (INI YANG BIKIN ERROR SEBELUMNYA)
+        // Kita harus kirim Collection kosong agar PDF tidak error saat panggil $rl->approvalQueues->where(...)
+        $rl->setRelation('approvalQueues', collect([])); 
+
+        // 4. Generate PDF
+        $pdf = Pdf::loadView('requisitions.pdf', compact('rl'));
+        $pdf->setPaper('a4', 'portrait');
+
+        // 5. Return Stream
+        return $pdf->stream('preview.pdf');
+    }
 }

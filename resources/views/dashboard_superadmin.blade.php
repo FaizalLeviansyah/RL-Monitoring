@@ -22,7 +22,7 @@
                 </a>
             </div>
         </div>
-
+        
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="relative p-6 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl shadow-xl text-white overflow-hidden group hover:shadow-2xl transition-all duration-300">
                 <div class="absolute right-0 top-0 h-full w-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
@@ -54,8 +54,8 @@
                 </div>
             </div>
 
-            <div class="relative p-6 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl shadow-xl text-white overflow-hidden group hover:shadow-2xl transition-all duration-300">
-                <div class="absolute right-0 top-0 h-full w-full bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-10"></div>
+        <div class="relative p-6 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl shadow-xl text-white overflow-hidden group hover:shadow-2xl transition-all duration-300">
+            <div class="absolute right-0 top-0 h-full w-full bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-10"></div>
                 <div class="relative z-10">
                     <div class="flex justify-between items-start">
                         <div>
@@ -69,9 +69,8 @@
                 </div>
             </div>
         </div>
-
+        
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-
             <div class="xl:col-span-2 p-6 bg-white border border-gray-200 rounded-2xl shadow-sm dark:bg-gray-800 dark:border-gray-700">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">Distribusi Permintaan per Perusahaan</h3>
@@ -92,20 +91,18 @@
                     </span>
                     Live Activity Feed
                 </h3>
-
                 <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     <ul role="list" class="space-y-4">
                         @foreach($globalActivities as $act)
                         @php
                             // Logic Warna Ikon berdasarkan PT
                             $compCode = $act->company->company_code;
-                            $iconColor = 'bg-gray-100 text-gray-600'; // Default
+                            $iconColor = 'bg-gray-100 text-gray-600'; 
 
                             if($compCode == 'ASM') $iconColor = 'bg-blue-100 text-blue-700';
                             elseif($compCode == 'ACS') $iconColor = 'bg-yellow-100 text-yellow-700';
                             elseif($compCode == 'CTP') $iconColor = 'bg-red-100 text-red-700';
                         @endphp
-
                         <li class="relative pl-6 border-l-2 border-gray-200 dark:border-gray-700 last:border-0 pb-4">
                             <span class="absolute -left-[9px] top-0 flex items-center justify-center w-4 h-4 rounded-full ring-4 ring-white dark:ring-gray-800 dark:bg-gray-800">
                                 <span class="w-2 h-2 rounded-full {{ $compCode == 'ASM' ? 'bg-blue-600' : ($compCode == 'ACS' ? 'bg-yellow-400' : ($compCode == 'CTP' ? 'bg-red-600' : 'bg-gray-400')) }}"></span>
@@ -134,7 +131,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>

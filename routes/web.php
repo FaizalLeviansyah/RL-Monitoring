@@ -81,6 +81,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // NEW: Global Monitoring
         Route::get('/monitoring', [\App\Http\Controllers\Admin\GlobalMonitoringController::class, 'index'])->name('monitoring.index');
     });
+
+    Route::post('/requisitions/preview-temp', [App\Http\Controllers\RequisitionController::class, 'previewTemp'])->name('requisitions.preview-temp');
 });
 
 require __DIR__.'/auth.php';

@@ -60,7 +60,6 @@
                     @endforelse
                 </tbody>
             </table>
-
             <div class="p-4">
                 {{ $requisitions->links() }}
             </div>
