@@ -13,15 +13,14 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class RequisitionController extends Controller
 {
-    // ... (CREATE, STORE, SHOW, PRINTPDF, LISTBYSTATUS, SUBMITDRAFT, PREVIEWTEMP, REVISE tetap sama seperti kode Anda sebelumnya) ...
-    // ... (Hanya method departmentActivity di paling bawah yang saya ubah total) ...
-
+    // 1. CREATE FORM
     public function create()
     {
         $newNumber = RequisitionLetter::generateNumber();
         return view('requisitions.create', compact('newNumber'));
     }
 
+    // 2. STORE DATA
     public function store(Request $request)
     {
         $request->validate([
@@ -93,6 +92,7 @@ class RequisitionController extends Controller
         return redirect()->route('dashboard')->with('success', $msg);
     }
 
+    // 3. SHOW DETAIL
     public function show($id)
     {
         $rl = RequisitionLetter::with([
@@ -105,6 +105,7 @@ class RequisitionController extends Controller
         return view('requisitions.show', compact('rl'));
     }
 
+    // 4. PRINT PDF (REAL DATA)
     public function printPdf($id)
     {
         $rl = RequisitionLetter::with([
@@ -114,12 +115,37 @@ class RequisitionController extends Controller
             'approvalQueues.approver.position'
         ])->findOrFail($id);
 
-        $pdf = Pdf::loadView('requisitions.pdf', compact('rl'));
+        // --- CARI PEJABAT (Agar Tanda Tangan Muncul) ---
+        // 1. Manager
+        $manager = User::where('company_id', $rl->company_id)
+                    ->where('department_id', $rl->requester->department_id)
+                    ->whereHas('position', function($q) {
+                        $q->where('position_name', 'Manager');
+                    })->first();
+
+        // Fallback Manager
+        if (!$manager) {
+            $manager = User::where('company_id', $rl->company_id)
+                    ->whereHas('position', function($q) {
+                        $q->where('position_name', 'Manager');
+                    })->first();
+        }
+
+        // 2. Director
+        $director = User::where('company_id', $rl->company_id)
+                    ->whereHas('position', function($q) {
+                        $q->where('position_name', 'Director');
+                    })->first();
+
+        $pdf = Pdf::loadView('requisitions.pdf', compact('rl', 'manager', 'director'));
         $pdf->setPaper('a4', 'portrait');
+
         $safeFilename = 'RL-' . str_replace(['/', '\\'], '-', $rl->rl_no) . '.pdf';
+
         return $pdf->stream($safeFilename);
     }
 
+    // 5. LIST BY STATUS
     public function listByStatus($status)
     {
         $validStatuses = ['DRAFT', 'ON_PROGRESS', 'APPROVED', 'REJECTED'];
@@ -147,6 +173,7 @@ class RequisitionController extends Controller
         return view('requisitions.index', compact('requisitions', 'status', 'statusUpper'));
     }
 
+    // 6. SUBMIT DRAFT
     public function submitDraft($id)
     {
         $rl = RequisitionLetter::findOrFail($id);
@@ -182,6 +209,7 @@ class RequisitionController extends Controller
         return redirect()->route('dashboard')->with('success', 'Draft berhasil diajukan untuk approval!');
     }
 
+    // 7. PREVIEW TEMP (DUMMY DATA) - [BAGIAN INI YANG SAYA LENGKAPI]
     public function previewTemp(Request $request)
     {
         $request->validate([
@@ -192,19 +220,26 @@ class RequisitionController extends Controller
 
         $user = Auth::user()->load(['department', 'position']);
         $company = \App\Models\Company::find($user->company_id);
+
+        // --- A. GENERATE NOMOR PREVIEW ---
         $companyCode = $company->company_code ?? 'GEN';
         $deptFull = $user->department->department_name ?? 'GEN';
         $deptParts = preg_split('/[\s(]/', $deptFull);
         $deptCode = strtoupper($deptParts[0]);
+
         $month = date('m', strtotime($request->request_date));
         $year = date('Y', strtotime($request->request_date));
+
         $count = RequisitionLetter::where('company_id', $user->company_id)
                     ->whereYear('request_date', $year)
                     ->whereMonth('request_date', $month)
                     ->count();
+
         $nextNo = str_pad($count + 1, 4, '0', STR_PAD_LEFT);
         $realDraftNo = "RL/{$companyCode}/{$deptCode}/{$year}/{$month}/{$nextNo}";
 
+        // --- B. BUAT OBJECT DUMMY ($rl) ---
+        // (Ini yang hilang di kode Anda sebelumnya)
         $rl = new RequisitionLetter();
         $rl->rl_no = $realDraftNo;
         $rl->request_date = $request->request_date;
@@ -215,10 +250,12 @@ class RequisitionController extends Controller
         $rl->remark = $request->remark;
         $rl->status_flow = 'DRAFT';
 
+        // Set Relasi Manual (karena belum masuk DB)
         $rl->setRelation('requester', $user);
         $rl->setRelation('company', $company);
-        $rl->setRelation('approvalQueues', collect([]));
+        $rl->setRelation('approvalQueues', collect([])); // Kosongkan approval queue
 
+        // Buat Dummy Items
         $items = collect();
         if($request->has('items')){
             foreach ($request->items as $itemData) {
@@ -228,21 +265,31 @@ class RequisitionController extends Controller
         }
         $rl->setRelation('items', $items);
 
+        // --- C. CARI PEJABAT (Sama seperti printPdf) ---
         $manager = User::where('company_id', $user->company_id)
                     ->where('department_id', $user->department_id)
                     ->whereHas('position', function($q){ $q->where('position_name', 'Manager'); })
                     ->first();
 
+        // Fallback Manager
+        if (!$manager) {
+            $manager = User::where('company_id', $user->company_id)
+                    ->whereHas('position', function($q){ $q->where('position_name', 'Manager'); })
+                    ->first();
+        }
+
         $director = User::where('company_id', $user->company_id)
                     ->whereHas('position', function($q){ $q->where('position_name', 'Director'); })
                     ->first();
 
+        // Load View PDF
         $pdf = Pdf::loadView('requisitions.pdf', compact('rl', 'manager', 'director'));
         $pdf->setPaper('a4', 'portrait');
 
         return $pdf->stream('preview.pdf');
     }
 
+    // 8. REVISE
     public function revise($id)
     {
         $oldRl = RequisitionLetter::with('items')->findOrFail($id);
@@ -253,25 +300,23 @@ class RequisitionController extends Controller
         return view('requisitions.create', compact('newNumber', 'oldRl'));
     }
 
-    // --- PERBAIKAN DI SINI ---
-public function departmentActivity()
+    // 9. DEPARTMENT ACTIVITY (CROSS DB FIX)
+    public function departmentActivity()
     {
         $user = Auth::user();
 
         // LANGKAH 1: Ambil semua ID teman satu departemen
-        // Kita query tabel User secara terpisah agar tidak bentrok koneksi database
         $teamMemberIds = User::where('department_id', $user->department_id)
                              ->where('company_id', $user->company_id)
-                             ->pluck('employee_id'); // Hanya ambil kolom ID-nya saja
+                             ->pluck('employee_id');
 
-        // LANGKAH 2: Ambil surat yang dibuat oleh orang-orang tersebut
+        // LANGKAH 2: Ambil surat (Gunakan whereIn agar aman beda DB)
         $requisitions = RequisitionLetter::with(['requester.department', 'items'])
-            ->whereIn('requester_id', $teamMemberIds) // GANTI whereHas DENGAN whereIn
+            ->whereIn('requester_id', $teamMemberIds)
             ->where('status_flow', '!=', 'DRAFT')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        // Kirim variable statusUpper supaya view tidak error
         $statusUpper = 'ACTIVITIES';
 
         return view('requisitions.department', compact('requisitions', 'statusUpper'));
