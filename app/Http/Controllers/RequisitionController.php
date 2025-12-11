@@ -40,7 +40,7 @@ class RequisitionController extends Controller
 
             // A. GENERATE NOMOR REAL (Re-Generate saat save agar urut)
             // Logic penomoran dipanggil lagi disini atau pakai helper model
-            $rlNo = RequisitionLetter::generateNumber(); 
+            $rlNo = RequisitionLetter::generateNumber();
             // Note: Jika pakai logic singkatan (IT) seperti di preview, copas logicnya kesini.
 
             // B. SIMPAN HEADER SURAT (UPDATE FIELD BARU)
@@ -51,7 +51,7 @@ class RequisitionController extends Controller
                 'request_date' => $request->request_date,
                 'status_flow' => $status,
                 'subject' => $request->subject,
-                
+
                 // FIELD BARU (PENTING)
                 'to_department' => 'Purchasing / Procurement', // Default
                 'priority' => $request->priority,           // <--- BARU
@@ -67,11 +67,11 @@ class RequisitionController extends Controller
                     'qty' => $item['qty'],
                     'uom' => $item['uom'],
                     'description' => $item['description'] ?? null,
-                    
+
                     // FIELD BARU (PENTING)
                     'part_number' => $item['part_number'] ?? null,     // <--- BARU
                     'stock_on_hand' => $item['stock_on_hand'] ?? 0,    // <--- BARU
-                    
+
                     'status_item' => 'WAITING'
                 ]);
             }
@@ -100,8 +100,8 @@ class RequisitionController extends Controller
                         'status' => 'PENDING'
                     ]);
                 }
-                
-                // Opsional: Langsung generate level 2 (Director) status PENDING juga? 
+
+                // Opsional: Langsung generate level 2 (Director) status PENDING juga?
                 // Biasanya Level 2 dibuat setelah Level 1 Approved. (Biarkan logic di controller approval).
             }
         });
@@ -111,41 +111,37 @@ class RequisitionController extends Controller
     }
 
     // 3. TAMPILKAN DETAIL SURAT (Untuk Review)
-public function show($id)
+// 3. TAMPILKAN DETAIL SURAT (REVISI)
+    public function show($id)
     {
-        // UPDATE: Tambahkan 'items.supplyHistories.receiver' di dalam with()
-        // Agar kita bisa ambil data history dan nama penerimanya
         $rl = RequisitionLetter::with([
-            'items.supplyHistories.receiver',
+            'items', // Load items standar
             'requester.department',
-            'approvalQueues.approver',
+            'approvalQueues.approver.position', // Load data approver lengkap
             'company'
         ])->findOrFail($id);
+
         return view('requisitions.show', compact('rl'));
     }
 
-    // 4. PRINT PDF
-// Jangan lupa import di paling atas:
-    // use Barryvdh\DomPDF\Facade\Pdf;
-
+    // 4. PRINT PDF (REVISI FIX ERROR SLASH)
     public function printPdf($id)
     {
-        // Ambil data lengkap dengan relasi ke Approval
         $rl = RequisitionLetter::with([
-            'items', 
-            'requester.department', 
+            'items',
+            'requester.department',
             'company',
-            'approvalQueues.approver.position' // Ambil data approver & jabatannya
+            'approvalQueues.approver.position'
         ])->findOrFail($id);
 
-        // Load View khusus PDF
         $pdf = Pdf::loadView('requisitions.pdf', compact('rl'));
-        
-        // Setup Kertas A4 Potrait
         $pdf->setPaper('a4', 'portrait');
 
-        // Render (Stream = Buka di browser, Download = Langsung unduh file)
-        return $pdf->stream('RL-'.$rl->rl_no.'.pdf');
+        // FIX ERROR DISINI:
+        // Ganti tanda "/" dengan "-" agar tidak dianggap folder oleh browser
+        $safeFilename = 'RL-' . str_replace(['/', '\\'], '-', $rl->rl_no) . '.pdf';
+
+        return $pdf->stream($safeFilename);
     }
 
     // ... (kode method sebelumnya: printPdf dll)
@@ -239,30 +235,30 @@ public function previewTemp(Request $request)
             'subject' => 'required|string',
             'items' => 'required|array',
         ]);
-        
+
         $user = Auth::user()->load(['department', 'position']);
         $company = \App\Models\Company::find($user->company_id);
 
         // 2. GENERATE NOMOR REAL (PREDIKSI AKURAT)
         $companyCode = $company->company_code ?? 'GEN';
-        
+
         // Ambil Singkatan Dept (IT, HR, FIN)
         $deptFull = $user->department->department_name ?? 'GEN';
-        $deptParts = preg_split('/[\s(]/', $deptFull); 
-        $deptCode = strtoupper($deptParts[0]); 
+        $deptParts = preg_split('/[\s(]/', $deptFull);
+        $deptCode = strtoupper($deptParts[0]);
 
         $month = date('m', strtotime($request->request_date)); // 12
         $year = date('Y', strtotime($request->request_date));  // 2025
-        
+
         // Hitung urutan nomor selanjutnya di DB
         $count = RequisitionLetter::where('company_id', $user->company_id)
                     ->whereYear('request_date', $year)
                     ->whereMonth('request_date', $month)
                     ->count();
-        
+
         // Jika nomor ini belum disave, berarti dia nomor ke (count + 1)
         $nextNo = str_pad($count + 1, 4, '0', STR_PAD_LEFT);
-        
+
         // FORMAT FINAL: RL/ASM/IT/2025/12/0001
         $realDraftNo = "RL/{$companyCode}/{$deptCode}/{$year}/{$month}/{$nextNo}";
 
@@ -276,11 +272,11 @@ public function previewTemp(Request $request)
         $rl->required_date = $request->required_date;
         $rl->remark = $request->remark; // <-- MASUKKAN REMARK DISINI
         $rl->status_flow = 'DRAFT';
-        
+
         // RELASI
         $rl->setRelation('requester', $user);
         $rl->setRelation('company', $company);
-        $rl->setRelation('approvalQueues', collect([])); 
+        $rl->setRelation('approvalQueues', collect([]));
 
         // ITEMS
         $items = collect();

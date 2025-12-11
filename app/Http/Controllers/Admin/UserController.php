@@ -120,7 +120,6 @@ class UserController extends Controller
             if ($request->filled('password')) {
                 $dataToUpdate['password'] = Hash::make($request->password);
             }
-
             $user->update($dataToUpdate);
         });
 

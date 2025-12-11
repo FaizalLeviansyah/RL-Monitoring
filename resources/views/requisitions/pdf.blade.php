@@ -5,14 +5,14 @@
     <title>{{ $rl->rl_no }}</title>
     <style>
         body { font-family: 'Helvetica', sans-serif; font-size: 10pt; color: #000; margin: 0; padding: 0; }
-        
+
         /* KOP SURAT */
         .header-table { width: 100%; border-bottom: 3px double #000; margin-bottom: 10px; padding-bottom: 5px; }
         .logo-container { width: 80px; text-align: left; vertical-align: middle; }
         .logo { width: 70px; height: auto; }
         .company-info { text-align: center; vertical-align: middle; padding-right: 80px; }
         .company-name { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin: 0; letter-spacing: 1px; }
-        .company-address { font-size: 8pt; margin-top: 5px; line-height: 1.3; }
+        .company-address { font-size: 9pt; margin-top: 5px; line-height: 1.3; }
 
         .doc-title { text-align: center; font-size: 14pt; font-weight: bold; text-decoration: underline; margin-top: 15px; letter-spacing: 1px; }
         .doc-number { text-align: center; font-size: 10pt; margin-bottom: 20px; font-weight: bold; }
@@ -25,18 +25,19 @@
         .val { width: 32%; }
 
         /* TABLE ITEMS */
-        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 9pt; }
-        .items-table th { border: 1px solid #000; padding: 6px; background-color: #e0e0e0; text-align: center; font-weight: bold; }
-        .items-table td { border: 1px solid #000; padding: 6px; }
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 10pt; }
+        .items-table th { border: 1px solid #000; padding: 8px; background-color: #e0e0e0; text-align: center; font-weight: bold; }
+        .items-table td { border: 1px solid #000; padding: 8px; }
+
         .text-center { text-align: center; }
-        
+
         /* SIGNATURE */
         .signature-table { width: 100%; margin-top: 40px; page-break-inside: avoid; }
         .sig-box { width: 33%; text-align: center; vertical-align: top; }
         .sig-title { font-weight: bold; font-size: 9pt; margin-bottom: 60px; } /* Jarak TTD */
         .sig-name { font-weight: bold; text-decoration: underline; font-size: 9pt; text-transform: uppercase; }
         .sig-pos { font-size: 8pt; font-style: italic; margin-top: 2px; }
-        
+
         /* STEMPEL APPROVED */
         .stamp-box { position: absolute; top: 30px; left: 0; right: 0; text-align: center; }
         .approved-text { border: 2px solid green; color: green; padding: 2px 8px; display: inline-block; transform: rotate(-5deg); font-weight: bold; font-size: 8pt; border-radius: 4px; background: rgba(255,255,255,0.8); }
@@ -136,8 +137,8 @@
 
             <td class="sig-box" style="position: relative;">
                 <div class="sig-title">Reviewed By,</div>
-                
-                @php 
+
+                @php
                     // Kita cek dari relation approvalQueues (jika ada)
                     // Atau pakai variabel $manager (passed from controller) untuk nama
                     $mgrApp = $rl->approvalQueues ? $rl->approvalQueues->where('level_order', 1)->first() : null;
@@ -155,7 +156,7 @@
             <td class="sig-box" style="position: relative;">
                 <div class="sig-title">Approved By,</div>
 
-                @php 
+                @php
                     $dirApp = $rl->approvalQueues ? $rl->approvalQueues->where('level_order', 2)->first() : null;
                     $dirName = $dirApp ? $dirApp->approver->full_name : ($director->full_name ?? '( ........................... )');
                 @endphp
