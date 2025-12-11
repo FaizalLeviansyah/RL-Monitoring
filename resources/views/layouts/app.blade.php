@@ -11,6 +11,47 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 font-sans antialiased">
 
+    @php
+        $user = Auth::user();
+        $userPos = $user->position->position_name ?? '';
+
+        // Cek Role
+        $isSuperAdmin = $userPos === 'Super Admin';
+        $isApprover = in_array($userPos, ['Manager', 'Director']);
+        $isRequester = !$isSuperAdmin && !$isApprover;
+
+        // Cek Mode Switch (Session)
+        $currentMode = session('active_role');
+
+        // Tentukan Menu
+        $showRequesterMenu = !$isSuperAdmin && ($isRequester || $currentMode == 'requester');
+        $showMonitoringMenu = !$isSuperAdmin;
+
+        // --- LOGIKA HITUNG NOTIFIKASI (BADGE) ---
+        $countDraft = 0;
+        $countRejected = 0;
+        $countPendingApprove = 0;
+
+        if (!$isSuperAdmin) {
+            // 1. Hitung Draft (Milik Sendiri)
+            $countDraft = \App\Models\RequisitionLetter::where('requester_id', $user->employee_id)
+                            ->where('status_flow', 'DRAFT')->count();
+
+            // 2. Hitung Rejected (Milik Sendiri - Perlu Revisi/Info)
+            $countRejected = \App\Models\RequisitionLetter::where('requester_id', $user->employee_id)
+                            ->where('status_flow', 'REJECTED')->count();
+
+            // 3. Hitung Pending Approval
+            // Jika user adalah Approver (atau mode approver), hitung tugas approval mereka
+            if ($isApprover || $currentMode == 'approver') {
+                $countPendingApprove = \App\Models\ApprovalQueue::where('approver_id', $user->employee_id)
+                                        ->where('status', 'PENDING')->count();
+            }
+            // Opsi Tambahan: Jika user Requester, mungkin ingin melihat status "On Progress" milik sendiri?
+            // Jika ya, Anda bisa menambahkan logika 'else' di sini.
+        }
+    @endphp
+
     <nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
         <div class="px-3 py-3 lg:px-5 lg:pl-3">
             <div class="flex items-center justify-between">
@@ -23,7 +64,7 @@
                         <div class="bg-blue-600 text-white p-1 rounded mr-2">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
-                        <span class="self-center text-xl font-bold sm:text-2xl whitespace-nowrap dark:text-white">RL System</span>
+                        <span class="self-center text-xl font-bold sm:text-2xl whitespace-nowrap dark:text-white">RL Monitoring System</span>
                     </a>
                 </div>
 
@@ -59,21 +100,6 @@
         </div>
     </nav>
 
-    @php
-        $userPos = Auth::user()->position->position_name ?? '';
-        $isSuperAdmin = $userPos === 'Super Admin';
-        $isApprover = in_array($userPos, ['Manager', 'Director']);
-        // Requester adalah user yang BUKAN Super Admin dan BUKAN Approver
-        $isRequester = !$isSuperAdmin && !$isApprover;
-
-        // Cek Mode yang sedang aktif (dari Session) untuk Manager/Director yang Switch Role
-        $currentMode = session('active_role');
-
-        // TENTUKAN MENU APA YANG MUNCUL
-        $showRequesterMenu = !$isSuperAdmin && ($isRequester || $currentMode == 'requester');
-        $showMonitoringMenu = !$isSuperAdmin; // Defaultnya muncul untuk semua kecuali super admin
-    @endphp
-
     <aside id="logo-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700 shadow-lg" aria-label="Sidebar">
         <div class="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
             <ul class="space-y-2 font-medium">
@@ -87,16 +113,16 @@
 
                 @if($isSuperAdmin)
                     <li class="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
-                        <div class="px-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">Management Console</div>
+                        <div class="px-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">Management</div>
                     </li>
                     <li>
-                        <a href="{{ route('admin.users.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-purple-50 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.users.*') ? 'bg-purple-100 text-purple-600' : '' }}">
+                        <a href="{{ route('admin.users.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-purple-50 dark:hover:bg-gray-700 group">
                             <svg class="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
                             <span class="ms-3">Manage Users</span>
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('admin.monitoring.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-teal-50 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.monitoring.index') ? 'bg-teal-100 text-teal-600' : '' }}">
+                        <a href="{{ route('admin.monitoring.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-teal-50 dark:hover:bg-gray-700 group">
                             <svg class="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             <span class="ms-3">Global Monitoring</span>
                         </a>
@@ -116,7 +142,11 @@
                     <li>
                         <a href="{{ route('requisitions.status', 'draft') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 group {{ request()->is('requisitions/status/draft') ? 'bg-blue-100 text-blue-600' : '' }}">
                             <span class="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg></span>
-                            <span class="ms-3">Drafts</span>
+                            <span class="flex-1 ms-3 whitespace-nowrap">Drafts</span>
+
+                            @if($countDraft > 0)
+                                <span class="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">{{ $countDraft }}</span>
+                            @endif
                         </a>
                     </li>
                 @endif
@@ -125,10 +155,15 @@
                 <li class="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
                     <div class="px-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">Monitoring</div>
                 </li>
+
                 <li>
                     <a href="{{ route('requisitions.status', 'on_progress') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 group {{ request()->is('requisitions/status/on_progress') ? 'bg-orange-100 text-orange-600' : '' }}">
                         <span class="flex-shrink-0 w-5 h-5 text-orange-500 transition duration-75 group-hover:text-orange-600"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
-                        <span class="ms-3">Waiting Approval</span>
+                        <span class="flex-1 ms-3 whitespace-nowrap">Waiting Approval</span>
+
+                        @if($countPendingApprove > 0)
+                            <span class="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-orange-800 bg-orange-100 rounded-full dark:bg-orange-900 dark:text-orange-300">{{ $countPendingApprove }}</span>
+                        @endif
                     </a>
                 </li>
                 <li>
@@ -140,13 +175,17 @@
                 <li>
                     <a href="{{ route('requisitions.status', 'rejected') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 group {{ request()->is('requisitions/status/rejected') ? 'bg-red-100 text-red-600' : '' }}">
                         <span class="flex-shrink-0 w-5 h-5 text-red-500 transition duration-75 group-hover:text-red-600"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
-                        <span class="ms-3">Rejected</span>
+                        <span class="flex-1 ms-3 whitespace-nowrap">Rejected</span>
+
+                        @if($countRejected > 0)
+                            <span class="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-red-800 bg-red-100 rounded-full dark:bg-red-900 dark:text-red-300">{{ $countRejected }}</span>
+                        @endif
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('activities.department') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-blue-50 dark:hover:bg-gray-700 group {{ request()->routeIs('activities.department') ? 'bg-blue-100 text-blue-600' : '' }}">
-                        <svg class="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                        <span class="ms-3">Aktivitas Dept.</span>
+                    <a href="{{ route('requisitions.department') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-indigo-50 dark:hover:bg-gray-700 group {{ request()->routeIs('requisitions.department') ? 'bg-indigo-100 text-indigo-600' : '' }}">
+                        <svg class="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
+                        <span class="flex-1 ms-3 whitespace-nowrap">Aktivitas Dept.</span>
                     </a>
                 </li>
                 @endif
@@ -162,10 +201,8 @@
         </div>
     </aside>
 
-    <div class="p-4 sm:ml-64">
-        <div class="p-4 mt-14">
-            {{ $slot }}
-        </div>
+    <div class="p-4 sm:ml-64 mt-14">
+        {{ $slot }}
     </div>
 
 </body>
