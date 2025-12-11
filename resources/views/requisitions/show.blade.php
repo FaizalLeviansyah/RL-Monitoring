@@ -307,6 +307,19 @@
                         <input type="file" name="photo_proof" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400">
                     </div>
 
+                    <div class="mt-8 bg-white border border-gray-200 rounded-lg shadow-sm p-6 dark:bg-gray-800 dark:border-gray-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Document Preview</h3>
+                        <a href="{{ route('requisitions.print', $rl->id) }}" target="_blank" class="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-4 py-2 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download PDF
+                        </a>
+                    </div>
+                    
+                    <div class="aspect-w-16 aspect-h-9 w-full h-[600px] border rounded-lg bg-gray-100">
+                        <iframe src="{{ route('requisitions.print', $rl->id) }}" class="w-full h-full rounded-lg" frameborder="0"></iframe>
+                    </div>
+                </div>
                     <button type="submit" class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                         Simpan Penerimaan
                     </button>

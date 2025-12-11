@@ -126,7 +126,6 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index')->with('success', 'User updated!');
     }
-
     public function destroy($id)
         {
             $user = User::findOrFail($id);

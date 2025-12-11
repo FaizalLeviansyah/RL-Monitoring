@@ -28,10 +28,10 @@
 
             <div class="space-y-4 mb-12">
                 <h1 class="text-4xl font-extrabold tracking-tight leading-tight text-gray-900 md:text-5xl lg:text-6xl dark:text-white">
-                    PT CARAKA ONE SYSTEM
+                    Requisition Letter (RL)
                 </h1>
                 <p class="text-lg font-medium text-gray-600 lg:text-2xl sm:px-16 dark:text-gray-300 max-w-2xl mx-auto">
-                    Requisition Letter (RL) Monitoring System
+                    Monitoring System
                 </p>
                 <div class="w-24 h-1 bg-blue-600 mx-auto rounded-full mt-6"></div>
             </div>
@@ -48,7 +48,7 @@
                         </a>
                     @else
                         <a href="{{ route('login') }}" class="group relative inline-flex justify-center items-center py-3.5 px-10 text-base font-semibold text-center text-white rounded-full bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-900 shadow-lg hover:shadow-xl transition-all duration-200">
-                            Login Pegawai
+                            Login
                             <svg class="w-4 h-4 ms-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9"/>
                             </svg>

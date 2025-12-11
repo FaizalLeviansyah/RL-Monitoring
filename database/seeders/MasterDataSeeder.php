@@ -25,10 +25,11 @@ class MasterDataSeeder extends Seeder
         Schema::connection('mysql_master')->enableForeignKeyConstraints();
 
 
-        // --- 2. BUAT COMPANY (PT) ---
-        $asm = Company::create(['company_code' => 'ASM', 'company_name' => 'ASM (Amarin Ship Management)', 'logo_path' => 'Logo_PT_ASM.jpg']);
-        $acs = Company::create(['company_code' => 'ACS', 'company_name' => 'ACS (Amarin Crewing Services)', 'logo_path' => 'Logo_PT_ACS.png']);
-        $ctp = Company::create(['company_code' => 'CTP', 'company_name' => 'CTP (Caraka Tirta Pratama)', 'logo_path' => 'Logo_PT_CTP.jpg']);
+        // --- 2. BUAT COMPANY (NAMA BAKU TANPA SINGKATAN) ---
+        // company_code tetap ASM/ACS/CTP untuk logika sistem, company_name untuk Kop Surat
+        $asm = Company::create(['company_code' => 'ASM', 'company_name' => 'Amarin Ship Management', 'logo_path' => 'Logo_PT_ASM.jpg']);
+        $acs = Company::create(['company_code' => 'ACS', 'company_name' => 'Amarin Crewing Services', 'logo_path' => 'Logo_PT_ACS.png']);
+        $ctp = Company::create(['company_code' => 'CTP', 'company_name' => 'Caraka Tirta Pratama', 'logo_path' => 'Logo_PT_CTP.jpg']);
 
 
         // --- 3. BUAT DEPARTEMEN ---

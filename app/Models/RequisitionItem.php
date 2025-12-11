@@ -26,4 +26,10 @@ class RequisitionItem extends Model
     {
         return $this->qty - $this->supplied_qty;
     }
+
+    protected $fillable = [
+        'rl_id', 'item_name', 'qty', 'uom', 'description', 'status_item',
+        // Tambahkan ini:
+        'part_number', 'stock_on_hand'
+    ];
 }

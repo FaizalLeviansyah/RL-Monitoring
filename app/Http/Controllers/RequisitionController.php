@@ -21,40 +21,45 @@ class RequisitionController extends Controller
     }
 
     // 2. SIMPAN DATA (DATABASE TRANSACTION)
+// 2. SIMPAN DATA (DATABASE TRANSACTION)
     public function store(Request $request)
     {
-        // Validasi Input
+        // Validasi Input (Updated)
         $request->validate([
             'request_date' => 'required|date',
             'subject' => 'nullable|string|max:255',
             'items' => 'required|array|min:1',
             'items.*.item_name' => 'required|string',
-            'items.*.qty' => 'required|integer|min:1',
+            'items.*.qty' => 'required|numeric|min:1', // numeric agar aman
             'items.*.uom' => 'required|string',
         ]);
 
-        // Gunakan DB Transaction agar kalau item gagal, header tidak tersimpan
         DB::transaction(function () use ($request) {
             $user = Auth::user();
+            $status = ($request->action === 'draft') ? 'DRAFT' : 'ON_PROGRESS';
 
-$status = ($request->action === 'draft') ? 'DRAFT' : 'ON_PROGRESS';
+            // A. GENERATE NOMOR REAL (Re-Generate saat save agar urut)
+            // Logic penomoran dipanggil lagi disini atau pakai helper model
+            $rlNo = RequisitionLetter::generateNumber(); 
+            // Note: Jika pakai logic singkatan (IT) seperti di preview, copas logicnya kesini.
 
-            // A. SIMPAN HEADER SURAT
+            // B. SIMPAN HEADER SURAT (UPDATE FIELD BARU)
             $rl = RequisitionLetter::create([
                 'company_id' => $user->company_id,
                 'requester_id' => $user->employee_id,
-                'rl_no' => RequisitionLetter::generateNumber(),
+                'rl_no' => $rlNo,
                 'request_date' => $request->request_date,
-
-                // PERBAIKAN DISINI: Gunakan variabel $status, jangan 'ON_PROGRESS'
                 'status_flow' => $status,
-
                 'subject' => $request->subject,
-                'to_department' => $request->to_department,
+                
+                // FIELD BARU (PENTING)
+                'to_department' => 'Purchasing / Procurement', // Default
+                'priority' => $request->priority,           // <--- BARU
+                'required_date' => $request->required_date, // <--- BARU
                 'remark' => $request->remark,
             ]);
 
-            // B. SIMPAN ITEMS (Looping)
+            // C. SIMPAN ITEMS (UPDATE FIELD BARU)
             foreach ($request->items as $item) {
                 RequisitionItem::create([
                     'rl_id' => $rl->id,
@@ -62,17 +67,30 @@ $status = ($request->action === 'draft') ? 'DRAFT' : 'ON_PROGRESS';
                     'qty' => $item['qty'],
                     'uom' => $item['uom'],
                     'description' => $item['description'] ?? null,
+                    
+                    // FIELD BARU (PENTING)
+                    'part_number' => $item['part_number'] ?? null,     // <--- BARU
+                    'stock_on_hand' => $item['stock_on_hand'] ?? 0,    // <--- BARU
+                    
                     'status_item' => 'WAITING'
                 ]);
             }
 
-            // 4. GENERATE APPROVAL (HANYA JIKA SUBMIT / ON_PROGRESS)
-            // Kalau Draft, jangan panggil manager dulu.
+            // D. GENERATE APPROVAL (HANYA JIKA SUBMIT)
             if ($status === 'ON_PROGRESS') {
                 $manager = User::where('company_id', $user->company_id)
+                            ->where('department_id', $user->department_id) // Manager dept sendiri
                             ->whereHas('position', function($q) {
                                 $q->where('position_name', 'Manager');
                             })->first();
+
+                // Fallback: Jika tidak ada manager di dept itu, cari sembarang manager (opsional)
+                if (!$manager) {
+                     $manager = User::where('company_id', $user->company_id)
+                                ->whereHas('position', function($q) {
+                                    $q->where('position_name', 'Manager');
+                                })->first();
+                }
 
                 if ($manager) {
                     ApprovalQueue::create([
@@ -82,6 +100,9 @@ $status = ($request->action === 'draft') ? 'DRAFT' : 'ON_PROGRESS';
                         'status' => 'PENDING'
                     ]);
                 }
+                
+                // Opsional: Langsung generate level 2 (Director) status PENDING juga? 
+                // Biasanya Level 2 dibuat setelah Level 1 Approved. (Biarkan logic di controller approval).
             }
         });
 
@@ -209,57 +230,81 @@ public function show($id)
 
         return redirect()->route('dashboard')->with('success', 'Draft berhasil diajukan untuk approval!');
     }
-    // Method Khusus untuk Preview (Tanpa Simpan Database)
-    public function previewTemp(Request $request)
+// Method Khusus untuk Preview (Tanpa Simpan Database)
+public function previewTemp(Request $request)
     {
         // 1. Validasi Input
-        $validated = $request->validate([
+        $request->validate([
             'request_date' => 'required|date',
             'subject' => 'required|string',
             'items' => 'required|array',
-            'items.*.item_name' => 'required',
-            'items.*.qty' => 'required',
         ]);
+        
+        $user = Auth::user()->load(['department', 'position']);
+        $company = \App\Models\Company::find($user->company_id);
 
-        // 2. Buat Dummy Object Requisition Letter (In Memory)
+        // 2. GENERATE NOMOR REAL (PREDIKSI AKURAT)
+        $companyCode = $company->company_code ?? 'GEN';
+        
+        // Ambil Singkatan Dept (IT, HR, FIN)
+        $deptFull = $user->department->department_name ?? 'GEN';
+        $deptParts = preg_split('/[\s(]/', $deptFull); 
+        $deptCode = strtoupper($deptParts[0]); 
+
+        $month = date('m', strtotime($request->request_date)); // 12
+        $year = date('Y', strtotime($request->request_date));  // 2025
+        
+        // Hitung urutan nomor selanjutnya di DB
+        $count = RequisitionLetter::where('company_id', $user->company_id)
+                    ->whereYear('request_date', $year)
+                    ->whereMonth('request_date', $month)
+                    ->count();
+        
+        // Jika nomor ini belum disave, berarti dia nomor ke (count + 1)
+        $nextNo = str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+        
+        // FORMAT FINAL: RL/ASM/IT/2025/12/0001
+        $realDraftNo = "RL/{$companyCode}/{$deptCode}/{$year}/{$month}/{$nextNo}";
+
+        // 3. OBJECT RL DUMMY
         $rl = new RequisitionLetter();
-        $rl->rl_no = 'DRAFT-PREVIEW-001'; // Nomor Sementara
+        $rl->rl_no = $realDraftNo; // <-- SEKARANG SUDAH NOMOR ASLI
         $rl->request_date = $request->request_date;
         $rl->subject = $request->subject;
-        $rl->to_department = 'Purchasing / Procurement'; // Default
+        $rl->to_department = 'Purchasing / Procurement';
         $rl->priority = $request->priority;
         $rl->required_date = $request->required_date;
+        $rl->remark = $request->remark; // <-- MASUKKAN REMARK DISINI
         $rl->status_flow = 'DRAFT';
         
-        // 3. Set Relasi Dummy (PENTING!)
-        
-        // A. Relasi Requester (Ambil User Login + Load Dept & Position)
-        $user = Auth::user()->load(['department', 'position']); 
+        // RELASI
         $rl->setRelation('requester', $user);
-        
-        // B. Relasi Company (Ambil dari User)
-        $rl->setRelation('company', $user->company);
-        
-        // C. Relasi Items (Looping data dari Form)
-        $items = collect(); // Koleksi kosong
+        $rl->setRelation('company', $company);
+        $rl->setRelation('approvalQueues', collect([])); 
+
+        // ITEMS
+        $items = collect();
         if($request->has('items')){
             foreach ($request->items as $itemData) {
-                // Buat object item sementara
                 $item = new \App\Models\RequisitionItem($itemData);
                 $items->push($item);
             }
         }
         $rl->setRelation('items', $items);
 
-        // D. Relasi Approval (INI YANG BIKIN ERROR SEBELUMNYA)
-        // Kita harus kirim Collection kosong agar PDF tidak error saat panggil $rl->approvalQueues->where(...)
-        $rl->setRelation('approvalQueues', collect([])); 
+        // APPROVER INFO
+        $manager = User::where('company_id', $user->company_id)
+                    ->where('department_id', $user->department_id)
+                    ->whereHas('position', function($q){ $q->where('position_name', 'Manager'); })
+                    ->first();
 
-        // 4. Generate PDF
-        $pdf = Pdf::loadView('requisitions.pdf', compact('rl'));
+        $director = User::where('company_id', $user->company_id)
+                    ->whereHas('position', function($q){ $q->where('position_name', 'Director'); })
+                    ->first();
+
+        $pdf = Pdf::loadView('requisitions.pdf', compact('rl', 'manager', 'director'));
         $pdf->setPaper('a4', 'portrait');
 
-        // 5. Return Stream
         return $pdf->stream('preview.pdf');
     }
 }

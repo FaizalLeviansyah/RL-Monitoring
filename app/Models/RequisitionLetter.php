@@ -74,6 +74,13 @@ class RequisitionLetter extends Model
         // 5. Gabungkan dengan format Angka Bulan
         return "RL/{$companyCode}/{$deptCode}/{$year}/{$month}/{$sequence}";
     }
+
+    protected $fillable = [
+        'company_id', 'requester_id', 'rl_no', 'request_date', 
+        'status_flow', 'subject', 'to_department', 'remark',
+        // Tambahkan ini:
+        'priority', 'required_date'
+    ];
     // public static function generateNumber()
     // {
     //     $user = auth()->user();
