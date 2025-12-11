@@ -12,77 +12,69 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Group Auth (Hanya bisa diakses login)
+// Group Auth
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // 1. DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // 2. PROFILE (Bawaan Breeze)
+    // 2. PROFILE
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // 3. REQUISITION (CRUD Utama)
-    Route::resource('requisitions', RequisitionController::class);
-    // Print PDF
-    Route::get('/requisitions/{id}/print', [RequisitionController::class, 'printPdf'])->name('requisitions.print');
+    // 3. REQUISITION ROUTES (URUTAN SANGAT PENTING!)
 
-    // 4. APPROVAL (Action Manager)
-    Route::post('/approval/action', [ApprovalController::class, 'action'])->name('approval.action');
+    // A. Route Khusus (HARUS DI ATAS RESOURCE)
+    // Supaya "department" tidak dianggap sebagai ID surat
+    Route::get('/requisitions/department', [RequisitionController::class, 'departmentActivity'])
+        ->name('requisitions.department');
 
-    // 5. SUPPLY TRACKING (Penerimaan Barang)
-    // Kita gunakan nama 'supply.store' agar cocok dengan show.blade.php
-    Route::post('/supply/store', [SupplyController::class, 'store'])->name('supply.store');
-
-    // Route untuk Halaman List per Status (Draft, Approved, dll)
     Route::get('/requisitions/status/{status}', [RequisitionController::class, 'listByStatus'])
         ->name('requisitions.status');
 
-    // Route Submit Draft
     Route::post('/requisitions/{id}/submit-draft', [RequisitionController::class, 'submitDraft'])
         ->name('requisitions.submit-draft');
 
-    // Group khusus Super Admin
-    Route::middleware(['auth', 'verified', 'can:super_admin'])->prefix('admin')->name('admin.')->group(function () {
-    // User Management
-    Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
-    // Master Data Lain (Company/Dept) bisa ditambah disini
-    });
+    Route::get('/requisitions/{id}/print', [RequisitionController::class, 'printPdf'])
+        ->name('requisitions.print');
 
-    // API Internal untuk Dynamic Dropdown
+    Route::post('/requisitions/preview-temp', [RequisitionController::class, 'previewTemp'])
+        ->name('requisitions.preview-temp');
+
+    Route::get('/requisitions/{id}/revise', [RequisitionController::class, 'revise'])
+        ->name('requisitions.revise');
+
+    // B. Route Resource (Menangani /requisitions/{id})
+    // Ini ditaruh paling bawah di grup requisition
+    Route::resource('requisitions', RequisitionController::class);
+
+
+    // 4. APPROVAL
+    Route::post('/approval/action', [ApprovalController::class, 'action'])->name('approval.action');
+    Route::post('/approvals/{id}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
+    Route::post('/approvals/{id}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
+
+    // 5. SUPPLY TRACKING
+    Route::post('/supply/store', [SupplyController::class, 'store'])->name('supply.store');
+
+    // 6. API Internal
     Route::get('/api/get-departments/{company_id}', function ($company_id) {
         return \App\Models\Department::where('company_id', $company_id)->get();
     })->name('api.departments');
 
-    // API Internal untuk Dynamic Dropdown
-    // 1. Get Departments
-    Route::get('/api/get-departments/{company_id}', function ($company_id) {
-        return \App\Models\Department::where('company_id', $company_id)->get();
-    })->name('api.departments');
-
-    // 2. Get Positions (Pastikan Model Position sudah benar)
     Route::get('/api/get-positions/{company_id}', function ($company_id) {
         return \App\Models\Position::where('company_id', $company_id)->get();
     })->name('api.positions');
 
-    // Route untuk memilih peran (Switch Role)
     Route::get('/dashboard/select-role/{role}', [DashboardController::class, 'selectRole'])
         ->name('dashboard.select_role');
 
-    Route::get('/department-activities', [App\Http\Controllers\DepartmentActivityController::class, 'index'])
-        ->name('activities.department');
-
-    // Group khusus Super Admin
+    // 7. ADMIN GROUP
     Route::middleware(['auth', 'verified', 'can:super_admin'])->prefix('admin')->name('admin.')->group(function () {
-        // User Management
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
-
-        // NEW: Global Monitoring
         Route::get('/monitoring', [\App\Http\Controllers\Admin\GlobalMonitoringController::class, 'index'])->name('monitoring.index');
     });
-
-    Route::post('/requisitions/preview-temp', [App\Http\Controllers\RequisitionController::class, 'previewTemp'])->name('requisitions.preview-temp');
 });
 
 require __DIR__.'/auth.php';
