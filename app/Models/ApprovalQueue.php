@@ -17,4 +17,8 @@ class ApprovalQueue extends Model
     public function approver() {
         return $this->belongsTo(User::class, 'approver_id', 'employee_id');
     }
+
+    public function requisitionLetter() {
+        return $this->belongsTo(RequisitionLetter::class, 'rl_id', 'id');
+    }
 }
