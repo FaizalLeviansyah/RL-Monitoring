@@ -8,90 +8,108 @@ use App\Models\RequisitionLetter;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\WaService; // <--- PENTING: Panggil Service WA
 
 class ApprovalController extends Controller
 {
-    // 1. ACTION APPROVE (Menyetujui)
-    public function approve($id)
+    // ACTION: APPROVE (+ NOTIF WA DIRECTOR)
+    public function approve(Request $request, $id)
     {
-        $queue = ApprovalQueue::findOrFail($id);
+        $user = Auth::user();
 
-        // Security: Pastikan yang approve adalah user yang login
-        if ($queue->approver_id != Auth::user()->employee_id) {
-            abort(403, 'Unauthorized action.');
+        $queue = ApprovalQueue::where('rl_id', $id)
+                    ->where('approver_id', $user->employee_id)
+                    ->where('status', 'PENDING')
+                    ->first();
+
+        if (!$queue) {
+            return back()->with('error', 'Anda tidak memiliki antrian approval untuk dokumen ini.');
         }
 
-        DB::transaction(function () use ($queue) {
-            // A. Update Status Queue Jadi APPROVED
+        $rl = RequisitionLetter::findOrFail($id);
+        $notifDirector = null;
+
+        DB::transaction(function () use ($queue, $rl, $user, &$notifDirector, $request) {
+            // 1. Update Status Approver Sekarang (Manager)
             $queue->update([
                 'status' => 'APPROVED',
                 'approved_at' => now(),
+                'note' => $request->note
             ]);
 
-            // B. Cek Apakah Masih Ada Level Selanjutnya?
-            // Logikanya: Jika ini Level 1 (Manager), maka lanjut ke Level 2 (Director)
-
             if ($queue->level_order == 1) {
-                // --- LANJUT KE LEVEL 2 (DIRECTOR) ---
-
-                // Cari Direktur (Bisa spesifik per PT atau Global)
-                // Asumsi: Direktur ada di PT yang sama
-                $rl = $queue->requisitionLetter; // Pastikan Model ApprovalQueue punya relasi ini
-
                 $director = User::where('company_id', $rl->company_id)
-                                ->whereHas('position', function($q){
-                                    $q->where('position_name', 'Director');
-                                })->first();
+                            ->whereHas('position', function($q) {
+                                $q->where('position_name', 'Director');
+                            })->first();
 
                 if ($director) {
-                    // Buat Antrian Baru untuk Direktur
+
                     ApprovalQueue::create([
                         'rl_id' => $rl->id,
                         'approver_id' => $director->employee_id,
                         'level_order' => 2,
-                        'status' => 'PENDING' // Direktur statusnya Pending
+                        'status' => 'PENDING'
                     ]);
+
+                    $notifDirector = [
+                        'target' => $director,
+                        'rl' => $rl,
+                        'manager_name' => $user->full_name
+                    ];
                 } else {
-                    // Jika tidak ada direktur, anggap selesai (Auto Finish) - Optional
                     $rl->update(['status_flow' => 'APPROVED']);
                 }
 
-            } elseif ($queue->level_order == 2) {
-                // --- FINISH (LEVEL TERAKHIR) ---
-
-                // Update Status Utama Surat Jadi APPROVED
-                $queue->requisitionLetter->update(['status_flow' => 'APPROVED']);
+            }
+            elseif ($queue->level_order == 2) {
+                $rl->update(['status_flow' => 'APPROVED']);
             }
         });
 
-        return redirect()->back()->with('success', 'Dokumen berhasil disetujui.');
-    }
+        if ($notifDirector && !empty($notifDirector['target']->phone_number)) {
+            $target = $notifDirector['target'];
+            $link = route('requisitions.show', $rl->id);
 
-    // 2. ACTION REJECT (Menolak)
-    public function reject(Request $request, $id)
-    {
-        $request->validate([
-            'reason' => 'required|string|min:5',
-        ]);
+            $pesan = "Halo Bpk/Ibu *{$target->full_name}*,\n\n";
+            $pesan .= "Dokumen RL berikut telah disetujui oleh Manager *{$notifDirector['manager_name']}* dan sekarang menunggu persetujuan Anda.\n\n";
+            $pesan .= "📝 No RL: *{$rl->rl_no}*\n";
+            $pesan .= "👤 Requester: {$rl->requester->full_name}\n";
+            $pesan .= "📄 Subject: {$rl->subject}\n\n";
+            $pesan .= "Klik link berikut untuk Approve:\n{$link}\n\n";
+            $pesan .= "_RL Monitoring System_";
 
-        $queue = ApprovalQueue::findOrFail($id);
-
-        if ($queue->approver_id != Auth::user()->employee_id) {
-            abort(403);
+            WaService::send($target->phone_number, $pesan);
         }
 
-        DB::transaction(function () use ($queue, $request) {
-            // Update Queue jadi REJECTED
+        return back()->with('success', 'Dokumen berhasil disetujui.');
+    }
+
+    // ACTION: REJECT
+    public function reject(Request $request, $id)
+    {
+        $request->validate(['reason' => 'required|string|min:5']);
+
+        $user = Auth::user();
+        $queue = ApprovalQueue::where('rl_id', $id)
+                    ->where('approver_id', $user->employee_id)
+                    ->where('status', 'PENDING')
+                    ->first();
+
+        if (!$queue) return back()->with('error', 'Akses ditolak.');
+
+        $rl = RequisitionLetter::findOrFail($id);
+
+        DB::transaction(function () use ($queue, $rl, $request) {
             $queue->update([
                 'status' => 'REJECTED',
-                'reason_rejection' => $request->reason,
-                'updated_at' => now(),
+                'approved_at' => now(),
+                'note' => $request->reason
             ]);
 
-            // Update Surat Utama jadi REJECTED (Mati)
-            $queue->requisitionLetter->update(['status_flow' => 'REJECTED']);
+            $rl->update(['status_flow' => 'REJECTED']);
         });
 
-        return redirect()->back()->with('error', 'Dokumen ditolak. Requester diminta revisi.');
+        return back()->with('success', 'Dokumen ditolak.');
     }
 }
