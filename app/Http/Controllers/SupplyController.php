@@ -39,26 +39,19 @@ class SupplyController extends Controller
                 $photoPath = $request->file('photo_proof')->store('supply_proofs', 'public');
             }
 
-            // 3. Catat di Supply History
             SupplyHistory::create([
                 'rl_item_id' => $item->id,
                 'received_by' => Auth::user()->employee_id,
                 'qty_received' => $qtyToInput,
                 'photo_proof' => $photoPath,
-                // 'delivery_note' => $request->delivery_note
             ]);
 
-            // 4. Update Status Item
-            // Hitung total yang sudah diterima (termasuk yang barusan)
             $totalReceived = $item->supplyHistories()->sum('qty_received'); // Query ulang biar akurat
 
             if ($totalReceived >= $item->qty) {
                 $item->update(['status_item' => 'SUPPLIED']);
             }
-            // Jika belum lunas, status tetap WAITING (atau bisa buat status PARTIAL di enum kalau mau)
 
-            // 5. Cek Status Surat (Header RL)
-            // Apakah SEMUA item di surat ini sudah SUPPLIED?
             $rl = $item->letter;
             $allItemsSupplied = $rl->items()->where('status_item', '!=', 'SUPPLIED')->doesntExist();
 

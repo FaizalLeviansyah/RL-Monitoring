@@ -75,6 +75,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
         Route::get('/monitoring', [\App\Http\Controllers\Admin\GlobalMonitoringController::class, 'index'])->name('monitoring.index');
     });
+
+    Route::post('/requisitions/{id}/upload-partial', [RequisitionController::class, 'uploadPartial'])->name('requisitions.upload_partial');
+    Route::post('/requisitions/{id}/upload-final', [RequisitionController::class, 'uploadFinal'])->name('requisitions.upload_final');
+    Route::post('/requisitions/{id}/upload-evidence', [RequisitionController::class, 'uploadEvidence'])->name('requisitions.upload_evidence');
+});
+
+Route::get('/cek-db', function () {
+    // 1. Cek Nama Database yang Konek saat ini
+    $dbName = DB::connection()->getDatabaseName();
+    
+    // 2. Cek Apakah kolom ada
+    $hasColumn = Schema::hasColumn('requisition_letters', 'attachment_partial');
+
+    return [
+        'Database Yang Dipakai Laravel' => $dbName,
+        'Apakah Tabel requisition_letters Ada?' => Schema::hasTable('requisition_letters') ? 'YA' : 'TIDAK',
+        'Apakah Kolom attachment_partial Ada?' => $hasColumn ? 'YA (SUDAH ADA)' : 'TIDAK (BELUM ADA - INI MASALAHNYA)',
+    ];
 });
 
 require __DIR__.'/auth.php';

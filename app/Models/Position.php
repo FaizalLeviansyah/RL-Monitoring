@@ -13,4 +13,5 @@ class Position extends Model
     protected $primaryKey = 'position_id';
 
     protected $fillable = ['position_name', 'company_id'];
+
 }

@@ -370,4 +370,118 @@ class RequisitionController extends Controller
         $statusUpper = 'ACTIVITIES';
         return view('requisitions.department', compact('requisitions', 'statusUpper'));
     }
+
+    // --- [BARU] LOGIC UPLOAD FILE BERJENJANG ---
+
+    // 1. UPLOAD TAHAP 1 (TTD Requester + Manager) -> Trigger WA Manager
+    public function uploadPartial(Request $request, $id)
+    {
+        $request->validate([
+            'file_partial' => 'required|mimes:pdf|max:5120', // Max 5MB
+        ]);
+
+        $rl = RequisitionLetter::findOrFail($id);
+        
+        // Simpan File
+        if ($request->hasFile('file_partial')) {
+            $path = $request->file('file_partial')->store('uploads/rl_documents', 'public');
+            $rl->attachment_partial = $path;
+            // Ubah status agar Manager tahu ini menunggu validasinya
+            $rl->status_flow = 'ON_PROGRESS'; 
+            $rl->save();
+        }
+
+        // Generate Approval Queue untuk Manager (Supaya Manager bisa klik Approve)
+        $this->generateManagerQueue($rl);
+
+        // Kirim WA ke Manager (Meminta Validasi Digital)
+        $this->sendWaToManager($rl);
+
+        return back()->with('success', 'Dokumen Tahap 1 berhasil diupload! Menunggu validasi Manager.');
+    }
+
+    // 2. UPLOAD TAHAP 2 (TTD Lengkap + Direktur) -> Trigger WA Direktur (Info Only)
+    public function uploadFinal(Request $request, $id)
+    {
+        $request->validate([
+            'file_final' => 'required|mimes:pdf|max:5120',
+        ]);
+
+        $rl = RequisitionLetter::findOrFail($id);
+
+        if ($request->hasFile('file_final')) {
+            $path = $request->file('file_final')->store('uploads/rl_documents', 'public');
+            $rl->attachment_final = $path;
+            
+            // Status langsung APPROVED (Karena Direktur dianggap sudah TTD di kertas)
+            $rl->status_flow = 'APPROVED'; 
+            $rl->save();
+        }
+
+        // Kirim WA Info ke Direktur (Optional)
+        // Anda bisa buat method sendWaToDirector($rl) serupa dengan Manager
+
+        return back()->with('success', 'Dokumen Final diupload. Status: APPROVED (Menunggu Barang).');
+    }
+
+    // 3. UPLOAD BUKTI BARANG (Closing)
+    public function uploadEvidence(Request $request, $id)
+    {
+        $request->validate([
+            'evidence_photo' => 'required|image|max:5120', // JPG/PNG
+        ]);
+
+        $rl = RequisitionLetter::findOrFail($id);
+
+        if ($request->hasFile('evidence_photo')) {
+            $path = $request->file('evidence_photo')->store('uploads/evidence', 'public');
+            $rl->evidence_photo = $path;
+            $rl->status_flow = 'COMPLETED'; // Selesai
+            $rl->save();
+        }
+
+        return back()->with('success', 'Bukti barang diterima. Tiket Selesai (COMPLETED).');
+    }
+
+    // --- HELPER FUNCTIONS (Agar kodingan rapi) ---
+
+    private function generateManagerQueue($rl)
+    {
+        // Cari Manager Dept
+        $manager = User::where('company_id', $rl->company_id)
+            ->where('department_id', $rl->requester->department_id)
+            ->whereHas('position', function($q) { $q->where('position_name', 'Manager'); })->first();
+
+        // Fallback Manager
+        if (!$manager) {
+            $manager = User::where('company_id', $rl->company_id)
+                ->whereHas('position', function($q) { $q->where('position_name', 'Manager'); })->first();
+        }
+
+        if ($manager) {
+            // Cek duplikasi queue
+            $exists = ApprovalQueue::where('rl_id', $rl->id)->where('level_order', 1)->exists();
+            if (!$exists) {
+                ApprovalQueue::create([
+                    'rl_id' => $rl->id,
+                    'approver_id' => $manager->employee_id,
+                    'level_order' => 1,
+                    'status' => 'PENDING'
+                ]);
+            }
+        }
+        return $manager;
+    }
+
+    private function sendWaToManager($rl)
+    {
+        // Ambil queue manager
+        $queue = ApprovalQueue::where('rl_id', $rl->id)->where('level_order', 1)->first();
+        if ($queue && $queue->approver->phone) {
+            $link = route('requisitions.show', $rl->id);
+            $msg = "Halo *{$queue->approver->full_name}*,\n\nRequester telah mengupload dokumen RL fisik (TTD Basah).\nNo: *{$rl->rl_no}*\n\nMohon cek validitas dokumen dan klik APPROVE di sistem:\n{$link}";
+            
+            WaService::send($queue->approver->phone, $msg);
+        }
+    }
 }

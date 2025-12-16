@@ -20,7 +20,7 @@ class WaService
         if (empty($nomer)) {
             return ['status' => false, 'msg' => 'Nomor HP tujuan kosong/salah format.'];
         }
-
+        
         // 2. Kirim API (DENGAN BYPASS SSL)
         try {
             // TAMBAHAN: withoutVerifying() sangat penting untuk Localhost!

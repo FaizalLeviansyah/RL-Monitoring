@@ -16,10 +16,9 @@
 
         @if($rl->status_flow == 'REJECTED')
             @php
-                // Ambil queue rejection terakhir (paling baru)
                 $rejectLog = $rl->approvalQueues()
                                 ->where('status', 'REJECTED')
-                                ->orderBy('id', 'desc') // Urutkan dari yg terbaru
+                                ->orderBy('id', 'desc')
                                 ->first();
             @endphp
             <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm dark:bg-gray-800 dark:border-red-600 animate-pulse">
@@ -60,10 +59,12 @@
                     {{ $rl->rl_no }}
                     @if($rl->status_flow == 'DRAFT')
                         <span class="bg-gray-200 text-gray-800 text-sm font-bold px-3 py-1 rounded-full">Draft</span>
-                    @elseif($rl->status_flow == 'ON_PROGRESS')
+                    @elseif($rl->status_flow == 'ON_PROGRESS' || $rl->status_flow == 'PARTIALLY_APPROVED')
                         <span class="bg-orange-100 text-orange-800 text-sm font-bold px-3 py-1 rounded-full border border-orange-200">Waiting Approval</span>
                     @elseif($rl->status_flow == 'APPROVED')
-                        <span class="bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full border border-green-200">Approved</span>
+                        <span class="bg-purple-100 text-purple-800 text-sm font-bold px-3 py-1 rounded-full border border-purple-200">Final / Waiting Supply</span>
+                    @elseif($rl->status_flow == 'COMPLETED')
+                        <span class="bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full border border-green-200">Completed</span>
                     @elseif($rl->status_flow == 'REJECTED')
                         <span class="bg-red-100 text-red-800 text-sm font-bold px-3 py-1 rounded-full border border-red-200">Rejected</span>
                     @endif
@@ -71,35 +72,25 @@
             </div>
 
             <div class="flex gap-3">
-
                 @if($myPendingApproval)
                     <button type="button" onclick="openRejectModal()" class="flex items-center px-5 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-md transition transform hover:-translate-y-0.5">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Reject
                     </button>
 
-                    <form action="{{ route('approvals.approve', $myPendingApproval->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin menyetujui dokumen ini?');">
+                    <form action="{{ route('approvals.approve', $rl->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin dokumen fisik sudah valid?');">
                         @csrf
                         <button type="submit" class="flex items-center px-5 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow-md transition transform hover:-translate-y-0.5">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            Approve
+                            Validasi / Approve
                         </button>
                     </form>
                 @endif
+
                 <a href="{{ route('requisitions.print', $rl->id) }}" target="_blank" class="flex items-center px-5 py-2.5 bg-gray-800 text-white font-semibold rounded-lg hover:bg-gray-700 shadow-md transition">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                     Print PDF
                 </a>
-
-                @if($rl->status_flow == 'DRAFT' && Auth::user()->employee_id == $rl->requester_id)
-                <form action="{{ route('requisitions.submit-draft', $rl->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin data sudah benar? Dokumen akan dikirim ke atasan.');">
-                    @csrf
-                    <button type="submit" class="flex items-center px-5 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition transform hover:-translate-y-0.5">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Submit Approval
-                    </button>
-                </form>
-                @endif
             </div>
         </div>
 
@@ -110,61 +101,127 @@
                 <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm dark:bg-gray-800 dark:border-gray-700">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-100">Document Information</h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
-
                         <div>
                             <p class="text-gray-500 uppercase text-xs font-bold tracking-wider">Request Date</p>
                             <p class="font-bold text-gray-900 dark:text-white mt-1">{{ \Carbon\Carbon::parse($rl->request_date)->format('d M Y') }}</p>
                         </div>
-
                         <div>
                             <p class="text-gray-500 uppercase text-xs font-bold tracking-wider">Required Date</p>
                             <p class="font-bold text-red-600 mt-1">
                                 {{ $rl->required_date ? \Carbon\Carbon::parse($rl->required_date)->format('d M Y') : '-' }}
                             </p>
                         </div>
-
                         <div>
                             <p class="text-gray-500 uppercase text-xs font-bold tracking-wider">Priority</p>
-                            @if($rl->priority == 'Top Urgent')
-                                <span class="inline-flex items-center bg-red-100 text-red-800 text-xs font-bold px-2.5 py-0.5 rounded mt-1">
-                                    <span class="w-2 h-2 mr-1 bg-red-500 rounded-full animate-pulse"></span> TOP URGENT
-                                </span>
-                            @elseif($rl->priority == 'Urgent')
-                                <span class="inline-flex items-center bg-orange-100 text-orange-800 text-xs font-bold px-2.5 py-0.5 rounded mt-1">Urgent</span>
-                            @else
-                                <span class="inline-flex items-center bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded mt-1">Normal</span>
-                            @endif
+                            <span class="font-bold text-gray-800 mt-1 block">{{ $rl->priority }}</span>
                         </div>
-
                         <div>
                             <p class="text-gray-500 uppercase text-xs font-bold tracking-wider">Requester</p>
-                            <div class="flex items-center mt-1">
-                                @if($rl->requester->profile_photo_path)
-                                    <img class="w-6 h-6 rounded-full mr-2" src="{{ asset('storage/' . $rl->requester->profile_photo_path) }}">
-                                @else
-                                    <div class="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold mr-2">{{ substr($rl->requester->full_name, 0, 1) }}</div>
-                                @endif
-                                <div>
-                                    <p class="font-bold text-gray-900 dark:text-white text-xs">{{ $rl->requester->full_name }}</p>
-                                    <p class="text-[10px] text-gray-500">{{ $rl->requester->department->department_name }}</p>
-                                </div>
-                            </div>
+                            <p class="font-bold text-gray-900 dark:text-white mt-1">{{ $rl->requester->full_name }}</p>
                         </div>
                     </div>
 
                     <div class="mt-6 pt-4 border-t border-gray-100">
-                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">Subject / Perihal</p>
+                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">Subject</p>
                         <p class="text-gray-900 dark:text-white font-medium text-base mt-1 italic">"{{ $rl->subject }}"</p>
                     </div>
 
                     @if($rl->remark)
-                    <div class="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200 text-yellow-800 text-sm flex items-start">
-                        <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <div>
-                            <strong class="block mb-1">Notes:</strong>
-                            {{ $rl->remark }}
-                        </div>
+                    <div class="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200 text-yellow-800 text-sm">
+                        <strong>Notes:</strong> {{ $rl->remark }}
                     </div>
+                    @endif
+                </div>
+
+                <div class="p-6 bg-white border border-blue-200 rounded-xl shadow-md dark:bg-gray-800 dark:border-blue-700">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <span class="bg-blue-100 text-blue-600 p-2 rounded-lg mr-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        </span>
+                        📂 Digital Document Filing (Hybrid)
+                    </h3>
+
+                    @if($rl->status_flow == 'DRAFT' && Auth::id() == $rl->requester_id)
+                        <div class="mb-4 p-4 bg-blue-50 text-blue-800 text-sm rounded-lg border border-blue-200">
+                            <strong>Langkah 1:</strong> Download PDF -> Cetak -> Tanda Tangan Basah (Anda & Manager) -> Scan -> Upload Disini.
+                        </div>
+                        <form action="{{ route('requisitions.upload_partial', $rl->id) }}" method="POST" enctype="multipart/form-data" class="flex gap-3 items-end">
+                            @csrf
+                            <div class="flex-1">
+                                <label class="block mb-2 text-sm font-bold text-gray-700">Upload Scan Tahap 1 (TTD Manager)</label>
+                                <input type="file" name="file_partial" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none" required accept="application/pdf">
+                            </div>
+                            <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow transition">
+                                Upload & Ajukan
+                            </button>
+                        </form>
+                    @endif
+
+                    @if($rl->attachment_partial)
+                        <div class="flex items-center justify-between p-3 bg-gray-50 border rounded-lg mb-3">
+                            <div class="flex items-center">
+                                <svg class="w-6 h-6 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <div>
+                                    <p class="font-bold text-gray-700 text-sm">Dokumen Tahap 1 (TTD Manager)</p>
+                                    <p class="text-xs text-gray-500">Telah diupload requester</p>
+                                </div>
+                            </div>
+                            <a href="{{ asset('storage/' . $rl->attachment_partial) }}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-semibold underline">Lihat Dokumen</a>
+                        </div>
+                    @endif
+
+                    @if($rl->status_flow == 'PARTIALLY_APPROVED' && Auth::id() == $rl->requester_id)
+                        <hr class="my-4 border-gray-200">
+                        <div class="mb-4 p-4 bg-orange-50 text-orange-800 text-sm rounded-lg border border-orange-200">
+                            <strong>Langkah 2:</strong> Dokumen Tahap 1 Valid. Silakan minta TTD Basah Direktur -> Scan -> Upload Final Disini.
+                        </div>
+                        <form action="{{ route('requisitions.upload_final', $rl->id) }}" method="POST" enctype="multipart/form-data" class="flex gap-3 items-end">
+                            @csrf
+                            <div class="flex-1">
+                                <label class="block mb-2 text-sm font-bold text-gray-700">Upload Scan Final (Lengkap)</label>
+                                <input type="file" name="file_final" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none" required accept="application/pdf">
+                            </div>
+                            <button type="submit" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow transition">
+                                Submit Final
+                            </button>
+                        </form>
+                    @endif
+
+                    @if($rl->attachment_final)
+                        <div class="flex items-center justify-between p-3 bg-purple-50 border border-purple-100 rounded-lg mb-3">
+                            <div class="flex items-center">
+                                <svg class="w-6 h-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <div>
+                                    <p class="font-bold text-purple-800 text-sm">Dokumen Final (TTD Lengkap)</p>
+                                    <p class="text-xs text-purple-600">Approved by Director</p>
+                                </div>
+                            </div>
+                            <a href="{{ asset('storage/' . $rl->attachment_final) }}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-semibold underline">Lihat Dokumen</a>
+                        </div>
+                    @endif
+
+                    @if($rl->status_flow == 'APPROVED' && Auth::id() == $rl->requester_id)
+                        <hr class="my-4 border-gray-200">
+                        <div class="mb-4 p-4 bg-green-50 text-green-800 text-sm rounded-lg border border-green-200">
+                            <strong>Closing Tiket:</strong> Barang sudah diterima? Upload foto bukti barang untuk menyelesaikan tiket.
+                        </div>
+                        <form action="{{ route('requisitions.upload_evidence', $rl->id) }}" method="POST" enctype="multipart/form-data" class="flex gap-3 items-end">
+                            @csrf
+                            <div class="flex-1">
+                                <label class="block mb-2 text-sm font-bold text-gray-700">Upload Foto Barang</label>
+                                <input type="file" name="evidence_photo" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none" required accept="image/*">
+                            </div>
+                            <button type="submit" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow transition">
+                                Barang Diterima
+                            </button>
+                        </form>
+                    @endif
+
+                    @if($rl->evidence_photo)
+                        <div class="mt-4 p-3 border rounded bg-gray-50">
+                            <p class="font-bold text-sm mb-2">📸 Bukti Barang:</p>
+                            <img src="{{ asset('storage/' . $rl->evidence_photo) }}" class="h-48 rounded border shadow-sm">
+                        </div>
                     @endif
                 </div>
 
@@ -172,9 +229,9 @@
                     <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 flex justify-between items-center">
                         <h3 class="text-sm font-bold text-gray-700 dark:text-white uppercase tracking-wider flex items-center">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                            Document Preview
+                            System Generated PDF
                         </h3>
-                        <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">Generated PDF</span>
+                        <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">Preview Only</span>
                     </div>
                     <div class="w-full h-[700px] bg-gray-100">
                         <iframe src="{{ route('requisitions.print', $rl->id) }}#toolbar=0" class="w-full h-full" frameborder="0"></iframe>
@@ -184,10 +241,8 @@
             </div>
 
             <div class="space-y-6">
-
                 <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm dark:bg-gray-800 dark:border-gray-700 sticky top-4">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">Approval Timeline</h3>
-
                     <ol class="relative border-l-2 border-gray-200 dark:border-gray-700 ml-3 space-y-8">
                         <li class="ml-6">
                             <span class="absolute flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full -left-4 ring-4 ring-white dark:ring-gray-900 dark:bg-blue-900 shadow-sm">
@@ -244,8 +299,8 @@
                         @endforeach
                     </ul>
                 </div>
-
             </div>
+
         </div>
     </div>
 
@@ -261,12 +316,11 @@
                 </div>
                 <div class="flex justify-end gap-3">
                     <button type="button" onclick="closeRejectModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Reject Dokumen</button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Reject Dokument</button>
                 </div>
             </form>
         </div>
     </div>
-
     <script>
         function openRejectModal() {
             document.getElementById('rejectModal').classList.remove('hidden');
