@@ -10,12 +10,13 @@ use App\Models\Department;
 use App\Models\Company;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     // 1. FUNGSI UTAMA DASHBOARD
 // 1. FUNGSI UTAMA DASHBOARD
-    public function index()
+public function index()
     {
         $user = Auth::user();
 
@@ -33,6 +34,8 @@ class DashboardController extends Controller
             'waiting_supply' => 0,
             'completed' => 0,
             'rejected' => 0,
+            'waiting_approval' => 0,
+            'total_all' => 0,
         ];
 
         // QUERY BUILDER DASAR
@@ -67,12 +70,49 @@ class DashboardController extends Controller
         $stats['rejected']         = (clone $queryRL)->where('status_flow', 'REJECTED')->count();
         $stats['total_all']        = (clone $queryRL)->count();
 
-        // --- WIDGET BARU 1: PRIORITY BREAKDOWN ---
+
+        // === [PERBAIKAN DISINI] ===
+        // LOGIKA BARU: HITUNG PRIORITY BERDASARKAN SELISIH HARI
+
+        $allRLs = (clone $queryRL)->get(); // Ambil semua data untuk diloop
+
+        // Inisialisasi Array Key agar tidak Undefined
         $priorityStats = [
-            'High'   => (clone $queryRL)->where('priority', 'High')->count(),
-            'Normal' => (clone $queryRL)->where('priority', 'Normal')->count(),
-            'Low'    => (clone $queryRL)->where('priority', 'Low')->count(),
+            'Top Urgent' => 0,
+            'Urgent' => 0,
+            'Normal' => 0,
+            'Outstanding' => 0
         ];
+
+        foreach ($allRLs as $rl) {
+            // Cek apakah ada tanggal request & required
+            if ($rl->required_date && $rl->request_date) {
+                $reqDate = Carbon::parse($rl->request_date);
+                $dueDate = Carbon::parse($rl->required_date);
+
+                // Jika status belum selesai dan tanggal sudah lewat -> Outstanding
+                if ($dueDate->isPast() && !in_array($rl->status_flow, ['COMPLETED', 'REJECTED'])) {
+                    $priorityStats['Outstanding']++;
+                    continue;
+                }
+
+                // Hitung selisih hari
+                $diffDays = $reqDate->diffInDays($dueDate, false);
+
+                if ($diffDays <= 2) {
+                    $priorityStats['Top Urgent']++;
+                } elseif ($diffDays <= 5) {
+                    $priorityStats['Urgent']++;
+                } else {
+                    $priorityStats['Normal']++;
+                }
+            } else {
+                // Jika tanggal kosong, default ke Normal
+                $priorityStats['Normal']++;
+            }
+        }
+        // === [AKHIR PERBAIKAN] ===
+
 
         // --- WIDGET BARU 2: UPCOMING DEADLINES (H-7) ---
         $upcomingDeadlines = (clone $queryRL)
@@ -84,10 +124,9 @@ class DashboardController extends Controller
                                 ->limit(5)
                                 ->get();
 
-        // --- 2. RECENT ACTIVITY TABLE (5 Terakhir) ---
-        // [FIXED] Pindah ke ATAS return view
+        // --- 2. RECENT ACTIVITY TABLE ---
         $recentActivities = (clone $queryRL)
-                            ->with(['requester']) // Hapus 'department' jika error
+                            ->with(['requester'])
                             ->latest()
                             ->limit(5)
                             ->get();
@@ -112,7 +151,6 @@ class DashboardController extends Controller
             'companies' => Company::count(),
         ];
 
-        // --- RETURN VIEW (Hanya Satu Kali di Akhir) ---
         return view('dashboard', compact(
             'stats',
             'recentActivities',
@@ -120,7 +158,7 @@ class DashboardController extends Controller
             'masterData',
             'currentMode',
             'isApprover',
-            'priorityStats',
+            'priorityStats', // <-- Data ini sekarang sudah punya key 'Top Urgent'
             'upcomingDeadlines'
         ));
     }

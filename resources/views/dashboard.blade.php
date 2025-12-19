@@ -85,39 +85,19 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-4 border-b pb-2">
-                        Priority Breakdown
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-4 border-b pb-2 flex justify-between items-center">
+                        <span>Analysis by Priority</span>
+                        <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Based on Time Diff</span>
                     </h3>
-                    <div class="space-y-4">
-                        <div>
-                            <div class="flex justify-between text-xs mb-1">
-                                <span class="font-bold text-red-600">High Priority</span>
-                                <span class="text-gray-600">{{ $priorityStats['High'] }} Request</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                                <div class="bg-red-600 h-2.5 rounded-full" style="width: {{ $stats['total_all'] > 0 ? ($priorityStats['High'] / $stats['total_all']) * 100 : 0 }}%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-xs mb-1">
-                                <span class="font-bold text-blue-600">Normal Priority</span>
-                                <span class="text-gray-600">{{ $priorityStats['Normal'] }} Request</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ $stats['total_all'] > 0 ? ($priorityStats['Normal'] / $stats['total_all']) * 100 : 0 }}%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-xs mb-1">
-                                <span class="font-bold text-gray-500">Low Priority</span>
-                                <span class="text-gray-600">{{ $priorityStats['Low'] }} Request</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                                <div class="bg-gray-400 h-2.5 rounded-full" style="width: {{ $stats['total_all'] > 0 ? ($priorityStats['Low'] / $stats['total_all']) * 100 : 0 }}%"></div>
-                            </div>
-                        </div>
+                    <div class="relative h-48 w-full">
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-xs text-gray-500 space-y-1">
+                        <p><span class="w-2 h-2 inline-block rounded-full bg-red-600 mr-1"></span> Top Urgent (≤ 2 Hari)</p>
+                        <p><span class="w-2 h-2 inline-block rounded-full bg-orange-500 mr-1"></span> Urgent (≤ 5 Hari)</p>
+                        <p><span class="w-2 h-2 inline-block rounded-full bg-blue-500 mr-1"></span> Normal (> 5 Hari)</p>
+                        <p><span class="w-2 h-2 inline-block rounded-full bg-black mr-1"></span> Outstanding (Terlambat)</p>
                     </div>
                 </div>
 
@@ -246,8 +226,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('statusChart').getContext('2d');
-            new Chart(ctx, {
+            // 1. STATUS CHART (Doughnut)
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            new Chart(ctxStatus, {
                 type: 'doughnut',
                 data: {
                     labels: @json($chartData['labels']),
@@ -264,6 +245,42 @@
                     cutout: '70%',
                     plugins: {
                         legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
+                    }
+                }
+            });
+
+            // 2. PRIORITY CHART (Bar Chart - BARU)
+            const ctxPriority = document.getElementById('priorityChart').getContext('2d');
+            new Chart(ctxPriority, {
+                type: 'bar',
+                data: {
+                    labels: ['Top Urgent', 'Urgent', 'Normal', 'Outstanding'],
+                    datasets: [{
+                        label: 'Requests',
+                        data: [
+                            {{ $priorityStats['Top Urgent'] }},
+                            {{ $priorityStats['Urgent'] }},
+                            {{ $priorityStats['Normal'] }},
+                            {{ $priorityStats['Outstanding'] }}
+                        ],
+                        backgroundColor: [
+                            '#dc2626', // Merah (Top Urgent)
+                            '#f97316', // Orange (Urgent)
+                            '#3b82f6', // Biru (Normal)
+                            '#000000'  // Hitam (Outstanding)
+                        ],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false } // Hide legend karena warna sudah jelas
                     }
                 }
             });
