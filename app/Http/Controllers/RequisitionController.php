@@ -175,25 +175,63 @@ class RequisitionController extends Controller
     }
 
     // 5. LIST BY STATUS
+// 5. LIST BY STATUS
+// 5. LIST BY STATUS
+    // 5. LIST BY STATUS
     public function listByStatus($status)
     {
-        $validStatuses = ['DRAFT', 'ON_PROGRESS', 'APPROVED', 'REJECTED'];
+        $validStatuses = [
+            'DRAFT',
+            'ON_PROGRESS',
+            'PARTIALLY_APPROVED',
+            'APPROVED',
+            'REJECTED',
+            'WAITING_SUPPLY',
+            'COMPLETED'
+        ];
+
         $statusUpper = strtoupper($status);
 
         if (!in_array($statusUpper, $validStatuses)) abort(404);
 
         $user = Auth::user();
+
+        // Query Dasar
         $query = RequisitionLetter::with(['requester.department', 'company'])
                     ->where('status_flow', $statusUpper)
                     ->orderBy('created_at', 'desc');
 
         $isApprover = ($user->position && in_array($user->position->position_name, ['Manager', 'Director']));
+        $isSuperAdmin = ($user->position && $user->position->position_name === 'Super Admin');
 
-        if (!$isApprover) {
+        // --- LOGIKA FILTER (CROSS-DB SAFE) ---
+
+        // 1. Super Admin: Lihat SEMUA
+        if ($isSuperAdmin) {
+            // No filter
+        }
+        // 2. Approver (Manager/Director): Lihat SATU DEPARTEMEN
+        elseif ($isApprover) {
+             $query->where('company_id', $user->company_id);
+
+             // [FIX] Menggunakan strategi 'Pluck' agar aman antar-database
+             // Ambil semua ID karyawan yang departemennya sama dengan Manager yang login
+             $deptColleagues = \Illuminate\Support\Facades\DB::connection('mysql_master')
+                                ->table('tbl_employee')
+                                ->where('department_id', $user->department_id)
+                                ->pluck('employee_id')
+                                ->toArray();
+
+             // Filter surat yang requester_id-nya ada di daftar tersebut
+             $query->whereIn('requester_id', $deptColleagues);
+        }
+        // 3. Requester Biasa: Hanya lihat PUNYA SENDIRI
+        else {
              $query->where('requester_id', $user->employee_id);
         }
 
         $requisitions = $query->paginate(10);
+
         return view('requisitions.index', compact('requisitions', 'status', 'statusUpper'));
     }
 
@@ -381,13 +419,13 @@ class RequisitionController extends Controller
         ]);
 
         $rl = RequisitionLetter::findOrFail($id);
-        
+
         // Simpan File
         if ($request->hasFile('file_partial')) {
             $path = $request->file('file_partial')->store('uploads/rl_documents', 'public');
             $rl->attachment_partial = $path;
             // Ubah status agar Manager tahu ini menunggu validasinya
-            $rl->status_flow = 'ON_PROGRESS'; 
+            $rl->status_flow = 'ON_PROGRESS';
             $rl->save();
         }
 
@@ -401,7 +439,7 @@ class RequisitionController extends Controller
     }
 
     // 2. UPLOAD TAHAP 2 (TTD Lengkap + Direktur) -> Trigger WA Direktur (Info Only)
-    public function uploadFinal(Request $request, $id)
+public function uploadFinal(Request $request, $id)
     {
         $request->validate([
             'file_final' => 'required|mimes:pdf|max:5120',
@@ -412,16 +450,15 @@ class RequisitionController extends Controller
         if ($request->hasFile('file_final')) {
             $path = $request->file('file_final')->store('uploads/rl_documents', 'public');
             $rl->attachment_final = $path;
-            
-            // Status langsung APPROVED (Karena Direktur dianggap sudah TTD di kertas)
-            $rl->status_flow = 'APPROVED'; 
+
+            // --- UPDATE DISINI ---
+            // Ubah dari 'APPROVED' menjadi 'WAITING_SUPPLY'
+            // Agar suratnya langsung masuk ke menu "Waiting Supply" di sidebar
+            $rl->status_flow = 'WAITING_SUPPLY';
             $rl->save();
         }
 
-        // Kirim WA Info ke Direktur (Optional)
-        // Anda bisa buat method sendWaToDirector($rl) serupa dengan Manager
-
-        return back()->with('success', 'Dokumen Final diupload. Status: APPROVED (Menunggu Barang).');
+        return back()->with('success', 'Dokumen Final diterima. Status: Waiting Supply (Menunggu Barang).');
     }
 
     // 3. UPLOAD BUKTI BARANG (Closing)
@@ -480,7 +517,7 @@ class RequisitionController extends Controller
         if ($queue && $queue->approver->phone) {
             $link = route('requisitions.show', $rl->id);
             $msg = "Halo *{$queue->approver->full_name}*,\n\nRequester telah mengupload dokumen RL fisik (TTD Basah).\nNo: *{$rl->rl_no}*\n\nMohon cek validitas dokumen dan klik APPROVE di sistem:\n{$link}";
-            
+
             WaService::send($queue->approver->phone, $msg);
         }
     }

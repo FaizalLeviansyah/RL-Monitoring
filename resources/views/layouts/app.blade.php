@@ -11,7 +11,7 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 font-sans antialiased">
 
-    @php
+@php
         $user = Auth::user();
         $userPos = $user->position->position_name ?? '';
 
@@ -19,36 +19,52 @@
         $isSuperAdmin = $userPos === 'Super Admin';
         $isApprover = in_array($userPos, ['Manager', 'Director']);
         $isRequester = !$isSuperAdmin && !$isApprover;
-
-        // Cek Mode Switch (Session)
         $currentMode = session('active_role');
 
-        // Tentukan Menu
         $showRequesterMenu = !$isSuperAdmin && ($isRequester || $currentMode == 'requester');
         $showMonitoringMenu = !$isSuperAdmin;
 
-        // --- LOGIKA HITUNG NOTIFIKASI (BADGE) ---
+        // --- INISIALISASI VARIABEL COUNTER ---
         $countDraft = 0;
         $countRejected = 0;
         $countPendingApprove = 0;
+        $countWaitingDirector = 0; // Baru
+        $countWaitingSupply = 0;   // Baru
 
         if (!$isSuperAdmin) {
             // 1. Hitung Draft (Milik Sendiri)
             $countDraft = \App\Models\RequisitionLetter::where('requester_id', $user->employee_id)
                             ->where('status_flow', 'DRAFT')->count();
 
-            // 2. Hitung Rejected (Milik Sendiri - Perlu Revisi/Info)
+            // 2. Hitung Rejected (Milik Sendiri)
             $countRejected = \App\Models\RequisitionLetter::where('requester_id', $user->employee_id)
                             ->where('status_flow', 'REJECTED')->count();
 
-            // 3. Hitung Pending Approval
-            // Jika user adalah Approver (atau mode approver), hitung tugas approval mereka
+            // 3. Hitung Pending Approval (Tugas Saya sebagai Manager/Direktur)
             if ($isApprover || $currentMode == 'approver') {
                 $countPendingApprove = \App\Models\ApprovalQueue::where('approver_id', $user->employee_id)
                                         ->where('status', 'PENDING')->count();
             }
-            // Opsi Tambahan: Jika user Requester, mungkin ingin melihat status "On Progress" milik sendiri?
-            // Jika ya, Anda bisa menambahkan logika 'else' di sini.
+
+            // 4. Hitung Waiting Director (Partially Approved)
+            // Logic: Requester lihat punya sendiri, Approver lihat punya departemennya
+            $queryWD = \App\Models\RequisitionLetter::where('status_flow', 'PARTIALLY_APPROVED');
+            if ($isApprover) {
+                 $queryWD->where('company_id', $user->company_id);
+                 // (Opsional: tambah filter dept via whereIn logic jika perlu isolasi ketat)
+            } else {
+                 $queryWD->where('requester_id', $user->employee_id);
+            }
+            $countWaitingDirector = $queryWD->count();
+
+            // 5. Hitung Waiting Supply
+            $queryWS = \App\Models\RequisitionLetter::where('status_flow', 'WAITING_SUPPLY');
+            if ($isApprover) {
+                 $queryWS->where('company_id', $user->company_id);
+            } else {
+                 $queryWS->where('requester_id', $user->employee_id);
+            }
+            $countWaitingSupply = $queryWS->count();
         }
     @endphp
 
@@ -166,12 +182,40 @@
                         @endif
                     </a>
                 </li>
+
+                <li>
+                    <a href="{{ route('requisitions.status', 'partially_approved') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 group {{ request()->is('requisitions/status/partially_approved') ? 'bg-purple-100 text-purple-600' : '' }}">
+                        <span class="flex-shrink-0 w-5 h-5 text-purple-500 transition duration-75 group-hover:text-purple-600">
+                            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path></svg>
+                        </span>
+                        <span class="flex-1 ms-3 whitespace-nowrap">Waiting Director</span>
+
+                        @if($countWaitingDirector > 0)
+                            <span class="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-purple-800 bg-purple-100 rounded-full dark:bg-purple-900 dark:text-purple-300">{{ $countWaitingDirector }}</span>
+                        @endif
+                    </a>
+                </li>
+
                 <li>
                     <a href="{{ route('requisitions.status', 'approved') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 group {{ request()->is('requisitions/status/approved') ? 'bg-green-100 text-green-600' : '' }}">
                         <span class="flex-shrink-0 w-5 h-5 text-green-500 transition duration-75 group-hover:text-green-600"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
-                        <span class="ms-3">Approved</span>
+                        <span class="ms-3">Final Approved</span>
                     </a>
                 </li>
+
+                <li>
+                    <a href="{{ route('requisitions.status', 'waiting_supply') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 group {{ request()->is('requisitions/status/waiting_supply') ? 'bg-yellow-100 text-yellow-600' : '' }}">
+                        <span class="flex-shrink-0 w-5 h-5 text-yellow-500 transition duration-75 group-hover:text-yellow-600">
+                            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"></path></svg>
+                        </span>
+                        <span class="flex-1 ms-3 whitespace-nowrap">Waiting Supply</span>
+
+                        @if($countWaitingSupply > 0)
+                            <span class="inline-flex items-center justify-center w-3 h-3 p-3 ms-3 text-sm font-medium text-yellow-800 bg-yellow-100 rounded-full dark:bg-yellow-900 dark:text-yellow-300">{{ $countWaitingSupply }}</span>
+                        @endif
+                    </a>
+                </li>
+
                 <li>
                     <a href="{{ route('requisitions.status', 'rejected') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 group {{ request()->is('requisitions/status/rejected') ? 'bg-red-100 text-red-600' : '' }}">
                         <span class="flex-shrink-0 w-5 h-5 text-red-500 transition duration-75 group-hover:text-red-600"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
@@ -182,6 +226,16 @@
                         @endif
                     </a>
                 </li>
+
+                <li>
+                    <a href="{{ route('requisitions.status', 'completed') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 group {{ request()->is('requisitions/status/completed') ? 'bg-teal-100 text-teal-600' : '' }}">
+                        <span class="flex-shrink-0 w-5 h-5 text-teal-500 transition duration-75 group-hover:text-teal-600">
+                             <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                        <span class="ms-3">Completed</span>
+                    </a>
+                </li>
+
                 <li>
                     <a href="{{ route('requisitions.department') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-indigo-50 dark:hover:bg-gray-700 group {{ request()->routeIs('requisitions.department') ? 'bg-indigo-100 text-indigo-600' : '' }}">
                         <svg class="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>

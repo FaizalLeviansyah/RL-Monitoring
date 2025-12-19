@@ -1,5 +1,278 @@
-{{-- TAMPILAN VERSI 3  --}}
 <x-app-layout>
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                        Dashboard {{ ucfirst($currentMode) }}
+                    </h2>
+                    <p class="text-sm text-gray-500">System Monitoring & Approval Center</p>
+                </div>
+
+                @if($isApprover)
+                <div class="mt-4 md:mt-0 bg-white dark:bg-gray-800 p-1 rounded-lg border shadow-sm flex space-x-1">
+                    <a href="{{ route('dashboard.select_role', 'approver') }}"
+                       class="px-4 py-2 rounded-md text-sm font-medium transition {{ $currentMode == 'approver' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-50' }}">
+                       Approver View
+                    </a>
+                    <a href="{{ route('dashboard.select_role', 'requester') }}"
+                       class="px-4 py-2 rounded-md text-sm font-medium transition {{ $currentMode == 'requester' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-50' }}">
+                       Requester View
+                    </a>
+                </div>
+                @endif
+            </div>
+
+            @if($stats['my_actions'] > 0)
+            <div class="mb-6 bg-gradient-to-r from-red-50 to-white border-l-4 border-red-500 p-4 rounded shadow-sm flex justify-between items-center animate-pulse">
+                <div class="flex items-center">
+                    <div class="p-2 bg-red-100 rounded-full text-red-600 mr-3">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                        <p class="font-bold text-red-700">Perhatian!</p>
+                        <p class="text-sm text-red-600">Anda memiliki <strong>{{ $stats['my_actions'] }} dokumen</strong> yang membutuhkan tindakan segera.</p>
+                    </div>
+                </div>
+                <a href="{{ $currentMode == 'approver' ? route('requisitions.status', 'on_progress') : route('requisitions.status', 'draft') }}"
+                   class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm shadow">
+                    Proses &rarr;
+                </a>
+            </div>
+            @endif
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-t-4 border-purple-500 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 p-3 opacity-10">
+                         <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Waiting Director</p>
+                    <p class="text-3xl font-extrabold text-purple-600 mt-1">{{ $stats['waiting_director'] }}</p>
+                    <p class="text-xs text-gray-400 mt-2">Partially Approved</p>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-t-4 border-yellow-500 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 p-3 opacity-10">
+                        <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" /><path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Waiting Supply</p>
+                    <p class="text-3xl font-extrabold text-yellow-600 mt-1">{{ $stats['waiting_supply'] }}</p>
+                    <p class="text-xs text-gray-400 mt-2">Ready to Purchase</p>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-t-4 border-teal-500 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 p-3 opacity-10">
+                        <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Completed</p>
+                    <p class="text-3xl font-extrabold text-teal-600 mt-1">{{ $stats['completed'] }}</p>
+                    <p class="text-xs text-gray-400 mt-2">All Done</p>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-t-4 border-gray-400">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Volume</p>
+                            <p class="text-3xl font-extrabold text-gray-700 mt-1">{{ $stats['total_all'] }}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-xs text-red-500 font-bold">{{ $stats['rejected'] }} Rejected</span>
+                            <span class="block text-xs text-orange-500 font-bold">{{ $stats['waiting_approval'] }} Pending</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-4 border-b pb-2">
+                        Priority Breakdown
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="font-bold text-red-600">High Priority</span>
+                                <span class="text-gray-600">{{ $priorityStats['High'] }} Request</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                <div class="bg-red-600 h-2.5 rounded-full" style="width: {{ $stats['total_all'] > 0 ? ($priorityStats['High'] / $stats['total_all']) * 100 : 0 }}%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="font-bold text-blue-600">Normal Priority</span>
+                                <span class="text-gray-600">{{ $priorityStats['Normal'] }} Request</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ $stats['total_all'] > 0 ? ($priorityStats['Normal'] / $stats['total_all']) * 100 : 0 }}%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="font-bold text-gray-500">Low Priority</span>
+                                <span class="text-gray-600">{{ $priorityStats['Low'] }} Request</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                <div class="bg-gray-400 h-2.5 rounded-full" style="width: {{ $stats['total_all'] > 0 ? ($priorityStats['Low'] / $stats['total_all']) * 100 : 0 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-4 border-b pb-2 flex justify-between">
+                        <span>📅 Upcoming Deadlines (Required Date)</span>
+                        <a href="#" class="text-xs text-blue-500 hover:underline normal-case">View Calendar</a>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th class="px-3 py-2">Due Date</th>
+                                    <th class="px-3 py-2">RL Number</th>
+                                    <th class="px-3 py-2">Requester</th>
+                                    <th class="px-3 py-2">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($upcomingDeadlines as $rl)
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-3 py-2">
+                                        <div class="flex items-center">
+                                            <div class="p-1 bg-red-100 text-red-600 rounded mr-2 font-bold text-xs text-center min-w-[30px]">
+                                                {{ \Carbon\Carbon::parse($rl->required_date)->format('d') }}<br>
+                                                {{ \Carbon\Carbon::parse($rl->required_date)->format('M') }}
+                                            </div>
+                                            <span class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($rl->required_date)->diffForHumans() }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-2 font-medium text-gray-900">{{ $rl->rl_no }}</td>
+                                    <td class="px-3 py-2">{{ $rl->requester->full_name ?? '-' }}</td>
+                                    <td class="px-3 py-2">
+                                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded border border-gray-500">
+                                            {{ str_replace('_', ' ', $rl->status_flow) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="4" class="px-3 py-4 text-center text-gray-400 italic">Tidak ada deadline mendesak.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-4 border-b pb-2">
+                        🚀 Recent Activity
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                <tr>
+                                    <th class="px-4 py-3">RL Number</th>
+                                    <th class="px-4 py-3">Subject</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($recentActivities as $rl)
+                                <tr class="bg-white border-b hover:bg-gray-50">
+                                    <td class="px-4 py-3 font-medium text-gray-900">
+                                        {{ $rl->rl_no }}
+                                        <div class="text-xs text-gray-400">{{ $rl->created_at->diffForHumans() }}</div>
+                                    </td>
+                                    <td class="px-4 py-3">{{ Str::limit($rl->subject, 30) }}</td>
+                                    <td class="px-4 py-3">
+                                        @php
+                                            $badges = [
+                                                'DRAFT' => 'bg-gray-100 text-gray-800',
+                                                'ON_PROGRESS' => 'bg-orange-100 text-orange-800',
+                                                'PARTIALLY_APPROVED' => 'bg-purple-100 text-purple-800',
+                                                'WAITING_SUPPLY' => 'bg-yellow-100 text-yellow-800',
+                                                'COMPLETED' => 'bg-teal-100 text-teal-800',
+                                                'REJECTED' => 'bg-red-100 text-red-800',
+                                            ];
+                                        @endphp
+                                        <span class="{{ $badges[$rl->status_flow] ?? 'bg-gray-100' }} px-2 py-1 rounded text-xs font-bold">
+                                            {{ str_replace('_', ' ', $rl->status_flow) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        <a href="{{ route('requisitions.show', $rl->id) }}" class="text-blue-600 hover:underline">Detail</a>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="4" class="text-center py-4">Belum ada aktivitas.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-4 border-b pb-2">
+                        📊 Composition
+                    </h3>
+                    <div class="relative h-48 w-full">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                    <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-gray-500">
+                        <div class="p-2 bg-gray-50 rounded">
+                            <span class="block font-bold text-lg text-gray-800">{{ $masterData['employees'] }}</span>
+                            Users
+                        </div>
+                        <div class="p-2 bg-gray-50 rounded">
+                            <span class="block font-bold text-lg text-gray-800">{{ $masterData['departments'] }}</span>
+                            Depts
+                        </div>
+                        <div class="p-2 bg-gray-50 rounded">
+                            <span class="block font-bold text-lg text-gray-800">{{ $masterData['companies'] }}</span>
+                            Entities
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: @json($chartData['labels']),
+                    datasets: [{
+                        data: @json($chartData['data']),
+                        backgroundColor: @json($chartData['colors']),
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
+                    }
+                }
+            });
+        });
+    </script>
+</x-app-layout>
+
+{{-- TAMPILAN VERSI 3  --}}
+{{-- <x-app-layout>
 
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
         <div>
@@ -233,7 +506,7 @@
             updateClock();
         });
     </script>
-</x-app-layout>
+</x-app-layout> --}}
 
 {{-- TAMPILAN VERSI 2 --}}
 {{-- <x-app-layout>

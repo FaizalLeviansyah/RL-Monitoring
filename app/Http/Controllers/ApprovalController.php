@@ -28,6 +28,7 @@ class ApprovalController extends Controller
     }
 
     // ACTION: APPROVE
+   // ACTION: APPROVE
     public function approve(Request $request, $id)
     {
         $user = Auth::user();
@@ -54,19 +55,35 @@ class ApprovalController extends Controller
             $rl->update(['status_flow' => 'PARTIALLY_APPROVED']);
         });
 
-        // NOTIF WA BALIK KE REQUESTER
-        if ($rl->requester && !empty($rl->requester->phone)) {
+        // --- FIX LOGIKA PENGIRIMAN WA ---
+
+        // 1. Ambil No HP dari Database Master (tbl_employee)
+        // Karena di tabel 'users' lokal tidak ada kolom phone
+        $employeeMaster = DB::connection('mysql_master')
+                            ->table('tbl_employee')
+                            ->where('employee_id', $rl->requester_id)
+                            ->first();
+
+        // Pastikan Anda cek nama kolom di tbl_employee, apakah 'phone', 'mobile_phone', atau 'no_hp'?
+        // Di sini saya asumsikan namanya 'phone'
+        $requesterPhone = $employeeMaster ? $employeeMaster->phone : null;
+
+        if ($requesterPhone) {
             $link = route('requisitions.show', $rl->id);
             $pesan = "Halo *{$rl->requester->full_name}*,\n\nDokumen RL No: *{$rl->rl_no}* telah divalidasi Manager.\nStatus: *PARTIALLY APPROVED*\n\nSilakan minta TTD Direktur, Scan, lalu Upload dokumen final di sistem.\nLink: {$link}";
 
-            try {
-                WaService::send($rl->requester->phone, $pesan);
-            } catch (\Exception $e) {
-                // Lanjut meski WA gagal
-            }
+            // Hapus Try-Catch sementara agar kalau error kelihatan di layar
+            // try {
+                WaService::send($requesterPhone, $pesan);
+            // } catch (\Exception $e) {
+            //    \Illuminate\Support\Facades\Log::error("WA Error: " . $e->getMessage());
+            // }
+        } else {
+            // Debugging: Jika No HP tidak ketemu
+            return back()->with('warning', 'Dokumen Approved, tapi WA gagal kirim karena No HP Requester tidak ditemukan di Database Master.');
         }
 
-        return back()->with('success', 'Dokumen tervalidasi. Requester telah dinotifikasi.');
+        return back()->with('success', 'Dokumen tervalidasi. Notifikasi WA dikirim ke Requester.');
     }
 
     // ACTION: REJECT

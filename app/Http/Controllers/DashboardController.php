@@ -9,46 +9,120 @@ use App\Models\User;
 use App\Models\Department;
 use App\Models\Company;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     // 1. FUNGSI UTAMA DASHBOARD
+// 1. FUNGSI UTAMA DASHBOARD
     public function index()
     {
         $user = Auth::user();
 
-        // A. CEK SUPER ADMIN
-        if ($user->position && $user->position->position_name === 'Super Admin') {
-            return $this->superAdminDashboard();
-        }
+        // Cek Role (Safe Check)
+        $isSuperAdmin = $user->position && $user->position->position_name === 'Super Admin';
+        $isApprover = ($user->position && in_array($user->position->position_name, ['Manager', 'Director']));
 
-        // B. CEK STAFF BIASA (Langsung Masuk Dashboard Requester)
-        // Definisi Staff: Tidak punya jabatan Manager/Director
-        $isApprover = false;
-        if ($user->position && in_array($user->position->position_name, ['Manager', 'Director'])) {
-            $isApprover = true;
-        }
+        // Mode Switch
+        $currentMode = session('active_role', ($isApprover ? 'approver' : 'requester'));
 
-        if (!$isApprover) {
-            // Staff dipaksa jadi Requester
-            return $this->requesterDashboard($user);
-        }
+        // --- 1. STATISTICS COUNTER ---
+        $stats = [
+            'my_actions' => 0,
+            'waiting_director' => 0,
+            'waiting_supply' => 0,
+            'completed' => 0,
+            'rejected' => 0,
+        ];
 
-        // C. LOGIK MANAGER/DIRECTOR (Landing Page Selection)
-        // Cek apakah user sudah memilih peran di sesi ini?
-        $activeRole = session('active_role');
+        // QUERY BUILDER DASAR
+        $queryRL = RequisitionLetter::query();
 
-        if (!$activeRole) {
-            // Jika belum milih, lempar ke Halaman Pilihan (Landing Page)
-            return view('role_selection');
-        }
+        // FILTER BASE
+        if (!$isSuperAdmin) {
+            if ($currentMode == 'approver' && $isApprover) {
+                // Manager lihat data departemennya
+                $queryRL->where('company_id', $user->company_id);
 
-        // Jika sudah milih, arahkan sesuai pilihan
-        if ($activeRole === 'approver') {
-            return $this->approverDashboard($user);
+                // ACTION: Hitung Tugas Approval Saya
+                $stats['my_actions'] = ApprovalQueue::where('approver_id', $user->employee_id)
+                                        ->where('status', 'PENDING')->count();
+            } else {
+                // Requester lihat punya sendiri
+                $queryRL->where('requester_id', $user->employee_id);
+
+                // ACTION: Draft/Revisi
+                $stats['my_actions'] = RequisitionLetter::where('requester_id', $user->employee_id)
+                                        ->whereIn('status_flow', ['DRAFT', 'REJECTED'])->count();
+            }
         } else {
-            return $this->requesterDashboard($user);
+            $stats['my_actions'] = 0;
         }
+
+        // HITUNG MONITORING
+        $stats['waiting_approval'] = (clone $queryRL)->where('status_flow', 'ON_PROGRESS')->count();
+        $stats['waiting_director'] = (clone $queryRL)->where('status_flow', 'PARTIALLY_APPROVED')->count();
+        $stats['waiting_supply']   = (clone $queryRL)->where('status_flow', 'WAITING_SUPPLY')->count();
+        $stats['completed']        = (clone $queryRL)->where('status_flow', 'COMPLETED')->count();
+        $stats['rejected']         = (clone $queryRL)->where('status_flow', 'REJECTED')->count();
+        $stats['total_all']        = (clone $queryRL)->count();
+
+        // --- WIDGET BARU 1: PRIORITY BREAKDOWN ---
+        $priorityStats = [
+            'High'   => (clone $queryRL)->where('priority', 'High')->count(),
+            'Normal' => (clone $queryRL)->where('priority', 'Normal')->count(),
+            'Low'    => (clone $queryRL)->where('priority', 'Low')->count(),
+        ];
+
+        // --- WIDGET BARU 2: UPCOMING DEADLINES (H-7) ---
+        $upcomingDeadlines = (clone $queryRL)
+                                ->whereNotIn('status_flow', ['COMPLETED', 'REJECTED'])
+                                ->whereNotNull('required_date')
+                                ->where('required_date', '>=', now())
+                                ->orderBy('required_date', 'asc')
+                                ->with('requester')
+                                ->limit(5)
+                                ->get();
+
+        // --- 2. RECENT ACTIVITY TABLE (5 Terakhir) ---
+        // [FIXED] Pindah ke ATAS return view
+        $recentActivities = (clone $queryRL)
+                            ->with(['requester']) // Hapus 'department' jika error
+                            ->latest()
+                            ->limit(5)
+                            ->get();
+
+        // --- 3. DATA UNTUK GRAFIK ---
+        $chartData = [
+            'labels' => ['Waiting Approval', 'Waiting Director', 'Waiting Supply', 'Completed', 'Rejected'],
+            'data' => [
+                $stats['waiting_approval'],
+                $stats['waiting_director'],
+                $stats['waiting_supply'],
+                $stats['completed'],
+                $stats['rejected']
+            ],
+            'colors' => ['#f97316', '#9333ea', '#eab308', '#14b8a6', '#ef4444']
+        ];
+
+        // --- 4. DATA MASTER ---
+        $masterData = [
+            'employees' => User::count(),
+            'departments' => Department::count(),
+            'companies' => Company::count(),
+        ];
+
+        // --- RETURN VIEW (Hanya Satu Kali di Akhir) ---
+        return view('dashboard', compact(
+            'stats',
+            'recentActivities',
+            'chartData',
+            'masterData',
+            'currentMode',
+            'isApprover',
+            'priorityStats',
+            'upcomingDeadlines'
+        ));
     }
 
     // 2. FUNGSI MENYIMPAN PILIHAN PERAN
