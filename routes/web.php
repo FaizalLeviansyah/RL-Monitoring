@@ -70,7 +70,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard/select-role/{role}', [DashboardController::class, 'selectRole'])
         ->name('dashboard.select_role');
 
-    // 7. ADMIN GROUP
     Route::middleware(['auth', 'verified', 'can:super_admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
         Route::get('/monitoring', [\App\Http\Controllers\Admin\GlobalMonitoringController::class, 'index'])->name('monitoring.index');
@@ -79,12 +78,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/requisitions/{id}/upload-partial', [RequisitionController::class, 'uploadPartial'])->name('requisitions.upload_partial');
     Route::post('/requisitions/{id}/upload-final', [RequisitionController::class, 'uploadFinal'])->name('requisitions.upload_final');
     Route::post('/requisitions/{id}/upload-evidence', [RequisitionController::class, 'uploadEvidence'])->name('requisitions.upload_evidence');
+
+    Route::resource('master-items', \App\Http\Controllers\Admin\MasterItemController::class);
 });
 
 Route::get('/cek-db', function () {
     // 1. Cek Nama Database yang Konek saat ini
     $dbName = DB::connection()->getDatabaseName();
-    
+
     // 2. Cek Apakah kolom ada
     $hasColumn = Schema::hasColumn('requisition_letters', 'attachment_partial');
 

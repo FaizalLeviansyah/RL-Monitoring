@@ -8,6 +8,16 @@ class RequisitionItem extends Model
 {
     protected $table = 'requisition_items';
     protected $guarded = ['id'];
+
+    // Relasi balik ke RL (Induk)
+    public function requisition()
+    {
+        return $this->belongsTo(RequisitionLetter::class, 'rl_id', 'id');
+    }
+    public function masterItem()
+    {
+        return $this->belongsTo(MasterItem::class, 'master_item_id', 'id');
+    }
     public function letter() {
         return $this->belongsTo(RequisitionLetter::class, 'rl_id', 'id');
     }
@@ -15,13 +25,11 @@ class RequisitionItem extends Model
         return $this->hasMany(SupplyHistory::class, 'rl_item_id', 'id');
     }
 
-    // Hitung berapa yang sudah diterima
     public function getSuppliedQtyAttribute()
     {
         return $this->supplyHistories->sum('qty_received');
     }
 
-    // Hitung sisa yang belum datang
     public function getRemainingQtyAttribute()
     {
         return $this->qty - $this->supplied_qty;
