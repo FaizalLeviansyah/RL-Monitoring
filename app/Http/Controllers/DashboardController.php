@@ -44,7 +44,7 @@ public function index()
         // FILTER BASE
         if (!$isSuperAdmin) {
             if ($currentMode == 'approver' && $isApprover) {
-                // Manager lihat data departemennya
+                // Manager lihat data departemennya/perusahaannya
                 $queryRL->where('company_id', $user->company_id);
 
                 // ACTION: Hitung Tugas Approval Saya
@@ -71,50 +71,48 @@ public function index()
         $stats['total_all']        = (clone $queryRL)->count();
 
 
-        // === [PERBAIKAN DISINI] ===
-        // LOGIKA BARU: HITUNG PRIORITY BERDASARKAN SELISIH HARI
-
-        $allRLs = (clone $queryRL)->get(); // Ambil semua data untuk diloop
-
-        // Inisialisasi Array Key agar tidak Undefined
+        // LOGIKA: HITUNG PRIORITY
+        $allRLs = (clone $queryRL)->get(); 
         $priorityStats = [
-            'Top Urgent' => 0,
-            'Urgent' => 0,
-            'Normal' => 0,
-            'Outstanding' => 0
+            'Top Urgent' => 0, 'Urgent' => 0, 'Normal' => 0, 'Outstanding' => 0
         ];
 
         foreach ($allRLs as $rl) {
-            // Cek apakah ada tanggal request & required
             if ($rl->required_date && $rl->request_date) {
                 $reqDate = Carbon::parse($rl->request_date);
                 $dueDate = Carbon::parse($rl->required_date);
 
-                // Jika status belum selesai dan tanggal sudah lewat -> Outstanding
                 if ($dueDate->isPast() && !in_array($rl->status_flow, ['COMPLETED', 'REJECTED'])) {
                     $priorityStats['Outstanding']++;
                     continue;
                 }
-
-                // Hitung selisih hari
                 $diffDays = $reqDate->diffInDays($dueDate, false);
 
-                if ($diffDays <= 2) {
-                    $priorityStats['Top Urgent']++;
-                } elseif ($diffDays <= 5) {
-                    $priorityStats['Urgent']++;
-                } else {
-                    $priorityStats['Normal']++;
-                }
+                if ($diffDays <= 2) { $priorityStats['Top Urgent']++; } 
+                elseif ($diffDays <= 5) { $priorityStats['Urgent']++; } 
+                else { $priorityStats['Normal']++; }
             } else {
-                // Jika tanggal kosong, default ke Normal
                 $priorityStats['Normal']++;
             }
         }
-        // === [AKHIR PERBAIKAN] ===
 
+        // --- WIDGET BARU: TREN BULANAN (KHUSUS APPROVER) ---
+        $trendData = ['labels' => [], 'data' => []];
+        if ($currentMode == 'approver' || $isSuperAdmin) {
+            for ($i = 5; $i >= 0; $i--) {
+                $date = Carbon::now()->subMonths($i);
+                $start = $date->copy()->startOfMonth();
+                $end = $date->copy()->endOfMonth();
+                
+                // Query Count per Bulan
+                $count = (clone $queryRL)->whereBetween('created_at', [$start, $end])->count();
+                
+                $trendData['labels'][] = $date->format('M Y');
+                $trendData['data'][] = $count;
+            }
+        }
 
-        // --- WIDGET BARU 2: UPCOMING DEADLINES (H-7) ---
+        // --- WIDGET: UPCOMING DEADLINES ---
         $upcomingDeadlines = (clone $queryRL)
                                 ->whereNotIn('status_flow', ['COMPLETED', 'REJECTED'])
                                 ->whereNotNull('required_date')
@@ -124,44 +122,35 @@ public function index()
                                 ->limit(5)
                                 ->get();
 
-        // --- 2. RECENT ACTIVITY TABLE ---
-        $recentActivities = (clone $queryRL)
-                            ->with(['requester'])
-                            ->latest()
-                            ->limit(5)
-                            ->get();
+        // --- RECENT ACTIVITY TABLE ---
+        $recentActivities = (clone $queryRL)->with(['requester'])->latest()->limit(5)->get();
 
-        // --- 3. DATA UNTUK GRAFIK ---
+        // --- DATA CHART COMPOSITION ---
         $chartData = [
             'labels' => ['Waiting Approval', 'Waiting Director', 'Waiting Supply', 'Completed', 'Rejected'],
-            'data' => [
-                $stats['waiting_approval'],
-                $stats['waiting_director'],
-                $stats['waiting_supply'],
-                $stats['completed'],
-                $stats['rejected']
-            ],
+            'data' => [ $stats['waiting_approval'], $stats['waiting_director'], $stats['waiting_supply'], $stats['completed'], $stats['rejected'] ],
             'colors' => ['#f97316', '#9333ea', '#eab308', '#14b8a6', '#ef4444']
         ];
 
-        // --- 4. DATA MASTER ---
+        // --- DATA MASTER ---
         $masterData = [
             'employees' => User::count(),
             'departments' => Department::count(),
             'companies' => Company::count(),
         ];
 
-        return view('dashboard', compact(
-            'stats',
-            'recentActivities',
-            'chartData',
-            'masterData',
-            'currentMode',
-            'isApprover',
-            'priorityStats', // <-- Data ini sekarang sudah punya key 'Top Urgent'
-            'upcomingDeadlines'
-        ));
+        // RETURN VIEW BERDASARKAN ROLE
+        if ($isSuperAdmin) {
+            return view('dashboard', compact('stats', 'recentActivities', 'chartData', 'masterData', 'currentMode', 'isApprover', 'priorityStats', 'upcomingDeadlines'));
+        }
+
+        if ($currentMode == 'approver') {
+            return view('dashboard_approver', compact('stats', 'recentActivities', 'chartData', 'masterData', 'currentMode', 'isApprover', 'priorityStats', 'upcomingDeadlines', 'trendData'));
+        }
+
+        return view('dashboard_requester', compact('stats', 'recentActivities', 'chartData', 'masterData', 'currentMode', 'isApprover', 'priorityStats', 'upcomingDeadlines'));
     }
+
 
     // 2. FUNGSI MENYIMPAN PILIHAN PERAN
     public function selectRole($role)

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('requisition_letters', function (Blueprint $table) {
-            // Cek dulu biar gak error kalau dijalankan ulang
+            
             if (!Schema::hasColumn('requisition_letters', 'attachment_partial')) {
                 $table->string('attachment_partial')->nullable()->after('remark');
             }
