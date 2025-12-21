@@ -12,21 +12,14 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Group Auth
-Route::middleware(['auth', 'verified'])->group(function () {
+    Route::middleware(['auth', 'verified'])->group(function () {
 
-    // 1. DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // 2. PROFILE
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // 3. REQUISITION ROUTES (URUTAN SANGAT PENTING!)
-
-    // A. Route Khusus (HARUS DI ATAS RESOURCE)
-    // Supaya "department" tidak dianggap sebagai ID surat
     Route::get('/requisitions/department', [RequisitionController::class, 'departmentActivity'])
         ->name('requisitions.department');
 
@@ -45,20 +38,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/requisitions/{id}/revise', [RequisitionController::class, 'revise'])
         ->name('requisitions.revise');
 
-    // B. Route Resource (Menangani /requisitions/{id})
-    // Ini ditaruh paling bawah di grup requisition
     Route::resource('requisitions', RequisitionController::class);
 
-
-    // 4. APPROVAL
     Route::post('/approval/action', [ApprovalController::class, 'action'])->name('approval.action');
     Route::post('/approvals/{id}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
     Route::post('/approvals/{id}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
 
-    // 5. SUPPLY TRACKING
     Route::post('/supply/store', [SupplyController::class, 'store'])->name('supply.store');
 
-    // 6. API Internal
     Route::get('/api/get-departments/{company_id}', function ($company_id) {
         return \App\Models\Department::where('company_id', $company_id)->get();
     })->name('api.departments');
@@ -79,20 +66,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/requisitions/{id}/upload-final', [RequisitionController::class, 'uploadFinal'])->name('requisitions.upload_final');
     Route::post('/requisitions/{id}/upload-evidence', [RequisitionController::class, 'uploadEvidence'])->name('requisitions.upload_evidence');
 
-    Route::resource('master-items', \App\Http\Controllers\Admin\MasterItemController::class);
+    Route::middleware(['auth', 'verified', 'can:super_admin'])->prefix('admin')->name('admin.')->group(function () {
+
+        Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+
+        Route::get('/monitoring', [\App\Http\Controllers\Admin\GlobalMonitoringController::class, 'index'])->name('monitoring.index');
+
+        Route::resource('master-items', \App\Http\Controllers\Admin\MasterItemController::class);
+    });
 });
 
-Route::get('/cek-db', function () {
-    // 1. Cek Nama Database yang Konek saat ini
-    $dbName = DB::connection()->getDatabaseName();
+    Route::get('/cek-db', function () {
+        $dbName = DB::connection()->getDatabaseName();
 
-    // 2. Cek Apakah kolom ada
-    $hasColumn = Schema::hasColumn('requisition_letters', 'attachment_partial');
+        $hasColumn = Schema::hasColumn('requisition_letters', 'attachment_partial');
 
-    return [
-        'Database Yang Dipakai Laravel' => $dbName,
-        'Apakah Tabel requisition_letters Ada?' => Schema::hasTable('requisition_letters') ? 'YA' : 'TIDAK',
-        'Apakah Kolom attachment_partial Ada?' => $hasColumn ? 'YA (SUDAH ADA)' : 'TIDAK (BELUM ADA - INI MASALAHNYA)',
+        return [
+            'Database Yang Dipakai Laravel' => $dbName,
+            'Apakah Tabel requisition_letters Ada?' => Schema::hasTable('requisition_letters') ? 'YA' : 'TIDAK',
+            'Apakah Kolom attachment_partial Ada?' => $hasColumn ? 'YA (SUDAH ADA)' : 'TIDAK (BELUM ADA - INI MASALAHNYA)',
     ];
 });
 

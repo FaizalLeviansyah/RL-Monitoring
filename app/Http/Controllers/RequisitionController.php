@@ -14,12 +14,22 @@ use App\Services\WaService;
 
 class RequisitionController extends Controller
 {
-    // 1. CREATE FORM
     public function create()
-    {
-        $newNumber = RequisitionLetter::generateNumber();
-        return view('requisitions.create', compact('newNumber'));
-    }
+        {
+            // 1. Ambil data Master Item
+            $masterItems = \App\Models\MasterItem::orderBy('item_name', 'asc')->get();
+
+            // 2. Generate Nomor Surat
+            $newRlNumber = \App\Models\RequisitionLetter::generateNumber();
+            $user = Auth::user();
+
+            // PERBAIKAN: Kirim dengan nama key 'newNumber' agar sesuai dengan View
+            return view('requisitions.create', [
+                'newNumber' => $newRlNumber, // <- Ini kuncinya agar tidak error undefined variable
+                'user' => $user,
+                'masterItems' => $masterItems
+            ]);
+        }
 
     // 2. STORE DATA
     public function store(Request $request)
@@ -31,6 +41,10 @@ class RequisitionController extends Controller
             'items.*.item_name' => 'required|string',
             'items.*.qty' => 'required|numeric|min:1',
             'items.*.uom' => 'required|string',
+        ]);
+
+        $rl = RequisitionLetter::create([
+            // ... (Data Header) ...
         ]);
 
         $notifData = null;
@@ -312,10 +326,8 @@ class RequisitionController extends Controller
                 $waStatusMsg = " (Info: Notifikasi WA tidak dikirim karena No. HP Manager belum diisi)";
             }
         }
-
         return redirect()->route('dashboard')->with('success', 'Draft diajukan' . $waStatusMsg . '!');
     }
-
     // 7. PREVIEW TEMP
     public function previewTemp(Request $request)
     {
@@ -369,6 +381,7 @@ class RequisitionController extends Controller
         $manager = User::where('company_id', $user->company_id)
                     ->where('department_id', $user->department_id)
                     ->whereHas('position', function($q){ $q->where('position_name', 'Manager'); })->first();
+
         if (!$manager) {
             $manager = User::where('company_id', $user->company_id)
                     ->whereHas('position', function($q){ $q->where('position_name', 'Manager'); })->first();
@@ -438,7 +451,6 @@ class RequisitionController extends Controller
         return back()->with('success', 'Dokumen Tahap 1 berhasil diupload! Menunggu validasi Manager.');
     }
 
-    // 2. UPLOAD TAHAP 2 (TTD Lengkap + Direktur) -> Trigger WA Direktur (Info Only)
 public function uploadFinal(Request $request, $id)
     {
         $request->validate([
@@ -451,9 +463,6 @@ public function uploadFinal(Request $request, $id)
             $path = $request->file('file_final')->store('uploads/rl_documents', 'public');
             $rl->attachment_final = $path;
 
-            // --- UPDATE DISINI ---
-            // Ubah dari 'APPROVED' menjadi 'WAITING_SUPPLY'
-            // Agar suratnya langsung masuk ke menu "Waiting Supply" di sidebar
             $rl->status_flow = 'WAITING_SUPPLY';
             $rl->save();
         }
@@ -461,11 +470,10 @@ public function uploadFinal(Request $request, $id)
         return back()->with('success', 'Dokumen Final diterima. Status: Waiting Supply (Menunggu Barang).');
     }
 
-    // 3. UPLOAD BUKTI BARANG (Closing)
     public function uploadEvidence(Request $request, $id)
     {
         $request->validate([
-            'evidence_photo' => 'required|image|max:5120', // JPG/PNG
+            'evidence_photo' => 'required|image|max:5120',
         ]);
 
         $rl = RequisitionLetter::findOrFail($id);
@@ -479,8 +487,6 @@ public function uploadFinal(Request $request, $id)
 
         return back()->with('success', 'Bukti barang diterima. Tiket Selesai (COMPLETED).');
     }
-
-    // --- HELPER FUNCTIONS (Agar kodingan rapi) ---
 
     private function generateManagerQueue($rl)
     {

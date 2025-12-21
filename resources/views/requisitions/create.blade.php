@@ -70,30 +70,69 @@
                 </div>
             </div>
 
-            <div class="p-6 mb-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Items List</h3>
-                    <button type="button" onclick="addItemRowWithData()" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Add Item
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Items List</h3>
+                    <button type="button" onclick="addItemRow()" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded shadow">
+                        + Add Item
                     </button>
                 </div>
 
-                <div class="relative overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="items_table">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                             <tr>
-                                <th scope="col" class="px-4 py-3 min-w-[200px]">Item Name</th>
-                                <th scope="col" class="px-4 py-3 w-32">Part No.</th>
-                                <th scope="col" class="px-4 py-3 min-w-[200px]">Description/Specs</th>
-                                <th scope="col" class="px-4 py-3 w-24">Qty</th>
-                                <th scope="col" class="px-4 py-3 w-32">UOM</th>
-                                <th scope="col" class="px-4 py-3 w-24" title="Stok saat ini">Stock</th>
-                                <th scope="col" class="px-4 py-3 w-16 text-center">Act</th>
+                                <th class="px-4 py-3 w-1/4">Select Master (Optional)</th>
+                                <th class="px-4 py-3 w-1/4">Item Name <span class="text-red-500">*</span></th>
+                                <th class="px-4 py-3 w-1/4">Specification</th>
+                                <th class="px-4 py-3 w-24">Qty <span class="text-red-500">*</span></th>
+                                <th class="px-4 py-3 w-32">Unit <span class="text-red-500">*</span></th> <th class="px-4 py-3 w-10">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="items-container">
-                            </tbody>
+                        <tbody id="items_container">
+                            <tr class="item-row border-b dark:border-gray-700">
+                                <td class="px-4 py-2">
+                                    <input type="hidden" name="items[0][master_item_id]" class="master-id-input">
+
+                                    <select class="w-full border-gray-300 rounded dark:bg-gray-700 dark:text-white text-xs master-select" onchange="fillItemData(this)">
+                                        <option value="">-- Manual Input --</option>
+                                        @foreach($masterItems as $item)
+                                            <option value="{{ $item->id }}"
+                                                data-name="{{ $item->item_name }}"
+                                                data-unit="{{ $item->unit }}"
+                                                data-spec="{{ $item->specification }}">
+                                                {{ $item->item_code }} - {{ $item->item_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="px-4 py-2">
+                                    <input type="text" name="items[0][item_name]" class="w-full border-gray-300 rounded dark:bg-gray-700 dark:text-white text-xs item-name-input" required placeholder="Nama Barang">
+                                </td>
+                                <td class="px-4 py-2">
+                                    <textarea name="items[0][specification]" class="w-full border-gray-300 rounded dark:bg-gray-700 dark:text-white text-xs item-spec-input" rows="1" placeholder="Spesifikasi"></textarea>
+                                </td>
+                                <td class="px-4 py-2">
+                                    <input type="number" name="items[0][quantity]" class="w-full border-gray-300 rounded dark:bg-gray-700 dark:text-white text-xs text-center" required min="1" value="1">
+                                </td>
+                                <td class="px-4 py-2">
+                                    <select name="items[0][unit]" class="w-full border-gray-300 rounded dark:bg-gray-700 dark:text-white text-xs item-unit-input" required>
+                                        <option value="" disabled selected>-Unit-</option>
+                                        @php
+                                            $units = ['Pcs','Unit','Box','Pack','Set','Rim','Roll','Kg','Liter','Meter','Lembar','Pasang','Botol','Kaleng'];
+                                        @endphp
+                                        @foreach($units as $u)
+                                            <option value="{{ $u }}">{{ $u }}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="px-4 py-2 text-center">
+                                    <button type="button" onclick="removeItemRow(this)" class="text-red-500 hover:text-red-700">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -128,6 +167,84 @@
             </div>
         </form>
     </div>
+
+    <script>
+        let itemIndex = 1;
+
+        // 1. Fungsi Tambah Baris
+        function addItemRow() {
+            const container = document.getElementById('items_container');
+            const firstRow = container.querySelector('.item-row');
+            const newRow = firstRow.cloneNode(true);
+
+            // Reset nilai input di baris baru
+            newRow.querySelectorAll('input, textarea, select').forEach(input => {
+                // Jangan reset opsi select unit (biarkan list-nya ada), tapi reset pilihannya
+                if (input.tagName === 'SELECT') {
+                    input.selectedIndex = 0;
+                } else {
+                    input.value = '';
+                }
+
+                // Update atribut 'name' agar index array-nya naik
+                if (input.name) {
+                    input.name = input.name.replace(/\[\d+\]/, `[${itemIndex}]`);
+                }
+            });
+
+            // Set default quantity ke 1
+            newRow.querySelector('input[type="number"]').value = 1;
+
+            // Append ke tabel
+            container.appendChild(newRow);
+            itemIndex++;
+        }
+
+        // 2. Fungsi Hapus Baris
+        function removeItemRow(btn) {
+            const row = btn.closest('tr');
+            const container = document.getElementById('items_container');
+            if (container.querySelectorAll('.item-row').length > 1) {
+                row.remove();
+            } else {
+                alert("Minimal harus ada 1 barang.");
+            }
+        }
+
+        // 3. Fungsi Hybrid Autofill
+        function fillItemData(selectElement) {
+            const row = selectElement.closest('tr');
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+            // Ambil elemen input lain di baris yang sama
+            const idInput = row.querySelector('.master-id-input');
+            const nameInput = row.querySelector('.item-name-input');
+            const specInput = row.querySelector('.item-spec-input');
+            const unitInput = row.querySelector('.item-unit-input'); // Ini sekarang adalah <select>
+
+            if (selectElement.value) {
+                // JIKA MEMILIH DARI MASTER:
+                idInput.value = selectElement.value;
+                nameInput.value = selectedOption.getAttribute('data-name');
+                specInput.value = selectedOption.getAttribute('data-spec');
+
+                // Auto-Select Unit di Dropdown
+                let masterUnit = selectedOption.getAttribute('data-unit');
+                unitInput.value = masterUnit;
+
+                // Fallback: Jika unit master tidak ada di list dropdown standar kita,
+                // (Misal master pakai 'Lusin' tapi di dropdown tidak ada), biarkan user pilih manual atau tambahkan opsi baru via JS (opsional).
+                // Code `unitInput.value = masterUnit` sudah otomatis memilih jika value-nya cocok.
+
+            } else {
+                // JIKA MEMILIH MANUAL:
+                idInput.value = '';
+                nameInput.value = '';
+                specInput.value = '';
+                unitInput.selectedIndex = 0; // Reset ke '-- Select Unit --'
+            }
+        }
+    </script>
 
     <script>
         let itemIndex = 0;

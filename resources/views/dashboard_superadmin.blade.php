@@ -22,7 +22,7 @@
                 </a>
             </div>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="relative p-6 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl shadow-xl text-white overflow-hidden group hover:shadow-2xl transition-all duration-300">
                 <div class="absolute right-0 top-0 h-full w-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
@@ -69,7 +69,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
             <div class="xl:col-span-2 p-6 bg-white border border-gray-200 rounded-2xl shadow-sm dark:bg-gray-800 dark:border-gray-700">
                 <div class="flex justify-between items-center mb-6">
@@ -97,7 +97,7 @@
                         @php
                             // Logic Warna Ikon berdasarkan PT
                             $compCode = $act->company->company_code;
-                            $iconColor = 'bg-gray-100 text-gray-600'; 
+                            $iconColor = 'bg-gray-100 text-gray-600';
 
                             if($compCode == 'ASM') $iconColor = 'bg-blue-100 text-blue-700';
                             elseif($compCode == 'ACS') $iconColor = 'bg-yellow-100 text-yellow-700';
@@ -136,7 +136,6 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // FIX: Gunakan JSON.parse atau blade echo tanpa kutip agar aman
             const options = {
                 series: [{
                     name: 'Total RL',
@@ -150,8 +149,6 @@
                 plotOptions: {
                     bar: { borderRadius: 4, horizontal: true, barHeight: '50%', distributed: true }
                 },
-                // URUTAN WARNA: [ASM=Biru, ACS=Kuning, CTP=Merah]
-                // Pastikan urutan data di controller sesuai dengan ini, atau gunakan dynamic colors
                 colors: ['#3B82F6', '#EAB308', '#EF4444'],
 
                 dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'] }, offsetX: 0 },
