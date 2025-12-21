@@ -1,133 +1,121 @@
 <x-app-layout>
-    <div class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
-        <div class="w-full mb-1">
-            <div class="mb-4">
-                <nav class="flex mb-5" aria-label="Breadcrumb">
-                    <ol class="inline-flex items-center space-x-1 text-sm font-medium md:space-x-2">
-                        <li class="inline-flex items-center">
-                            <a href="{{ route('dashboard') }}" class="inline-flex items-center text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white">
-                                <svg class="w-5 h-5 mr-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
-                                Command Center
-                            </a>
-                        </li>
-                        <li>
-                            <div class="flex items-center">
-                                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-                                <span class="ml-1 text-gray-400 md:ml-2 dark:text-gray-500">Global Monitoring</span>
-                            </div>
-                        </li>
-                    </ol>
-                </nav>
-                <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">Live Requisition Monitor</h1>
-            </div>
+    <div class="p-6 bg-slate-50 dark:bg-gray-900 min-h-screen">
 
-            <div class="sm:flex">
-                <div class="items-center hidden mb-3 sm:flex sm:divide-x sm:divide-gray-100 sm:mb-0 dark:divide-gray-700">
-                    <form class="lg:pr-3" action="{{ route('admin.monitoring.index') }}" method="GET">
-                        <div class="relative mt-1 lg:w-64 xl:w-96">
-                            <input type="text" name="search" value="{{ request('search') }}" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Search RL No or Subject">
-                        </div>
-                    </form>
-                    <div class="flex pl-0 mt-3 space-x-3 sm:pl-2 sm:mt-0">
-                        <form id="filterForm" action="{{ route('admin.monitoring.index') }}" method="GET" class="flex gap-2">
-                            @if(request('search')) <input type="hidden" name="search" value="{{ request('search') }}"> @endif
+        <div class="mb-8">
+            <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600 dark:from-teal-400 dark:to-blue-400">
+                Command Center
+            </h1>
+            <p class="text-gray-500 mt-2">Live Global Monitoring of all Requisition Letters across companies.</p>
+        </div>
 
-                            <select name="company_id" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                                <option value="">All Companies</option>
-                                @foreach($companies as $comp)
-                                    <option value="{{ $comp->company_id }}" {{ request('company_id') == $comp->company_id ? 'selected' : '' }}>
-                                        {{ $comp->company_code }}
-                                    </option>
-                                @endforeach
-                            </select>
-
-                            <select name="status" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                                <option value="">All Status</option>
-                                <option value="DRAFT" {{ request('status') == 'DRAFT' ? 'selected' : '' }}>Draft</option>
-                                <option value="ON_PROGRESS" {{ request('status') == 'ON_PROGRESS' ? 'selected' : '' }}>Pending</option>
-                                <option value="APPROVED" {{ request('status') == 'APPROVED' ? 'selected' : '' }}>Approved</option>
-                                <option value="REJECTED" {{ request('status') == 'REJECTED' ? 'selected' : '' }}>Rejected</option>
-                            </select>
-                        </form>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+            <div class="flex flex-col lg:flex-row gap-4 justify-between items-center">
+                <form class="w-full lg:w-96 relative" action="{{ route('admin.monitoring.index') }}" method="GET">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                    <input type="text" name="search" value="{{ request('search') }}" class="block w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:text-white transition" placeholder="Search RL Number or Subject...">
+                </form>
 
-    <div class="flex flex-col">
-        <div class="overflow-x-auto">
-            <div class="inline-block min-w-full align-middle">
-                <div class="overflow-hidden shadow">
-                    <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
-                        <thead class="bg-gray-100 dark:bg-gray-700">
-                            <tr>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Timestamp</th>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">RL Details</th>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Requester</th>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Company</th>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Status</th>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                            @foreach($activities as $rl)
-                            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                                <td class="p-4 text-sm font-normal text-gray-500 whitespace-nowrap dark:text-gray-400">
-                                    <div class="text-base font-semibold text-gray-900 dark:text-white">{{ $rl->created_at->format('H:i') }}</div>
-                                    <div class="text-xs text-gray-500">{{ $rl->created_at->format('d M Y') }}</div>
-                                </td>
-                                <td class="p-4 flex flex-col">
-                                    <div class="text-sm font-bold text-gray-900 dark:text-white">{{ $rl->rl_no }}</div>
-                                    <div class="text-xs text-gray-500 truncate w-48" title="{{ $rl->subject }}">{{ $rl->subject }}</div>
-                                </td>
-                                <td class="p-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        @if($rl->requester->profile_photo_path)
-                                            <img class="w-8 h-8 rounded-full mr-3" src="{{ asset('storage/'.$rl->requester->profile_photo_path) }}">
-                                        @else
-                                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold mr-3 text-xs">
-                                                {{ substr($rl->requester->full_name, 0, 1) }}
-                                            </div>
-                                        @endif
-                                        <div>
-                                            <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ $rl->requester->full_name }}</div>
-                                            <div class="text-xs text-gray-500">{{ $rl->requester->department->department_name ?? '-' }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="p-4 whitespace-nowrap">
-                                    <span class="bg-primary-100 text-primary-800 text-xs font-medium px-2.5 py-0.5 rounded border border-primary-400">
-                                        {{ $rl->company->company_code }}
-                                    </span>
-                                </td>
-                                <td class="p-4 whitespace-nowrap">
-                                    @if($rl->status_flow == 'ON_PROGRESS')
-                                        <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-orange-900 dark:text-orange-300">Pending</span>
-                                    @elseif($rl->status_flow == 'APPROVED')
-                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Approved</span>
-                                    @elseif($rl->status_flow == 'REJECTED')
-                                        <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">Rejected</span>
-                                    @elseif($rl->status_flow == 'DRAFT')
-                                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">Draft</span>
-                                    @else
-                                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">{{ $rl->status_flow }}</span>
-                                    @endif
-                                </td>
-                                <td class="p-4 whitespace-nowrap">
-                                    <a href="{{ route('requisitions.show', $rl->id) }}" target="_blank" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-xs px-3 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none">
-                                        Audit Detail
-                                    </a>
-                                </td>
-                            </tr>
+                <div class="flex w-full lg:w-auto gap-2">
+                    <form id="filterForm" action="{{ route('admin.monitoring.index') }}" method="GET" class="flex flex-1 gap-2">
+                        @if(request('search')) <input type="hidden" name="search" value="{{ request('search') }}"> @endif
+
+                        <select name="company_id" onchange="this.form.submit()" class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 block w-full p-2.5 dark:bg-gray-700 dark:text-white cursor-pointer hover:bg-gray-100 transition">
+                            <option value="">All Companies</option>
+                            @foreach($companies as $comp)
+                                <option value="{{ $comp->company_id }}" {{ request('company_id') == $comp->company_id ? 'selected' : '' }}>
+                                    {{ $comp->company_code }}
+                                </option>
                             @endforeach
-                        </tbody>
-                    </table>
+                        </select>
+
+                        <select name="status" onchange="this.form.submit()" class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-teal-500 focus:border-teal-500 block w-full p-2.5 dark:bg-gray-700 dark:text-white cursor-pointer hover:bg-gray-100 transition">
+                            <option value="">All Status</option>
+                            <option value="DRAFT" {{ request('status') == 'DRAFT' ? 'selected' : '' }}>Draft</option>
+                            <option value="ON_PROGRESS" {{ request('status') == 'ON_PROGRESS' ? 'selected' : '' }}>Pending</option>
+                            <option value="APPROVED" {{ request('status') == 'APPROVED' ? 'selected' : '' }}>Approved</option>
+                            <option value="REJECTED" {{ request('status') == 'REJECTED' ? 'selected' : '' }}>Rejected</option>
+                        </select>
+                    </form>
                 </div>
             </div>
         </div>
-        <div class="p-4">
-            {{ $activities->links() }}
+
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl shadow-teal-500/10 border border-teal-100 dark:border-gray-700 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-teal-50/50 dark:bg-gray-700/50">
+                        <tr>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Timestamp</th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Request Detail</th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Requester</th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Entity</th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Status</th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Audit</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                        @foreach($activities as $rl)
+                        <tr class="hover:bg-teal-50/30 dark:hover:bg-gray-700/30 transition">
+                            <td class="p-4 whitespace-nowrap">
+                                <div class="text-sm font-bold text-gray-900 dark:text-white">{{ $rl->created_at->format('H:i') }}</div>
+                                <div class="text-xs text-gray-500">{{ $rl->created_at->format('d M Y') }}</div>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-teal-700 dark:text-teal-400">{{ $rl->rl_no }}</span>
+                                    <span class="text-xs text-gray-600 dark:text-gray-400 truncate w-48" title="{{ $rl->subject }}">{{ $rl->subject }}</span>
+                                </div>
+                            </td>
+                            <td class="p-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    @if($rl->requester->profile_photo_path)
+                                        <img class="w-8 h-8 rounded-full mr-3 border border-gray-200" src="{{ asset('storage/'.$rl->requester->profile_photo_path) }}">
+                                    @else
+                                        <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold mr-3 text-xs border border-gray-200">
+                                            {{ substr($rl->requester->full_name, 0, 1) }}
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ $rl->requester->full_name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $rl->requester->department->department_name ?? '-' }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-4 whitespace-nowrap">
+                                <span class="bg-white border border-gray-200 text-gray-700 text-xs font-bold px-2 py-1 rounded-md shadow-sm">
+                                    {{ $rl->company->company_code }}
+                                </span>
+                            </td>
+                            <td class="p-4 whitespace-nowrap">
+                                @php
+                                    $statusColor = match($rl->status_flow) {
+                                        'ON_PROGRESS' => 'bg-orange-100 text-orange-700 border-orange-200',
+                                        'APPROVED' => 'bg-green-100 text-green-700 border-green-200',
+                                        'REJECTED' => 'bg-red-100 text-red-700 border-red-200',
+                                        'DRAFT' => 'bg-gray-100 text-gray-700 border-gray-200',
+                                        default => 'bg-blue-100 text-blue-700 border-blue-200'
+                                    };
+                                @endphp
+                                <span class="{{ $statusColor }} border text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+                                    {{ str_replace('_', ' ', $rl->status_flow) }}
+                                </span>
+                            </td>
+                            <td class="p-4 whitespace-nowrap">
+                                <a href="{{ route('requisitions.show', $rl->id) }}" target="_blank" class="text-teal-600 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center w-fit">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    View Log
+                                </a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+                {{ $activities->links() }}
+            </div>
         </div>
     </div>
 </x-app-layout>

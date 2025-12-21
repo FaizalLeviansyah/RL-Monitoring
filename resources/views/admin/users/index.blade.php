@@ -1,128 +1,119 @@
 <x-app-layout>
-    <div class="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
-        <div class="w-full mb-1">
-            <div class="mb-4">
-                <nav class="flex mb-5" aria-label="Breadcrumb">
-                    <ol class="inline-flex items-center space-x-1 text-sm font-medium md:space-x-2">
-                        <li class="inline-flex items-center">
-                            <a href="{{ route('dashboard') }}" class="inline-flex items-center text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white">
-                                <svg class="w-5 h-5 mr-2.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
-                                Home
-                            </a>
-                        </li>
-                        <li>
-                            <div class="flex items-center">
-                                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-                                <span class="ml-1 text-gray-400 md:ml-2 dark:text-gray-500" aria-current="page">Users</span>
-                            </div>
-                        </li>
-                    </ol>
-                </nav>
-                <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">All Users</h1>
-            </div>
+    <div class="p-6 bg-slate-50 dark:bg-gray-900 min-h-screen">
 
-            <div class="sm:flex">
-                <div class="items-center hidden mb-3 sm:flex sm:divide-x sm:divide-gray-100 sm:mb-0 dark:divide-gray-700">
-                    <form class="lg:pr-3" action="{{ route('admin.users.index') }}" method="GET">
-                        <div class="relative mt-1 lg:w-64 xl:w-96">
-                            <input type="text" name="search" value="{{ request('search') }}" class="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search for users">
-                        </div>
-                    </form>
-                    <div class="flex pl-0 mt-3 space-x-1 sm:pl-2 sm:mt-0">
-                        <form action="{{ route('admin.users.index') }}" method="GET">
-                            <select name="company_id" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                                <option value="">Filter by Company (All)</option>
-                                @foreach($companies as $comp)
-                                    <option value="{{ $comp->company_id }}" {{ request('company_id') == $comp->company_id ? 'selected' : '' }}>
-                                        {{ $comp->company_code }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </form>
+        <div class="mb-8">
+            <nav class="flex mb-4 text-sm text-gray-500" aria-label="Breadcrumb">
+                <ol class="inline-flex items-center space-x-1 md:space-x-2">
+                    <li class="inline-flex items-center">
+                        <a href="{{ route('dashboard') }}" class="text-gray-500 hover:text-blue-600 transition">Dashboard</a>
+                    </li>
+                    <li>
+                        <span class="mx-2 text-gray-400">/</span>
+                        <span class="font-medium text-gray-800 dark:text-gray-300">User Management</span>
+                    </li>
+                </ol>
+            </nav>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white">All Users</h1>
+                <a href="{{ route('admin.users.create') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/30 transition transform hover:-translate-y-0.5">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                    Add New User
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+            <div class="flex flex-col md:flex-row gap-4 justify-between">
+                <form class="flex-1 relative" action="{{ route('admin.users.index') }}" method="GET">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                </div>
-                <div class="flex items-center ml-auto space-x-2 sm:space-x-3">
-                    <a href="{{ route('admin.users.create') }}" class="inline-flex items-center justify-center w-1/2 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 sm:w-auto dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                        <svg class="w-5 h-5 mr-2 -ml-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
-                        Add User
-                    </a>
-                </div>
+                    <input type="text" name="search" value="{{ request('search') }}" class="block w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition" placeholder="Search user name or email...">
+                </form>
+                <form action="{{ route('admin.users.index') }}" method="GET" class="w-full md:w-64">
+                    <select name="company_id" onchange="this.form.submit()" class="block w-full p-2.5 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">Filter by Company (All)</option>
+                        @foreach($companies as $comp)
+                            <option value="{{ $comp->company_id }}" {{ request('company_id') == $comp->company_id ? 'selected' : '' }}>
+                                {{ $comp->company_code }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
             </div>
         </div>
-    </div>
 
-    <div class="flex flex-col">
-        <div class="overflow-x-auto">
-            <div class="inline-block min-w-full align-middle">
-                <div class="overflow-hidden shadow">
-                    <table class="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
-                        <thead class="bg-gray-100 dark:bg-gray-700">
-                            <tr>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Name / Position</th>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Company</th>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Department</th>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Status</th>
-                                <th scope="col" class="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                            @foreach($users as $user)
-                            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <td class="flex items-center p-4 mr-12 space-x-6 whitespace-nowrap">
-                                    @if($user->profile_photo_path)
-                                        <img class="w-10 h-10 rounded-full" src="{{ asset('storage/'.$user->profile_photo_path) }}" alt="avatar">
-                                    @else
-                                        <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500">{{ substr($user->full_name, 0, 1) }}</div>
-                                    @endif
-                                    <div class="text-sm font-normal text-gray-500 dark:text-gray-400">
-                                        <div class="text-base font-semibold text-gray-900 dark:text-white">{{ $user->full_name }}</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $user->email_work }}</div>
-                                        <div class="text-xs font-bold text-blue-600">{{ $user->position->position_name ?? '-' }}</div>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl shadow-gray-200/40 dark:shadow-none overflow-hidden border border-gray-100 dark:border-gray-700">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700/50">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">User Profile</th>
+                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Company</th>
+                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Department</th>
+                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        @foreach($users as $user)
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10">
+                                        @if($user->profile_photo_path)
+                                            <img class="h-10 w-10 rounded-full object-cover border-2 border-white shadow-sm" src="{{ asset('storage/'.$user->profile_photo_path) }}" alt="">
+                                        @else
+                                            <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold shadow-sm">
+                                                {{ substr($user->full_name, 0, 1) }}
+                                            </div>
+                                        @endif
                                     </div>
-                                </td>
-                                <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                                    @php
-                                        $cc = $user->company->company_code ?? '-';
-                                        $badgeClass = 'bg-gray-100 text-gray-800 border-gray-400';
-
-                                        if($cc == 'ASM') $badgeClass = 'bg-blue-100 text-blue-800 border-blue-400';
-                                        elseif($cc == 'ACS') $badgeClass = 'bg-yellow-100 text-yellow-800 border-yellow-400';
-                                        elseif($cc == 'CTP') $badgeClass = 'bg-red-100 text-red-800 border-red-400';
-                                    @endphp
-                                    <span class="{{ $badgeClass }} text-xs font-bold px-2.5 py-0.5 rounded border">
-                                        {{ $cc }}
-                                    </span>
-                                </td>
-                                <td class="p-4 text-base font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                                    {{ $user->department->department_name ?? '-' }}
-                                </td>
-                                <td class="p-4 text-base font-normal text-gray-900 whitespace-nowrap dark:text-white">
-                                    <div class="flex items-center">
-                                        <div class="h-2.5 w-2.5 rounded-full bg-green-400 mr-2"></div> Active
+                                    <div class="ml-4">
+                                        <div class="text-sm font-bold text-gray-900 dark:text-white">{{ $user->full_name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $user->email_work }}</div>
+                                        <div class="text-xs text-blue-600 font-semibold mt-0.5">{{ $user->position->position_name ?? 'No Position' }}</div>
                                     </div>
-                                </td>
-                                <td class="p-4 space-x-2 whitespace-nowrap">
-                                        <a href="{{ route('admin.users.edit', $user->employee_id) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
-                                            Edit
-                                        </a>
-                                    <form action="{{ route('admin.users.destroy', $user->employee_id) }}" method="POST" onsubmit="return confirm('Yakin ingin menonaktifkan user ini? User tidak akan bisa login lagi.');" class="inline-block">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-2 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">
-                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @php
+                                    $cc = $user->company->company_code ?? '-';
+                                    $badgeColor = match($cc) {
+                                        'ASM' => 'bg-blue-100 text-blue-800 border-blue-200',
+                                        'ACS' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                                        'CTP' => 'bg-red-100 text-red-800 border-red-200',
+                                        default => 'bg-gray-100 text-gray-800 border-gray-200'
+                                    };
+                                @endphp
+                                <span class="{{ $badgeColor }} px-2.5 py-0.5 rounded-md text-xs font-bold border">
+                                    {{ $cc }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                {{ $user->department->department_name ?? '-' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span> Active
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                <a href="{{ route('admin.users.edit', $user->employee_id) }}" class="text-blue-600 hover:text-blue-900 font-bold transition">Edit</a>
+                                <span class="text-gray-300">|</span>
+                                <form action="{{ route('admin.users.destroy', $user->employee_id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to deactivate this user? They will not be able to login.');">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="text-red-600 hover:text-red-900 font-bold transition">Deactivate</button>
+                                </form>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-        </div>
-        <div class="p-4">
-            {{ $users->links() }}
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+                {{ $users->links() }}
+            </div>
         </div>
     </div>
 </x-app-layout>
