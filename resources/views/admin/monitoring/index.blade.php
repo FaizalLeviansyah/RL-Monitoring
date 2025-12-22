@@ -47,11 +47,21 @@
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead class="bg-teal-50/50 dark:bg-gray-700/50">
                         <tr>
-                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Timestamp</th>
-                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Request Detail</th>
-                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Requester</th>
-                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Entity</th>
-                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Status</th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider cursor-pointer group" onclick="sortTable(0)">
+                                <div class="flex items-center gap-1">Timestamp <span class="sort-icon"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg></span></div>
+                            </th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider cursor-pointer group" onclick="sortTable(1)">
+                                <div class="flex items-center gap-1">RL No <span class="sort-icon"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg></span></div>
+                            </th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider cursor-pointer group" onclick="sortTable(2)">
+                                <div class="flex items-center gap-1">Requester <span class="sort-icon"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg></span></div>
+                            </th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider cursor-pointer group" onclick="sortTable(3)">
+                                <div class="flex items-center gap-1">Entity <span class="sort-icon"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg></span></div>
+                            </th>
+                            <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider cursor-pointer group" onclick="sortTable(4)">
+                                <div class="flex items-center gap-1">Status <span class="sort-icon"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg></span></div>
+                            </th>
                             <th class="p-4 text-xs font-bold text-left text-teal-800 dark:text-teal-400 uppercase tracking-wider">Audit</th>
                         </tr>
                     </thead>

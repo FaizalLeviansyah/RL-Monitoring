@@ -46,15 +46,42 @@
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl shadow-gray-200/40 dark:shadow-none overflow-hidden border border-gray-100 dark:border-gray-700">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700/50">
-                        <tr>
-                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">User Profile</th>
-                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Company</th>
-                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Department</th>
-                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
+                <thead class="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                        @php
+                            // Anda bisa memindahkan fungsi ini ke AppServiceProvider agar global,
+                            // tapi untuk sekarang taruh disini agar aman tanpa ubah file core.
+                            if (!function_exists('userSortLink')) {
+                                function userSortLink($col, $label) {
+                                    $currentSort = request('sort');
+                                    $currentDir = request('dir', 'desc');
+                                    $newDir = ($currentSort == $col && $currentDir == 'asc') ? 'desc' : 'asc';
+                                    $active = $currentSort == $col;
+                                    $icon = $active
+                                        ? ($currentDir == 'asc'
+                                            ? '<svg class="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>'
+                                            : '<svg class="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')
+                                        : '<svg class="w-3 h-3 text-gray-400 opacity-50 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>';
+
+                                    $url = request()->fullUrlWithQuery(['sort' => $col, 'dir' => $newDir]);
+                                    return "<a href='{$url}' class='group flex items-center gap-1 cursor-pointer select-none hover:text-purple-600 transition'>{$label} {$icon}</a>";
+                                }
+                            }
+                        @endphp
+
+                        <th class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">
+                            {!! userSortLink('name', 'User Profile') !!}
+                        </th>
+                        <th class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">
+                            {!! userSortLink('company', 'Company') !!}
+                        </th>
+                        <th class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">
+                            {!! userSortLink('department', 'Department') !!}
+                        </th>
+                        <th class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                         @foreach($users as $user)
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">

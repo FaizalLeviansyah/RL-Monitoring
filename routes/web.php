@@ -74,6 +74,10 @@ Route::get('/', function () {
 
         Route::resource('master-items', \App\Http\Controllers\Admin\MasterItemController::class);
     });
+
+    // Route untuk List Status (Draft, On Progress, dll)
+Route::get('requisitions/status/{status}', [App\Http\Controllers\RequisitionController::class, 'listByStatus'])
+    ->name('requisitions.status');
 });
 
     Route::get('/cek-db', function () {

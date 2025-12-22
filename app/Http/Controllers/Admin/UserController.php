@@ -15,17 +15,19 @@ use Illuminate\Validation\Rules; // Tambahkan import Rules
 
 class UserController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
     {
-        $query = User::with(['company', 'department', 'position'])
+        // 1. MULAI QUERY
+        $query = User::select('tbl_employee.*') // Pastikan select tabel utama user
+                     ->with(['company', 'department', 'position'])
                      ->where('is_deleted', 0);
 
-        // Filter by Company (PT)
+        // 2. FILTER COMPANY
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->company_id);
         }
 
-        // Search by Name/Email
+        // 3. PENCARIAN (SEARCH)
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('full_name', 'like', '%'.$request->search.'%')
@@ -33,7 +35,31 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        // 4. SORTING LOGIC
+        // Join tabel relasi agar bisa sort berdasarkan nama company/dept
+        $query->leftJoin('tbl_company as c', 'tbl_employee.company_id', '=', 'c.company_id')
+              ->leftJoin('tbl_department as d', 'tbl_employee.department_id', '=', 'd.department_id');
+
+        $sort = $request->get('sort', 'created_at');
+        $dir = $request->get('dir', 'desc');
+
+        switch ($sort) {
+            case 'name':
+                $query->orderBy('full_name', $dir);
+                break;
+            case 'company':
+                $query->orderBy('c.company_code', $dir); // Sort by Company Code
+                break;
+            case 'department':
+                $query->orderBy('d.department_name', $dir); // Sort by Dept Name
+                break;
+            default:
+                $query->orderBy('tbl_employee.created_at', 'desc');
+                break;
+        }
+
+        // 5. PAGINATION
+        $users = $query->paginate(10)->withQueryString();
         $companies = Company::all();
 
         return view('admin.users.index', compact('users', 'companies'));
