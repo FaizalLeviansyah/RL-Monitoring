@@ -24,35 +24,20 @@
     $user = Auth::user();
     $userPos = $user->position->position_name ?? '';
 
-    // Cek Role
+    // Cek Role (Update List Jabatan sesuai Database baru)
     $isSuperAdmin = $userPos === 'Super Admin';
-    $isApprover = in_array($userPos, ['Manager', 'Director']);
+    $approverRoles = ['Manager', 'Director', 'Managing Director', 'Deputy Managing Director', 'General Manager'];
+    $isApprover = in_array($userPos, $approverRoles);
+
     $isRequester = !$isSuperAdmin && !$isApprover;
     $currentMode = session('active_role');
 
     $showRequesterMenu = !$isSuperAdmin && ($isRequester || $currentMode == 'requester');
     $showMonitoringMenu = !$isSuperAdmin;
 
-    // --- LOGIC COUNTER (Tetap Sama) ---
-    $countDraft = 0; $countRejected = 0; $countPendingApprove = 0;
-    $countWaitingDirector = 0; $countWaitingSupply = 0;
-
-    if (!$isSuperAdmin) {
-        $countDraft = \App\Models\RequisitionLetter::where('requester_id', $user->employee_id)->where('status_flow', 'DRAFT')->count();
-        $countRejected = \App\Models\RequisitionLetter::where('requester_id', $user->employee_id)->where('status_flow', 'REJECTED')->count();
-
-        if ($isApprover || $currentMode == 'approver') {
-            $countPendingApprove = \App\Models\ApprovalQueue::where('approver_id', $user->employee_id)->where('status', 'PENDING')->count();
-        }
-
-        $queryWD = \App\Models\RequisitionLetter::where('status_flow', 'PARTIALLY_APPROVED');
-        if ($isApprover) { $queryWD->where('company_id', $user->company_id); } else { $queryWD->where('requester_id', $user->employee_id); }
-        $countWaitingDirector = $queryWD->count();
-
-        $queryWS = \App\Models\RequisitionLetter::where('status_flow', 'WAITING_SUPPLY');
-        if ($isApprover) { $queryWS->where('company_id', $user->company_id); } else { $queryWS->where('requester_id', $user->employee_id); }
-        $countWaitingSupply = $queryWS->count();
-    }
+    // --- HAPUS LOGIC COUNTER DI SINI ---
+    // Biarkan AppServiceProvider yang menangani variabel $count...
+    // Agar tidak terjadi konflik/overwrite data.
 @endphp
 
     <nav class="fixed top-0 z-50 w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300">
@@ -171,7 +156,7 @@
                         <a href="{{ route('requisitions.status', 'draft') }}" class="flex items-center p-3 rounded-xl transition-all duration-200 group {{ request()->is('requisitions/status/draft') ? 'bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-md shadow-slate-500/30' : 'text-gray-600 hover:bg-slate-100 hover:text-slate-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white' }}">
                             <svg class="w-5 h-5 transition duration-75 {{ request()->is('requisitions/status/draft') ? 'text-white' : 'text-slate-500 group-hover:text-slate-600' }}" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
                             <span class="flex-1 ms-3 font-medium whitespace-nowrap">Drafts</span>
-                            @if($countDraft > 0)
+                            @if(isset($countDraft) && $countDraft > 0)
                                 <span class="inline-flex items-center justify-center px-2 py-0.5 ms-3 text-xs font-bold text-slate-800 bg-slate-200 rounded-full group-hover:bg-white group-hover:text-slate-600">{{ $countDraft }}</span>
                             @endif
                         </a>
@@ -188,9 +173,11 @@
                     class="flex items-center p-3 rounded-xl transition-all duration-200 group {{ (request()->is('requisitions/status/on_progress') || request('ref') == 'on_progress') ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-md shadow-orange-500/30' : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white' }}">
                         <svg class="w-5 h-5 transition duration-75 {{ (request()->is('requisitions/status/on_progress') || request('ref') == 'on_progress') ? 'text-white' : 'text-orange-500 group-hover:text-orange-600' }}" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         <span class="flex-1 ms-3 font-medium whitespace-nowrap">Waiting Approval</span>
-                        @if($countPendingApprove > 0)
-                            <span class="inline-flex items-center justify-center px-2 py-0.5 ms-3 text-xs font-bold text-orange-800 bg-orange-100 rounded-full group-hover:bg-white group-hover:text-orange-600">{{ $countPendingApprove }}</span>
-                        @endif
+                    @if(isset($countPendingApprove) && $countPendingApprove > 0)
+                        <span class="inline-flex items-center justify-center px-2 py-0.5 ms-3 text-xs font-bold text-orange-800 bg-orange-100 rounded-full group-hover:bg-white group-hover:text-orange-600">
+                            {{ $countPendingApprove }}
+                        </span>
+                    @endif
                     </a>
                 </li>
 
@@ -269,16 +256,14 @@
     <script>
         function sortTable(n, tableId = null) {
             var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-            // Cari tabel: Jika ID diberikan pakai ID, jika tidak cari tabel pertama
             table = tableId ? document.getElementById(tableId) : document.querySelector("table");
             if (!table) return;
 
             switching = true;
-            dir = "asc"; // Set arah sortir pertama kali ke Ascending
+            dir = "asc";
 
-            // Reset semua icon di header menjadi default
             table.querySelectorAll('th span.sort-icon').forEach(icon => {
-                icon.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>`; // Icon Default (Atas Bawah)
+                icon.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>`;
                 icon.parentElement.classList.remove('text-blue-600', 'dark:text-blue-400');
             });
 
@@ -286,15 +271,13 @@
                 switching = false;
                 rows = table.rows;
 
-                // Loop semua baris (kecuali header)
                 for (i = 1; i < (rows.length - 1); i++) {
                     shouldSwitch = false;
                     x = rows[i].getElementsByTagName("TD")[n];
                     y = rows[i + 1].getElementsByTagName("TD")[n];
 
-                    if (!x || !y) continue; // Skip jika sel tidak ada
+                    if (!x || !y) continue;
 
-                    // Cek apakah harus ditukar based on direction
                     if (dir == "asc") {
                         if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
                             shouldSwitch = true;
@@ -320,16 +303,13 @@
                 }
             }
 
-            // Update Icon Header yang diklik
             const clickedTh = table.rows[0].getElementsByTagName("TH")[n];
             const iconSpan = clickedTh.querySelector('.sort-icon');
             if(iconSpan) {
                 clickedTh.classList.add('text-blue-600', 'dark:text-blue-400');
                 if (dir == "asc") {
-                    // Icon Panah Atas (Asc)
                     iconSpan.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
                 } else {
-                    // Icon Panah Bawah (Desc)
                     iconSpan.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
                 }
             }

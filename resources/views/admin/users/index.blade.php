@@ -99,7 +99,7 @@
                                     <div class="ml-4">
                                         <div class="text-sm font-bold text-gray-900 dark:text-white">{{ $user->full_name }}</div>
                                         <div class="text-xs text-gray-500">{{ $user->email_work }}</div>
-                                        <div class="text-xs text-blue-600 font-semibold mt-0.5">{{ $user->position->position_name ?? 'No Position' }}</div>
+                                        <div class="text-xs text-blue-600 font-bold mt-0.5">{{ $user->department->department_name ?? '' }} {{ $user->position->position_name ?? '' }}</div>
                                     </div>
                                 </div>
                             </td>

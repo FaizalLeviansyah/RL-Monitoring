@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\RequisitionLetter;
 use App\Models\RequisitionItem;
@@ -10,41 +11,53 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
-use App\Services\WaService;
+use App\Services\WaService; // Ensure this service exists
 
 class RequisitionController extends Controller
 {
     // 1. CREATE FORM
     public function create()
     {
+        // Get Master Items
         $masterItems = \App\Models\MasterItem::orderBy('item_name', 'asc')->get();
-        $newRlNumber = \App\Models\RequisitionLetter::generateNumber();
+        // Generate Auto Number for display
+        $newRlNumber = RequisitionLetter::generateNumber();
         $user = Auth::user();
+
+        // Check for old RL if revision (handled in view usually, but good to check)
+        $oldRl = null;
+        if (request()->has('revise_id')) {
+            $oldRl = RequisitionLetter::with('items')->find(request()->revise_id);
+        }
 
         return view('requisitions.create', [
             'newNumber' => $newRlNumber,
             'user' => $user,
-            'masterItems' => $masterItems
+            'masterItems' => $masterItems,
+            'oldRl' => $oldRl
         ]);
     }
 
-    // 2. STORE DATA
+    // 2. STORE DATA (SAVES AS DRAFT ONLY)
     public function store(Request $request)
     {
         $request->validate([
             'request_date' => 'required|date',
-            'subject' => 'nullable|string|max:255',
+            'subject' => 'required|string|max:255',
             'items' => 'required|array|min:1',
             'items.*.item_name' => 'required|string',
             'items.*.qty' => 'required|numeric|min:1',
             'items.*.uom' => 'required|string',
         ]);
 
-        $notifData = null;
+        $rlId = null;
 
-        DB::transaction(function () use ($request, &$notifData) {
+        DB::transaction(function () use ($request, &$rlId) {
             $user = Auth::user();
-            $status = ($request->action === 'draft') ? 'DRAFT' : 'ON_PROGRESS';
+
+            // ALWAYS SAVE AS DRAFT FIRST
+            // This ensures the RL Number matches the printed PDF later.
+            $status = 'DRAFT';
             $rlNo = RequisitionLetter::generateNumber();
 
             $rl = RequisitionLetter::create([
@@ -60,6 +73,8 @@ class RequisitionController extends Controller
                 'remark' => $request->remark,
             ]);
 
+            $rlId = $rl->id;
+
             foreach ($request->items as $item) {
                 RequisitionItem::create([
                     'rl_id' => $rl->id,
@@ -72,68 +87,11 @@ class RequisitionController extends Controller
                     'status_item' => 'WAITING'
                 ]);
             }
-
-            if ($status === 'ON_PROGRESS') {
-                $manager = User::where('company_id', $user->company_id)
-                    ->where('department_id', $user->department_id)
-                    ->whereHas('position', function($q) {
-                        $q->where('position_name', 'Manager');
-                    })->first();
-
-                if (!$manager) {
-                    $manager = User::where('company_id', $user->company_id)
-                        ->whereHas('position', function($q) {
-                            $q->where('position_name', 'Manager');
-                        })->first();
-                }
-
-                if ($manager) {
-                    ApprovalQueue::create([
-                        'rl_id' => $rl->id,
-                        'approver_id' => $manager->employee_id,
-                        'level_order' => 1,
-                        'status' => 'PENDING'
-                    ]);
-
-                    $notifData = [
-                        'target' => $manager,
-                        'rl' => $rl,
-                        'sender' => $user->full_name
-                    ];
-                }
-            }
         });
 
-        $mainMsg = ($request->action === 'draft') ? 'Draft berhasil disimpan' : 'Permintaan berhasil diajukan';
-        $waStatusMsg = "";
-
-        if ($notifData) {
-            if (!empty($notifData['target']->phone)) {
-                $target = $notifData['target'];
-                $rl = $notifData['rl'];
-                $link = route('requisitions.show', $rl->id);
-
-                $pesan = "Halo Bpk/Ibu *{$target->full_name}*,\n\n";
-                $pesan .= "Ada pengajuan *Requisition Letter* baru menunggu persetujuan Anda.\n\n";
-                $pesan .= "📝 No RL: *{$rl->rl_no}*\n";
-                $pesan .= "👤 Requester: {$notifData['sender']}\n";
-                $pesan .= "📄 Subject: {$rl->subject}\n\n";
-                $pesan .= "Klik link berikut untuk Approval:\n{$link}\n\n";
-                $pesan .= "_RL Monitoring System_";
-
-                $result = WaService::send($target->phone, $pesan);
-
-                if ($result['status']) {
-                    $waStatusMsg = " & " . $result['msg'];
-                } else {
-                    $waStatusMsg = " (Namun WA Gagal: " . $result['msg'] . ")";
-                }
-            } else {
-                $waStatusMsg = " (Info: Notifikasi WA tidak dikirim karena No. HP Manager belum diisi)";
-            }
-        }
-
-        return redirect()->route('dashboard')->with('success', $mainMsg . $waStatusMsg . '!');
+        // Redirect to SHOW page so user can Print -> Sign -> Upload
+        return redirect()->route('requisitions.show', $rlId)
+            ->with('success', 'Draft Created Successfully! Please download the PDF, sign it, and upload it to proceed.');
     }
 
     // 3. SHOW DETAIL
@@ -149,156 +107,41 @@ class RequisitionController extends Controller
         return view('requisitions.show', compact('rl'));
     }
 
-    // 4. PRINT PDF
-    public function printPdf($id)
-    {
-        $rl = RequisitionLetter::with([
-            'items',
-            'requester.department',
-            'company',
-            'approvalQueues.approver.position'
-        ])->findOrFail($id);
-
-        $manager = User::where('company_id', $rl->company_id)
-            ->where('department_id', $rl->requester->department_id)
-            ->whereHas('position', function($q) { $q->where('position_name', 'Manager'); })->first();
-
-        if (!$manager) {
-            $manager = User::where('company_id', $rl->company_id)
-                ->whereHas('position', function($q) { $q->where('position_name', 'Manager'); })->first();
-        }
-
-        $director = User::where('company_id', $rl->company_id)
-            ->whereHas('position', function($q) { $q->where('position_name', 'Director'); })->first();
-
-        $pdf = Pdf::loadView('requisitions.pdf', compact('rl', 'manager', 'director'));
-        $pdf->setPaper('a4', 'portrait');
-        $safeFilename = 'RL-' . str_replace(['/', '\\'], '-', $rl->rl_no) . '.pdf';
-
-        return $pdf->stream($safeFilename);
-    }
-
-    // 5. LIST BY STATUS (FIXED: AMBIGUOUS COLUMN & DYNAMIC DB NAME)
-    public function listByStatus(Request $request, $status)
-    {
-        $validStatuses = [
-            'DRAFT', 'ON_PROGRESS', 'PARTIALLY_APPROVED',
-            'APPROVED', 'REJECTED', 'WAITING_SUPPLY', 'COMPLETED'
-        ];
-
-        $statusUpper = strtoupper($status);
-        if (!in_array($statusUpper, $validStatuses)) abort(404);
-
-        $user = Auth::user();
-
-        // 1. MULAI QUERY (Select table utama agar ID tidak tertimpa)
-        $query = RequisitionLetter::select('requisition_letters.*')
-                    ->with(['requester.department', 'company']);
-
-        // 2. FILTER STATUS (Pake nama tabel biar aman)
-        $query->where('requisition_letters.status_flow', $statusUpper);
-
-        // 3. FILTER ROLE
-        $isApprover = ($user->position && in_array($user->position->position_name, ['Manager', 'Director']));
-        $isSuperAdmin = ($user->position && $user->position->position_name === 'Super Admin');
-
-        if ($isSuperAdmin) {
-            // Show All
-        } elseif ($isApprover) {
-            // [FIX] Tambahkan 'requisition_letters.' untuk menghindari ambigu
-            $query->where('requisition_letters.company_id', $user->company_id);
-
-            // Ambil ID bawahan/rekan se-departemen (Cross-DB Safe)
-            // Gunakan koneksi dari model User untuk mendapatkan nama DB yang benar
-            $userModel = new \App\Models\User();
-            $userDb = $userModel->getConnection()->getDatabaseName();
-
-            $deptColleagues = DB::table($userDb . '.tbl_employee')
-                                ->where('department_id', $user->department_id)
-                                ->pluck('employee_id')
-                                ->toArray();
-
-            // [FIX] Tambahkan 'requisition_letters.'
-            $query->whereIn('requisition_letters.requester_id', $deptColleagues);
-        } else {
-            // [FIX] Tambahkan 'requisition_letters.'
-            $query->where('requisition_letters.requester_id', $user->employee_id);
-        }
-
-        // 4. SEARCH
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('requisition_letters.rl_no', 'like', "%$search%")
-                  ->orWhere('requisition_letters.subject', 'like', "%$search%");
-            });
-        }
-
-        // 5. DATE FILTER
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $query->whereBetween('requisition_letters.request_date', [$request->start_date, $request->end_date]);
-        }
-
-        // 6. SORTING (FIXED: DYNAMIC TABLE NAME)
-        // Ambil nama database dan tabel user secara dinamis dari Model User
-        $userModel = new \App\Models\User();
-        $userTable = $userModel->getTable(); // tbl_employee
-        $userDb = $userModel->getConnection()->getDatabaseName(); // Nama Database Asli
-        $fullUserTable = $userDb . '.' . $userTable; // Hasil: db_master.tbl_employee
-
-        // Join dinamis (bukan hardcode)
-        $query->leftJoin($fullUserTable . ' as u', 'requisition_letters.requester_id', '=', 'u.employee_id');
-
-        $sortColumn = $request->get('sort', 'created_at');
-        $sortDirection = $request->get('dir', 'desc');
-
-        switch ($sortColumn) {
-            case 'rl_no':
-                $query->orderBy('requisition_letters.rl_no', $sortDirection);
-                break;
-            case 'request_date':
-                $query->orderBy('requisition_letters.request_date', $sortDirection);
-                break;
-            case 'requester_name':
-                $query->orderBy('u.full_name', $sortDirection);
-                break;
-            case 'subject':
-                $query->orderBy('requisition_letters.subject', $sortDirection);
-                break;
-            default:
-                $query->orderBy('requisition_letters.created_at', 'desc');
-                break;
-        }
-
-        // 7. PAGINATION
-        $requisitions = $query->paginate(10)->withQueryString();
-
-        return view('requisitions.index', compact('requisitions', 'status', 'statusUpper'));
-    }
-
-    // 6. SUBMIT DRAFT
+    // 4. SUBMIT DRAFT (THE TRIGGER)
     public function submitDraft($id)
     {
         $rl = RequisitionLetter::findOrFail($id);
 
-        if ($rl->status_flow != 'DRAFT') {
-            return back()->with('error', 'Dokumen ini sudah diproses.');
+        // Security Checks
+        if ($rl->requester_id != Auth::id()) {
+            return back()->with('error', 'Unauthorized access.');
         }
-        if (Auth::user()->employee_id != $rl->requester_id) {
-            return back()->with('error', 'Anda tidak memiliki akses.');
+        if ($rl->status_flow != 'DRAFT') {
+            return back()->with('error', 'Document is already being processed.');
+        }
+
+        // HARD VALIDATION: Must upload file first
+        if (!$rl->attachment_partial) {
+            return back()->with('error', 'Submission Failed: You must upload the signed document (Requester & Manager Signature) first.');
         }
 
         $notifData = null;
 
         DB::transaction(function () use ($rl, &$notifData) {
-            $rl->update(['status_flow' => 'ON_PROGRESS']);
+            // 1. Update Status
+            $rl->update([
+                'status_flow' => 'ON_PROGRESS',
+                'request_date' => now() // Update date to actual submission
+            ]);
 
+            // 2. Find Manager (Approval 1)
             $manager = User::where('company_id', $rl->company_id)
                 ->where('department_id', $rl->requester->department_id)
                 ->whereHas('position', function($q) {
                     $q->where('position_name', 'Manager');
                 })->first();
 
+            // Fallback: General Manager of Company
             if (!$manager) {
                 $manager = User::where('company_id', $rl->company_id)
                     ->whereHas('position', function($q) {
@@ -306,8 +149,11 @@ class RequisitionController extends Controller
                     })->first();
             }
 
+            // 3. Create Approval Queue
             if ($manager) {
-                $exists = ApprovalQueue::where('rl_id', $rl->id)->exists();
+                // Check if queue already exists to prevent duplicates
+                $exists = ApprovalQueue::where('rl_id', $rl->id)->where('level_order', 1)->exists();
+
                 if (!$exists) {
                     ApprovalQueue::create([
                         'rl_id' => $rl->id,
@@ -318,42 +164,131 @@ class RequisitionController extends Controller
 
                     $notifData = [
                         'target' => $manager,
-                        'rl' => $rl
+                        'rl' => $rl,
+                        'sender' => $rl->requester->full_name
                     ];
                 }
             }
         });
 
+        // 4. Send Notification
         $waStatusMsg = "";
+        if ($notifData && !empty($notifData['target']->phone)) {
+            $target = $notifData['target'];
+            $link = route('requisitions.show', $rl->id);
 
-        if ($notifData) {
-            if (!empty($notifData['target']->phone)) {
-                $target = $notifData['target'];
-                $link = route('requisitions.show', $rl->id);
+            $msg = "Hello *{$target->full_name}*,\n\n";
+            $msg .= "A new Requisition Letter (RL) is waiting for your approval.\n\n";
+            $msg .= "📝 RL No: *{$rl->rl_no}*\n";
+            $msg .= "👤 Requester: {$notifData['sender']}\n";
+            $msg .= "📄 Subject: {$rl->subject}\n\n";
+            $msg .= "Please review the document here:\n{$link}\n\n";
+            $msg .= "_RL Monitoring System_";
 
-                $pesan = "Halo Bpk/Ibu *{$target->full_name}*,\n\n";
-                $pesan .= "Draft RL berikut telah diajukan dan menunggu persetujuan Anda.\n\n";
-                $pesan .= "📝 No RL: *{$rl->rl_no}*\n";
-                $pesan .= "👤 Requester: {$rl->requester->full_name}\n";
-                $pesan .= "📄 Subject: {$rl->subject}\n\n";
-                $pesan .= "Klik link berikut untuk Approval:\n{$link}\n\n";
-                $pesan .= "_RL Monitoring System_";
-
-                $result = WaService::send($target->phone, $pesan);
-
-                if ($result['status']) {
-                    $waStatusMsg = " & " . $result['msg'];
-                } else {
-                    $waStatusMsg = " (Namun WA Gagal: " . $result['msg'] . ")";
-                }
-            } else {
-                $waStatusMsg = " (Info: Notifikasi WA tidak dikirim karena No. HP Manager belum diisi)";
-            }
+            $result = WaService::send($target->phone, $msg);
+            $waStatusMsg = $result['status'] ? "" : " (WA Failed: " . $result['msg'] . ")";
         }
-        return redirect()->route('dashboard')->with('success', 'Draft diajukan' . $waStatusMsg . '!');
+
+        return redirect()->back()->with('success', 'Request submitted successfully to Manager!' . $waStatusMsg);
     }
 
-    // 7. PREVIEW TEMP
+    // 5. UPLOAD PARTIAL (FILE STORAGE ONLY)
+    public function uploadPartial(Request $request, $id)
+    {
+        $request->validate([
+            'file_partial' => 'required|mimes:pdf|max:5120', // Max 5MB
+        ]);
+
+        $rl = RequisitionLetter::findOrFail($id);
+
+        if ($request->hasFile('file_partial')) {
+            $path = $request->file('file_partial')->store('uploads/rl_documents', 'public');
+            $rl->attachment_partial = $path;
+            $rl->save();
+        }
+
+        return back()->with('success', 'Document uploaded successfully! Please click "Submit to Manager" to proceed.');
+    }
+
+    // 6. UPLOAD FINAL (FILE STORAGE ONLY)
+    public function uploadFinal(Request $request, $id)
+    {
+        $request->validate([
+            'file_final' => 'required|mimes:pdf|max:5120',
+        ]);
+
+        $rl = RequisitionLetter::findOrFail($id);
+
+        if ($request->hasFile('file_final')) {
+            $path = $request->file('file_final')->store('uploads/rl_documents', 'public');
+            $rl->attachment_final = $path;
+            $rl->save();
+        }
+
+        return back()->with('success', 'Final Document uploaded successfully!');
+    }
+
+    // 7. UPLOAD EVIDENCE
+    public function uploadEvidence(Request $request, $id)
+    {
+        $request->validate([
+            'evidence_photo' => 'required|image|max:5120',
+        ]);
+
+        $rl = RequisitionLetter::findOrFail($id);
+
+        if ($request->hasFile('evidence_photo')) {
+            $path = $request->file('evidence_photo')->store('uploads/evidence', 'public');
+            $rl->evidence_photo = $path;
+            $rl->status_flow = 'COMPLETED'; // Closing Ticket
+            $rl->save();
+        }
+
+        return back()->with('success', 'Evidence uploaded. Ticket Completed.');
+    }
+
+    // 8. PRINT PDF
+    public function printPdf($id)
+    {
+        $rl = RequisitionLetter::with([
+            'items',
+            'requester.department',
+            'company',
+            'approvalQueues.approver.position'
+        ])->findOrFail($id);
+
+        // 1. Find Manager (Plan)
+        $manager = User::where('company_id', $rl->company_id)
+            ->where('department_id', $rl->requester->department_id)
+            ->whereHas('position', function($q) { $q->where('position_name', 'Manager'); })->first();
+
+        if (!$manager) {
+            $manager = User::where('company_id', $rl->company_id)
+                ->whereHas('position', function($q) { $q->where('position_name', 'Manager'); })->first();
+        }
+
+        // 2. Find Director (Plan)
+        $directorRole = 'Director';
+        if ($rl->company && $rl->company->company_code == 'ASM') {
+            $directorRole = 'Managing Director';
+        }
+
+        $director = User::where('company_id', $rl->company_id)
+            ->whereHas('position', function($q) use ($directorRole) {
+                $q->where('position_name', $directorRole);
+            })->first();
+
+        $pdf = Pdf::loadView('requisitions.pdf', compact('rl', 'manager', 'director'));
+        $pdf->setPaper('a4', 'portrait');
+
+        // Clean Filename
+        $cleanNo = str_replace(' ', '', $rl->rl_no);
+        $safeFilename = str_replace(['/', '\\'], '-', $cleanNo) . '.pdf';
+
+        return $pdf->stream($safeFilename);
+    }
+
+    // 9. PREVIEW TEMP (FOR DRAFTING)
     public function previewTemp(Request $request)
     {
         $request->validate([
@@ -364,22 +299,37 @@ class RequisitionController extends Controller
 
         $user = Auth::user()->load(['department', 'position']);
         $company = \App\Models\Company::find($user->company_id);
-
         $companyCode = $company->company_code ?? 'GEN';
-        $deptFull = $user->department->department_name ?? 'GEN';
-        $deptParts = preg_split('/[\s(]/', $deptFull);
-        $deptCode = strtoupper($deptParts[0]);
 
+        // Clean Dept Code Logic
+        $deptFull = $user->department->department_name ?? 'GEN';
+        $deptCode = 'GEN';
+
+        if (stripos($deptFull, 'Information Technology') !== false) $deptCode = 'IT';
+        elseif (stripos($deptFull, 'Human Resource') !== false) $deptCode = 'HR';
+        elseif (stripos($deptFull, 'General Affair') !== false) $deptCode = 'GA';
+        elseif (stripos($deptFull, 'Finance') !== false) $deptCode = 'FIN';
+        elseif (stripos($deptFull, 'Procurement') !== false) $deptCode = 'PRC';
+        else {
+            $deptParts = preg_split('/[\s(]/', $deptFull);
+            $deptCode = strtoupper($deptParts[0]);
+        }
+
+        // Aggressive Cleaning
+        $deptCode = preg_replace('/\s+/', '', $deptCode);
+        $companyCode = preg_replace('/\s+/', '', $companyCode);
+
+        // Generate Dummy Number
         $month = date('m', strtotime($request->request_date));
         $year = date('Y', strtotime($request->request_date));
-
         $count = RequisitionLetter::where('company_id', $user->company_id)
             ->whereYear('request_date', $year)
             ->whereMonth('request_date', $month)->count();
-
         $nextNo = str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+
         $realDraftNo = "RL/{$companyCode}/{$deptCode}/{$year}/{$month}/{$nextNo}";
 
+        // Temporary Object
         $rl = new RequisitionLetter();
         $rl->rl_no = $realDraftNo;
         $rl->request_date = $request->request_date;
@@ -403,6 +353,7 @@ class RequisitionController extends Controller
         }
         $rl->setRelation('items', $items);
 
+        // Managers & Directors (Same Logic as printPdf)
         $manager = User::where('company_id', $user->company_id)
             ->where('department_id', $user->department_id)
             ->whereHas('position', function($q){ $q->where('position_name', 'Manager'); })->first();
@@ -411,8 +362,12 @@ class RequisitionController extends Controller
             $manager = User::where('company_id', $user->company_id)
                 ->whereHas('position', function($q){ $q->where('position_name', 'Manager'); })->first();
         }
+
+        $directorRole = ($companyCode == 'ASM') ? 'Managing Director' : 'Director';
         $director = User::where('company_id', $user->company_id)
-            ->whereHas('position', function($q){ $q->where('position_name', 'Director'); })->first();
+            ->whereHas('position', function($q) use ($directorRole) {
+                $q->where('position_name', $directorRole);
+            })->first();
 
         $pdf = Pdf::loadView('requisitions.pdf', compact('rl', 'manager', 'director'));
         $pdf->setPaper('a4', 'portrait');
@@ -420,20 +375,90 @@ class RequisitionController extends Controller
         return $pdf->stream('preview.pdf');
     }
 
-    // 8. REVISE
+    // 10. REVISE
     public function revise($id)
     {
         $oldRl = RequisitionLetter::with('items')->findOrFail($id);
         if ($oldRl->requester_id != Auth::user()->employee_id) abort(403);
+
         $newNumber = RequisitionLetter::generateNumber();
-        return view('requisitions.create', compact('newNumber', 'oldRl'));
+        $masterItems = \App\Models\MasterItem::orderBy('item_name', 'asc')->get();
+        $user = Auth::user();
+
+        return view('requisitions.create', compact('newNumber', 'oldRl', 'masterItems', 'user'));
     }
 
-    // 9. DEPARTMENT ACTIVITY
+    // 11. LIST BY STATUS (DYNAMIC)
+    public function listByStatus(Request $request, $status)
+    {
+        $validStatuses = [
+            'DRAFT', 'ON_PROGRESS', 'PARTIALLY_APPROVED',
+            'APPROVED', 'REJECTED', 'WAITING_SUPPLY', 'COMPLETED'
+        ];
+
+        $statusUpper = strtoupper($status);
+        if (!in_array($statusUpper, $validStatuses)) abort(404);
+
+        $user = Auth::user();
+        $query = RequisitionLetter::select('requisition_letters.*')
+                    ->with(['requester.department', 'company']);
+
+        $query->where('requisition_letters.status_flow', $statusUpper);
+
+        // Role Filter
+        $isApprover = ($user->position && in_array($user->position->position_name, ['Manager', 'Director', 'Managing Director', 'Deputy Managing Director', 'General Manager']));
+        $isSuperAdmin = ($user->position && $user->position->position_name === 'Super Admin');
+
+        if ($isSuperAdmin) {
+            // All
+        } elseif ($isApprover) {
+            $query->where('requisition_letters.company_id', $user->company_id);
+
+            // Dynamic DB Connection for Cross-Join
+            $userModel = new \App\Models\User();
+            $userDb = $userModel->getConnection()->getDatabaseName();
+
+            $deptColleagues = DB::table($userDb . '.tbl_employee')
+                                ->where('department_id', $user->department_id)
+                                ->pluck('employee_id')
+                                ->toArray();
+
+            // Show dept colleagues OR self
+            $query->whereIn('requisition_letters.requester_id', array_merge($deptColleagues, [$user->employee_id]));
+        } else {
+            $query->where('requisition_letters.requester_id', $user->employee_id);
+        }
+
+        // Search & Filter
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('requisition_letters.rl_no', 'like', "%{$request->search}%")
+                  ->orWhere('requisition_letters.subject', 'like', "%{$request->search}%");
+            });
+        }
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('requisition_letters.request_date', [$request->start_date, $request->end_date]);
+        }
+
+        // Sorting
+        $query->orderBy('requisition_letters.created_at', 'desc');
+
+        $requisitions = $query->paginate(10)->withQueryString();
+
+        return view('requisitions.index', compact('requisitions', 'status', 'statusUpper'));
+    }
+
+    // 12. DEPARTMENT ACTIVITY
     public function departmentActivity()
     {
         $user = Auth::user();
-        $teamMemberIds = User::where('department_id', $user->department_id)
+
+        $userModel = new \App\Models\User();
+        $userDb = $userModel->getConnection()->getDatabaseName();
+
+        $teamMemberIds = DB::table($userDb . '.tbl_employee')
+            ->where('department_id', $user->department_id)
             ->where('company_id', $user->company_id)
             ->pluck('employee_id');
 
@@ -445,103 +470,5 @@ class RequisitionController extends Controller
 
         $statusUpper = 'ACTIVITIES';
         return view('requisitions.department', compact('requisitions', 'statusUpper'));
-    }
-
-    // 10. UPLOAD PARTIAL
-    public function uploadPartial(Request $request, $id)
-    {
-        $request->validate([
-            'file_partial' => 'required|mimes:pdf|max:5120',
-        ]);
-
-        $rl = RequisitionLetter::findOrFail($id);
-
-        if ($request->hasFile('file_partial')) {
-            $path = $request->file('file_partial')->store('uploads/rl_documents', 'public');
-            $rl->attachment_partial = $path;
-            $rl->status_flow = 'ON_PROGRESS';
-            $rl->save();
-        }
-
-        $this->generateManagerQueue($rl);
-        $this->sendWaToManager($rl);
-
-        return back()->with('success', 'Dokumen Tahap 1 berhasil diupload! Menunggu validasi Manager.');
-    }
-
-    // 11. UPLOAD FINAL
-    public function uploadFinal(Request $request, $id)
-    {
-        $request->validate([
-            'file_final' => 'required|mimes:pdf|max:5120',
-        ]);
-
-        $rl = RequisitionLetter::findOrFail($id);
-
-        if ($request->hasFile('file_final')) {
-            $path = $request->file('file_final')->store('uploads/rl_documents', 'public');
-            $rl->attachment_final = $path;
-            $rl->status_flow = 'WAITING_SUPPLY';
-            $rl->save();
-        }
-
-        return back()->with('success', 'Dokumen Final diterima. Status: Waiting Supply (Menunggu Barang).');
-    }
-
-    // 12. UPLOAD EVIDENCE
-    public function uploadEvidence(Request $request, $id)
-    {
-        $request->validate([
-            'evidence_photo' => 'required|image|max:5120',
-        ]);
-
-        $rl = RequisitionLetter::findOrFail($id);
-
-        if ($request->hasFile('evidence_photo')) {
-            $path = $request->file('evidence_photo')->store('uploads/evidence', 'public');
-            $rl->evidence_photo = $path;
-            $rl->status_flow = 'COMPLETED';
-            $rl->save();
-        }
-
-        return back()->with('success', 'Bukti barang diterima. Tiket Selesai (COMPLETED).');
-    }
-
-    // PRIVATE HELPER 1
-    private function generateManagerQueue($rl)
-    {
-        $manager = User::where('company_id', $rl->company_id)
-            ->where('department_id', $rl->requester->department_id)
-            ->whereHas('position', function($q) { $q->where('position_name', 'Manager'); })->first();
-
-        if (!$manager) {
-            $manager = User::where('company_id', $rl->company_id)
-                ->whereHas('position', function($q) { $q->where('position_name', 'Manager'); })->first();
-        }
-
-        if ($manager) {
-            $exists = ApprovalQueue::where('rl_id', $rl->id)->where('level_order', 1)->exists();
-            if (!$exists) {
-                ApprovalQueue::create([
-                    'rl_id' => $rl->id,
-                    'approver_id' => $manager->employee_id,
-                    'level_order' => 1,
-                    'status' => 'PENDING'
-                ]);
-            }
-        }
-        return $manager;
-    }
-
-    // PRIVATE HELPER 2
-    private function sendWaToManager($rl)
-    {
-        $queue = ApprovalQueue::where('rl_id', $rl->id)->where('level_order', 1)->first();
-        if ($queue && $queue->approver->phone) {
-            $link = route('requisitions.show', $rl->id);
-            $msg = "Halo *{$queue->approver->full_name}*,\n\nRequester telah mengupload dokumen RL fisik (TTD Basah).\nNo: *{$rl->rl_no}*\n\nMohon cek validitas dokumen dan klik APPROVE di sistem:\n{$link}";
-
-            WaService::send($queue->approver->phone, $msg);
-        }
     }
 }

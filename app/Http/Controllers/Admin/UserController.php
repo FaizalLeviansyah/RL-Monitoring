@@ -11,27 +11,31 @@ use App\Models\UserApplicationAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rules; // Tambahkan import Rules
+use Illuminate\Validation\Rules;
 
 class UserController extends Controller
 {
-public function index(Request $request)
+    public function index(Request $request)
     {
         // 1. MULAI QUERY
-        $query = User::select('tbl_employee.*') // Pastikan select tabel utama user
+        // [FIX] Kita spesifikkan 'tbl_employee.*' agar data user tidak tertimpa data tabel join
+        $query = User::select('tbl_employee.*')
                      ->with(['company', 'department', 'position'])
-                     ->where('is_deleted', 0);
+                     // [FIX ERROR AMBIGUOUS] Tambahkan 'tbl_employee.' sebelum nama kolom
+                     ->where('tbl_employee.is_deleted', 0);
 
         // 2. FILTER COMPANY
         if ($request->filled('company_id')) {
-            $query->where('company_id', $request->company_id);
+            // [FIX ERROR AMBIGUOUS]
+            $query->where('tbl_employee.company_id', $request->company_id);
         }
 
         // 3. PENCARIAN (SEARCH)
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
-                $q->where('full_name', 'like', '%'.$request->search.'%')
-                  ->orWhere('email_work', 'like', '%'.$request->search.'%');
+                // [FIX ERROR AMBIGUOUS]
+                $q->where('tbl_employee.full_name', 'like', '%'.$request->search.'%')
+                  ->orWhere('tbl_employee.email_work', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -45,7 +49,7 @@ public function index(Request $request)
 
         switch ($sort) {
             case 'name':
-                $query->orderBy('full_name', $dir);
+                $query->orderBy('tbl_employee.full_name', $dir);
                 break;
             case 'company':
                 $query->orderBy('c.company_code', $dir); // Sort by Company Code
@@ -77,13 +81,12 @@ public function index(Request $request)
     {
         $request->validate([
             'full_name' => 'required|string|max:255',
-            // Pastikan koneksi master di sini juga
             'email_work' => 'required|email|unique:mysql_master.tbl_employee,email_work',
             'password' => 'required|string|min:8',
             'company_id' => 'required',
             'department_id' => 'required',
             'position_id' => 'required',
-            'phone' => 'nullable|string|max:20' // Tambahkan validasi phone
+            'phone' => 'nullable|string|max:20'
         ]);
 
         DB::transaction(function () use ($request) {
@@ -95,7 +98,7 @@ public function index(Request $request)
                 'company_id' => $request->company_id,
                 'department_id' => $request->department_id,
                 'position_id' => $request->position_id,
-                'phone' => $request->phone, // Pastikan input name di form create adalah 'phone' atau mapping manual
+                'phone' => $request->phone,
                 'employment_status' => 'Active',
                 'is_deleted' => 0
             ]);
@@ -123,12 +126,9 @@ public function index(Request $request)
     {
         $request->validate([
             'full_name' => 'required|string|max:255',
-
-            // PERBAIKAN UTAMA: Tambahkan 'mysql_master.' sebelum nama tabel
             'email_work' => 'required|string|email|max:255|unique:mysql_master.tbl_employee,email_work,' . $user->employee_id . ',employee_id',
-
             'phone_number' => 'required|string|max:20',
-            'company_id' => 'required|exists:mysql_master.tbl_company,company_id', // Sesuaikan connection jika perlu
+            'company_id' => 'required|exists:mysql_master.tbl_company,company_id',
             'department_id' => 'required|exists:mysql_master.tbl_department,department_id',
             'position_id' => 'required|exists:mysql_master.tbl_position,position_id',
             'role' => 'nullable|string',
@@ -137,14 +137,13 @@ public function index(Request $request)
         $dataToUpdate = [
             'full_name' => $request->full_name,
             'email_work' => $request->email_work,
-            'phone' => $request->phone_number, // Mapping input 'phone_number' ke db 'phone'
+            'phone' => $request->phone_number,
             'company_id' => $request->company_id,
             'department_id' => $request->department_id,
             'position_id' => $request->position_id,
-            'employment_status' => $request->employment_status // Update status juga
+            'employment_status' => $request->employment_status
         ];
 
-        // Cek password
         if ($request->filled('password')) {
             $request->validate([
                 'password' => ['confirmed', Rules\Password::defaults()],
@@ -162,11 +161,9 @@ public function index(Request $request)
         $user = User::findOrFail($id);
 
         DB::transaction(function () use ($user) {
-            // 1. Matikan Akses Login
             UserApplicationAccess::where('user_id', $user->employee_id)
                 ->update(['is_active' => false]);
 
-            // 2. Tandai User sebagai Terhapus (Soft Delete Manual)
             $user->update([
                 'employment_status' => 'Resigned',
                 'is_deleted' => 1
