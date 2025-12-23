@@ -5,11 +5,11 @@
             <div class="flex flex-col md:flex-row justify-between items-end mb-8">
                 <div>
                     <h2 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 tracking-tight">
-                        Global Dashboard
+                        Dashboard
                     </h2>
                     <p class="text-sm text-gray-500 mt-2 font-medium">
-                        Hello, <span class="text-gray-800 dark:text-gray-200 font-bold">{{ Auth::user()->full_name }}</span>.
-                        Total Volume: <span class="font-bold text-blue-600">{{ $stats['total_all'] }} Documents</span>
+                        Halo, <span class="text-gray-800 dark:text-gray-200 font-bold">{{ Auth::user()->full_name }}</span>.
+                        Total Volume: <span class="font-bold text-blue-600">{{ $stats['total_all'] }} Dokumen</span>
                     </p>
                 </div>
 
@@ -37,12 +37,12 @@
                         </div>
                         <div>
                             <h4 class="font-extrabold text-gray-800 dark:text-white text-lg">Action Required!</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">You have <strong class="text-red-600 text-lg">{{ $stats['my_actions'] }} documents</strong> awaiting your response.</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">Ada <strong class="text-red-600 text-lg">{{ $stats['my_actions'] }} dokumen</strong> menunggu respon Anda.</p>
                         </div>
                     </div>
                     <a href="{{ $currentMode == 'approver' ? route('requisitions.status', 'on_progress') : route('requisitions.status', 'draft') }}"
                        class="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg transform transition hover:scale-105 hover:-translate-y-1">
-                        Process Now &rarr;
+                        Proses Sekarang &rarr;
                     </a>
                 </div>
             </div>
@@ -54,6 +54,7 @@
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
                     </div>
+
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -72,6 +73,7 @@
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
                     </div>
+
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -90,6 +92,7 @@
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform -rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" /><path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
                     </div>
+
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -108,6 +111,7 @@
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
                     </div>
+
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -126,6 +130,7 @@
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform -rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
                     </div>
+
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -152,7 +157,7 @@
                                 <h3 class="text-lg font-extrabold text-gray-800 dark:text-white flex items-center">
                                     <span class="text-2xl mr-2">📊</span> Analysis by Priority
                                 </h3>
-                                <p class="text-xs text-gray-500 mt-1">Urgency classification based on days remaining until deadline.</p>
+                                <p class="text-xs text-gray-500 mt-1">Klasifikasi urgensi berdasarkan sisa hari menuju tenggat waktu.</p>
                             </div>
                             <span class="text-xs font-bold bg-blue-100 text-blue-600 px-3 py-1 rounded-full">Live Data</span>
                         </div>
@@ -162,22 +167,22 @@
                         <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
                             <div class="bg-red-50 p-2 rounded-lg border border-red-100">
                                 <div class="text-xs font-bold text-red-600">Top Urgent</div>
-                                <div class="text-[10px] text-gray-500">Deadline ≤ 2 Days</div>
+                                <div class="text-[10px] text-gray-500">Deadline ≤ 2 Hari</div>
                                 <div class="font-black text-lg text-red-700 mt-1">{{ $priorityStats['Top Urgent'] }}</div>
                             </div>
                             <div class="bg-orange-50 p-2 rounded-lg border border-orange-100">
                                 <div class="text-xs font-bold text-orange-600">Urgent</div>
-                                <div class="text-[10px] text-gray-500">Deadline ≤ 5 Days</div>
+                                <div class="text-[10px] text-gray-500">Deadline ≤ 5 Hari</div>
                                 <div class="font-black text-lg text-orange-700 mt-1">{{ $priorityStats['Urgent'] }}</div>
                             </div>
                             <div class="bg-blue-50 p-2 rounded-lg border border-blue-100">
                                 <div class="text-xs font-bold text-blue-600">Normal</div>
-                                <div class="text-[10px] text-gray-500">Deadline > 5 Days</div>
+                                <div class="text-[10px] text-gray-500">Deadline > 5 Hari</div>
                                 <div class="font-black text-lg text-blue-700 mt-1">{{ $priorityStats['Normal'] }}</div>
                             </div>
                             <div class="bg-gray-100 p-2 rounded-lg border border-gray-200">
                                 <div class="text-xs font-bold text-gray-700">Outstanding</div>
-                                <div class="text-[10px] text-gray-500">Overdue</div>
+                                <div class="text-[10px] text-gray-500">Melewati Deadline</div>
                                 <div class="font-black text-lg text-gray-800 mt-1">{{ $priorityStats['Outstanding'] }}</div>
                             </div>
                         </div>
@@ -188,7 +193,7 @@
                             <h3 class="text-lg font-extrabold text-gray-800 dark:text-white flex items-center">
                                 <span class="text-2xl mr-2">🚀</span> Recent Activity
                             </h3>
-                            <a href="#" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">View All</a>
+                            <a href="#" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">Lihat Semua</a>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm text-left">
@@ -230,7 +235,7 @@
                                         </td>
                                     </tr>
                                     @empty
-                                    <tr><td colspan="4" class="text-center py-8 text-gray-400 italic font-medium">No recent activity.</td></tr>
+                                    <tr><td colspan="4" class="text-center py-8 text-gray-400 italic font-medium">Belum ada aktivitas.</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>
@@ -264,7 +269,7 @@
                                 </div>
                             </div>
                             @empty
-                            <div class="text-center py-6 text-gray-400 text-sm font-medium">No upcoming deadlines.</div>
+                            <div class="text-center py-6 text-gray-400 text-sm font-medium">Tidak ada deadline mendesak.</div>
                             @endforelse
                         </div>
                     </div>
@@ -322,19 +327,19 @@
                                 <div class="inline-flex p-2 rounded-full bg-blue-50 text-blue-600 mb-1">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                                 </div>
-                                <span class="block text-xs font-bold text-gray-700">{{ $masterData['employees'] }} Users</span>
+                                <span class="block text-xs font-bold text-gray-700">{{ $masterData['employees'] }} User</span>
                             </div>
                             <div class="text-center">
                                 <div class="inline-flex p-2 rounded-full bg-purple-50 text-purple-600 mb-1">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                                 </div>
-                                <span class="block text-xs font-bold text-gray-700">{{ $masterData['departments'] }} Depts</span>
+                                <span class="block text-xs font-bold text-gray-700">{{ $masterData['departments'] }} Dept</span>
                             </div>
                             <div class="text-center">
                                 <div class="inline-flex p-2 rounded-full bg-teal-50 text-teal-600 mb-1">
                                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                                 </div>
-                                <span class="block text-xs font-bold text-gray-700">{{ $masterData['companies'] }} Companies</span>
+                                <span class="block text-xs font-bold text-gray-700">{{ $masterData['companies'] }} PT</span>
                             </div>
                         </div>
                     </div>
@@ -367,7 +372,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '65%', 
+                    cutout: '65%', // Lebih tebal sedikit
                     plugins: { legend: { display: false } }
                 }
             });
