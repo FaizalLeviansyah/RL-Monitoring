@@ -24,7 +24,7 @@ class RequisitionController extends Controller
         return $this->listByStatus(request(), 'DRAFT'); // Default view ke Draft/All
     }
 
-    public function listByStatus(Request $request, $status = 'DRAFT')
+public function listByStatus(Request $request, $status = 'DRAFT')
     {
         $statusUpper = strtoupper($status);
         $user = Auth::user();
@@ -42,17 +42,22 @@ class RequisitionController extends Controller
             // Super Admin: Lihat Semua
         }
         elseif (in_array($user->position->position_name, ['Manager', 'Director', 'Managing Director', 'General Manager'])) {
-            // APPROVER: Lihat surat sendiri ATAU surat yang MENUNGGU dia
-            $query->where(function($q) use ($user) {
+
+            // FIX ERROR TABLE NOT FOUND:
+            // Ambil ID bawahan secara terpisah agar aman dari Cross-Database Join
+            $teamIds = User::where('department_id', $user->department_id)
+                           ->where('company_id', $user->company_id)
+                           ->pluck('employee_id')
+                           ->toArray();
+
+            // APPROVER: Lihat surat sendiri + Queue + Surat Tim
+            $query->where(function($q) use ($user, $teamIds) {
                 $q->where('requester_id', $user->employee_id)
                   ->orWhereHas('approvalQueues', function($aq) use ($user) {
                       $aq->where('approver_id', $user->employee_id);
                   })
-                  // Tambahan: Manager bisa lihat semua surat dari departemennya
-                  ->orWhereHas('requester', function($r) use ($user) {
-                      $r->where('department_id', $user->department_id)
-                        ->where('company_id', $user->company_id);
-                  });
+                  // Gunakan whereIn (Aman), bukan whereHas
+                  ->orWhereIn('requester_id', $teamIds);
             });
         }
         else {
@@ -62,14 +67,12 @@ class RequisitionController extends Controller
 
         // 3. Filter Status Utama (Kecuali user pilih "My Requests" / All)
         if ($statusUpper !== 'ALL' && $statusUpper !== 'DRAFTS') {
-             // Catatan: Jika ingin menampilkan DRAFT di menu terpisah, gunakan logic ini.
-             // Jika status spesifik diminta, filter statusnya.
              $query->where('status_flow', $statusUpper);
         } elseif ($statusUpper == 'DRAFTS') {
              $query->where('status_flow', 'DRAFT');
         }
 
-        // 4. Search & Filter Date (Dari kode lama Bapak)
+        // 4. Search & Filter Date
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('rl_no', 'like', "%{$request->search}%")
@@ -97,17 +100,19 @@ class RequisitionController extends Controller
         return view('requisitions.show', compact('requisition'));
     }
 
-    public function departmentActivity()
+public function departmentActivity()
     {
         $user = Auth::user();
-        // Ambil teman se-departemen
+
+        // 1. Cari ID teman se-departemen & se-PT
         $teamMemberIds = User::where('department_id', $user->department_id)
                              ->where('company_id', $user->company_id)
                              ->pluck('employee_id');
 
+        // 2. Ambil semua RL milik mereka (kecuali Draft, karena Draft itu privat)
         $requisitions = RequisitionLetter::with(['requester.department', 'items'])
             ->whereIn('requester_id', $teamMemberIds)
-            ->where('status_flow', '!=', 'DRAFT')
+            ->where('status_flow', '!=', 'DRAFT') // Draft tidak boleh diintip
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
@@ -195,11 +200,15 @@ class RequisitionController extends Controller
     {
         $requisition = RequisitionLetter::with('items')->findOrFail($id);
 
+        // Security Check
         if (!in_array($requisition->status_flow, ['DRAFT', 'REJECTED'])) {
             return redirect()->back()->with('error', 'Cannot edit document currently in progress.');
         }
 
-        return view('requisitions.edit', compact('requisition'));
+        // TAMBAHAN WAJIB: Load Master Item agar dropdown di form edit berfungsi
+        $masterItems = \App\Models\MasterItem::orderBy('item_name', 'asc')->get();
+
+        return view('requisitions.edit', compact('requisition', 'masterItems'));
     }
 
     public function update(Request $request, $id)
@@ -254,7 +263,7 @@ class RequisitionController extends Controller
 
     // 7. SUBMIT (PENGGANTI submitDraft)
     // Ini adalah tombol trigger untuk mengubah DRAFT -> ON_PROGRESS
-    public function submit($id)
+public function submit($id)
     {
         $rl = RequisitionLetter::findOrFail($id);
 
@@ -269,26 +278,43 @@ class RequisitionController extends Controller
         // 1. Update Status
         $rl->update([
             'status_flow' => 'ON_PROGRESS',
-            'request_date' => now() // Update tanggal ke saat submit
+            'request_date' => now()
         ]);
 
         // 2. Generate Antrian Approval
         $this->generateApprovalQueue($rl);
 
-        // 3. Notifikasi WA (Opsional, dari kode lama Bapak)
-        // Saya adaptasi sedikit biar aman
+        // 3. Notifikasi WA (PROFESSIONAL & INFORMATIVE)
         try {
-            // Cari Manager untuk dikirim WA
+            // Cari Manager (Approval Level 1) untuk dikirim WA
             $managerQueue = $rl->approvalQueues()->where('level_order', 1)->first();
+
             if ($managerQueue && $managerQueue->approver->phone) {
-                $msg = "New RL Submitted: {$rl->rl_no} by {$rl->requester->full_name}. Please check dashboard.";
+                $managerName = $managerQueue->approver->full_name;
+                $requesterName = $rl->requester->full_name;
+                $rlNo = $rl->rl_no;
+                $subject = $rl->subject;
+                $link = route('requisitions.show', $rl->id); // Link langsung ke detail surat
+
+                // Format Pesan WhatsApp
+                $msg = "*APPROVAL REQUIRED*\n\n";
+                $msg .= "Dear Mr/Ms. {$managerName},\n";
+                $msg .= "A new Requisition Letter has been submitted and requires your approval.\n\n";
+                $msg .= "📄 *No:* {$rlNo}\n";
+                $msg .= "👤 *Requester:* {$requesterName}\n";
+                $msg .= "📝 *Subject:* \"{$subject}\"\n\n";
+                $msg .= "Please click the link below to review and approve:\n";
+                $msg .= "🔗 {$link}\n\n";
+                $msg .= "_This is an automated message from RL Monitoring System._";
+
                 WaService::send($managerQueue->approver->phone, $msg);
             }
         } catch (\Exception $e) {
-            // Silent fail jika WA error
+            // Silent fail (jangan sampai error WA membatalkan submit)
+            \Illuminate\Support\Facades\Log::error("WA Error: " . $e->getMessage());
         }
 
-        return redirect()->back()->with('success', 'Requisition submitted! Waiting for Manager Approval.');
+        return redirect()->back()->with('success', 'Requisition submitted! Notification sent to Manager.');
     }
 
     public function revise($id)
@@ -308,12 +334,13 @@ class RequisitionController extends Controller
     // 3. APPROVAL & PDF LOGIC
     // =========================================================================
 
-    public function approve($id)
+public function approve($id)
     {
         $user = Auth::user();
-        $rl = RequisitionLetter::findOrFail($id);
+        // Load relasi lengkap biar data WA lengkap
+        $rl = RequisitionLetter::with(['requester', 'approvalQueues.approver'])->findOrFail($id);
 
-        // Cari antrian milik user ini
+        // 1. Cari antrian milik user ini
         $queue = $rl->approvalQueues()
                     ->where('approver_id', $user->employee_id)
                     ->where('status', 'PENDING')
@@ -323,18 +350,63 @@ class RequisitionController extends Controller
             return back()->with('error', 'No pending approval found for you.');
         }
 
-        // Update Status Queue
+        // 2. Update Status Queue User Ini jadi APPROVED
         $queue->update([
             'status' => 'APPROVED',
             'updated_at' => now()
         ]);
 
-        // Update Status Dokumen Utama Berjenjang
+        // 3. LOGIKA LANJUTAN (BERJENJANG)
+
+        // --- SKENARIO A: MANAGER (Level 1) APPROVE ---
         if ($queue->level_order == 1) {
             $rl->update(['status_flow' => 'PARTIALLY_APPROVED']);
+
+            // -> KIRIM WA KE DIREKTUR (Level 2)
+            try {
+                $nextQueue = $rl->approvalQueues()->where('level_order', 2)->first();
+                if ($nextQueue && $nextQueue->approver->phone) {
+                    $director = $nextQueue->approver;
+                    $link = route('requisitions.show', $rl->id);
+
+                    $msg = "*APPROVAL REQUIRED (Final Stage)*\n\n";
+                    $msg .= "Dear Mr/Ms. {$director->full_name},\n";
+                    $msg .= "Manager has approved RL No: *{$rl->rl_no}*. It now requires your FINAL approval.\n\n";
+                    $msg .= "👤 *Requester:* {$rl->requester->full_name}\n";
+                    $msg .= "📝 *Subject:* \"{$rl->subject}\"\n\n";
+                    $msg .= "Please review & approve here:\n";
+                    $msg .= "🔗 {$link}\n\n";
+                    $msg .= "_RL Monitoring System_";
+
+                    WaService::send($director->phone, $msg);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("WA Director Error: " . $e->getMessage());
+            }
         }
+
+        // --- SKENARIO B: DIREKTUR (Level 2) APPROVE ---
         elseif ($queue->level_order == 2) {
             $rl->update(['status_flow' => 'APPROVED']);
+
+            // -> KIRIM WA KABAR GEMBIRA KE REQUESTER
+            try {
+                if ($rl->requester->phone) {
+                    $link = route('requisitions.show', $rl->id);
+
+                    $msg = "*REQUEST APPROVED* ✅\n\n";
+                    $msg .= "Dear {$rl->requester->full_name},\n";
+                    $msg .= "Good news! Your Requisition Letter *{$rl->rl_no}* has been FULLY APPROVED by Management.\n\n";
+                    $msg .= "📝 *Subject:* \"{$rl->subject}\"\n";
+                    $msg .= "Status: *APPROVED* (Ready for Procurement)\n\n";
+                    $msg .= "Check details:\n🔗 {$link}\n\n";
+                    $msg .= "_RL Monitoring System_";
+
+                    WaService::send($rl->requester->phone, $msg);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("WA Requester Error: " . $e->getMessage());
+            }
         }
 
         return redirect()->back()->with('success', 'Document Approved Successfully!');

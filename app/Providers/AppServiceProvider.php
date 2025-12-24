@@ -3,100 +3,80 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Gate; // <--- WAJIB DITAMBAHKAN UNTUK PERMISSION
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use App\Models\RequisitionLetter;
-use App\Models\User;
+use App\Models\ApprovalQueue;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // =================================================================
-        // 1. GLOBAL GATE: SUPER ADMIN BYPASS (SOLUSI ERROR 403)
-        // =================================================================
-        Gate::before(function ($user, $ability) {
-            // Pastikan relasi position diload, lalu cek namanya
-            // Kita gunakan optional() untuk keamanan jika user tidak punya jabatan
-            if (optional($user->position)->position_name === 'Super Admin') {
-                return true; // Izinkan SEMUA akses
-            }
-        });
-
-        // =================================================================
-        // 2. VIEW COMPOSER: BADGE COUNTER DI SIDEBAR
-        // =================================================================
+        // LOGIC SMART COUNTER (GLOBAL)
         View::composer('*', function ($view) {
 
-            // Default Values (Nol Semua) agar tidak error saat belum login
-            $counts = [
-                'countPendingApprove'  => 0, // Waiting Approval
-                'countWaitingDirector' => 0, // Waiting Director
-                'countWaitingSupply'   => 0, // Waiting Supply
-                'countRejected'        => 0, // Rejected
-            ];
-
-            // Cek apakah User Login?
             if (Auth::check()) {
                 $user = Auth::user();
+                $userId = $user->employee_id;
 
-                // Ambil Nama Jabatan (Safe Mode)
-                $posName = optional($user->position)->position_name ?? '';
+                // --- 1. COUNTER KHUSUS REQUESTER (MY REQUESTS) ---
+                // Menghitung dokumen milik user sendiri
 
-                $isSuperAdmin = ($posName === 'Super Admin');
-                // Daftar jabatan yang dianggap sebagai Approver
-                $isApprover   = in_array($posName, ['Manager', 'Director', 'Managing Director', 'Deputy Managing Director', 'General Manager']);
+                // Draft
+                $countDraft = RequisitionLetter::where('requester_id', $userId)
+                                ->where('status_flow', 'DRAFT')
+                                ->count();
 
-                // Bangun Query Dasar
-                $query = RequisitionLetter::query();
+                // On Progress (Sedang di Manager)
+                $countMyOnProgress = RequisitionLetter::where('requester_id', $userId)
+                                ->where('status_flow', 'ON_PROGRESS')
+                                ->count();
 
-                // Terapkan Filter Query Berdasarkan Role
-                if ($isSuperAdmin) {
-                    // Super Admin: Hitung Semua (Tanpa Filter)
-                    // Tidak perlu where, ambil semua data global
-                } elseif ($isApprover) {
-                    // Approver: Hitung surat milik Dept dia + Surat miliknya sendiri
-                    $query->where('company_id', $user->company_id);
+                // Waiting Director (Sedang di Direktur) - PENTING untuk Requester
+                $countMyWaitingDirector = RequisitionLetter::where('requester_id', $userId)
+                                ->where('status_flow', 'PARTIALLY_APPROVED')
+                                ->count();
 
-                    // Ambil daftar bawahan satu departemen dari DB Master (Cross-DB Safe)
-                    // Kita ambil nama database dari koneksi model User agar dinamis
-                    $userDb = $user->getConnection()->getDatabaseName();
+                // Rejected (Butuh Revisi)
+                $countRejected = RequisitionLetter::where('requester_id', $userId)
+                                ->where('status_flow', 'REJECTED')
+                                ->count();
 
-                    $deptColleagues = DB::table($userDb . '.tbl_employee')
-                                        ->where('department_id', $user->department_id)
-                                        ->pluck('employee_id');
 
-                    // Filter: Requester harus ada di daftar kolega departemen
-                    $query->whereIn('requester_id', $deptColleagues);
+                // --- 2. COUNTER KHUSUS APPROVER (MONITORING/TASKS) ---
+                // Menghitung antrian pekerjaan (To-Do List)
 
-                } else {
-                    // Staff Biasa: Hanya menghitung surat miliknya sendiri
-                    $query->where('requester_id', $user->employee_id);
-                }
+                // Antrian Approval Saya (Pending Tasks)
+                $countPendingTask = ApprovalQueue::where('approver_id', $userId)
+                                        ->where('status', 'PENDING')
+                                        ->count();
 
-                // Hitung Status (Cloning query agar filter sebelumnya terbawa)
-                // Pastikan value 'status_flow' ini SAMA PERSIS dengan enum di database
-                $counts['countPendingApprove']  = (clone $query)->where('status_flow', 'ON_PROGRESS')->count();
-                $counts['countWaitingDirector'] = (clone $query)->where('status_flow', 'PARTIALLY_APPROVED')->count();
-                $counts['countWaitingSupply']   = (clone $query)->where('status_flow', 'WAITING_SUPPLY')->count();
-                $counts['countRejected']        = (clone $query)->where('status_flow', 'REJECTED')->count();
+                // Global Monitoring (Untuk Dashboard)
+                $countGlobalOnProgress = RequisitionLetter::where('status_flow', 'ON_PROGRESS')->count();
+                $countGlobalWaitingDirector = RequisitionLetter::where('status_flow', 'PARTIALLY_APPROVED')->count();
+                $countGlobalWaitingSupply = RequisitionLetter::where('status_flow', 'WAITING_SUPPLY')->count();
+
+
+                // Share variabel ke semua View dengan nama yang SPESIFIK
+                $view->with([
+                    // Requester Vars
+                    'countDraft' => $countDraft,
+                    'countMyOnProgress' => $countMyOnProgress,       // GANTI VARIABEL INI
+                    'countMyWaitingDirector' => $countMyWaitingDirector,
+                    'countRejected' => $countRejected,
+
+                    // Approver Vars
+                    'countPendingTask' => $countPendingTask,         // GANTI VARIABEL INI
+                    'countGlobalOnProgress' => $countGlobalOnProgress,
+                    'countGlobalWaitingDirector' => $countGlobalWaitingDirector,
+                    'countGlobalWaitingSupply' => $countGlobalWaitingSupply,
+                ]);
             }
-
-            // Kirim variabel $counts ke semua View
-            $view->with($counts);
         });
     }
 }

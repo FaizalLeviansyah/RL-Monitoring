@@ -169,14 +169,82 @@
                     <li><a href="{{ route('admin.users.index') }}" class="sidebar-item neon-indigo flex items-center p-3 rounded-xl text-slate-600"><svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg><span class="ms-3 font-medium sidebar-text">Manage Users</span></a></li>
                 @endif
 
+{{-- === MENU UNTUK REQUESTER (MY REQUESTS) === --}}
                 @if($showRequesterMenu)
-                    <li class="pt-4 mt-2 mb-2 section-title"><div class="px-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">My Requests</div></li>
-                    <li><a href="{{ route('requisitions.create') }}" class="sidebar-item neon-red flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('requisitions.create') ? 'active' : '' }}"><svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M5 5V.13a2.96 2.96 0 0 0-1.293.749L.879 3.707A2.96 2.96 0 0 0 .13 5H5Z"/><path d="M6.737 11.061a2.961 2.961 0 0 1 .81-1.515l6.117-6.116A4.839 4.839 0 0 1 16 2.141V2a1.97 1.97 0 0 0-1.933-2H7v5a2 2 0 0 1-2 2H0v11a1.969 1.969 0 0 0 1.933 2h12.134A1.97 1.97 0 0 0 16 18v-3.093l-1.546 1.546c-.413.413-.94.695-1.513.81l-3.4.679a2.947 2.947 0 0 1-1.85-.227 2.96 2.96 0 0 1-1.635-3.257l.681-3.397Z"/></svg><span class="ms-3 font-medium sidebar-text">Create New RL</span></a></li>
+                    <li class="pt-4 mt-2 mb-2 section-title">
+                        <div class="px-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">My Requests</div>
+                    </li>
+
+                    {{-- 1. Create New --}}
+                    <li>
+                        <a href="{{ route('requisitions.create') }}" class="sidebar-item neon-red flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('requisitions.create') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M5 5V.13a2.96 2.96 0 0 0-1.293.749L.879 3.707A2.96 2.96 0 0 0 .13 5H5Z"/><path d="M6.737 11.061a2.961 2.961 0 0 1 .81-1.515l6.117-6.116A4.839 4.839 0 0 1 16 2.141V2a1.97 1.97 0 0 0-1.933-2H7v5a2 2 0 0 1-2 2H0v11a1.969 1.969 0 0 0 1.933 2h12.134A1.97 1.97 0 0 0 16 18v-3.093l-1.546 1.546c-.413.413-.94.695-1.513.81l-3.4.679a2.947 2.947 0 0 1-1.85-.227 2.96 2.96 0 0 1-1.635-3.257l.681-3.397Z"/></svg>
+                            <span class="ms-3 font-medium sidebar-text">Create New RL</span>
+                        </a>
+                    </li>
+
+                    {{-- 2. Drafts --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'draft') }}" class="sidebar-item neon-blue flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/draft') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
                             <span class="flex-1 ms-3 font-medium sidebar-text">Drafts</span>
-                            @if(isset($countDraft) && $countDraft > 0) <span class="sidebar-badge bg-slate-100 text-slate-600 rounded-full">{{ $countDraft }}</span> @endif
+                            @if(isset($countDraft) && $countDraft > 0) <span class="sidebar-badge bg-slate-100 text-slate-600 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countDraft }}</span> @endif
+                        </a>
+                    </li>
+
+                    {{-- 3. On Progress (Waiting Manager) --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'on_progress') }}" class="sidebar-item neon-orange flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/on_progress') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="flex-1 ms-3 font-medium sidebar-text">Waiting Approval</span>
+                            {{-- GUNAKAN VARIABEL KHUSUS REQUESTER --}}
+                            @if(isset($countMyOnProgress) && $countMyOnProgress > 0)
+                                <span class="sidebar-badge bg-orange-100 text-orange-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countMyOnProgress }}</span>
+                            @endif
+                        </a>
+                    </li>
+
+                    {{-- 4. Waiting Director (Menu Baru untuk Requester agar transparan) --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'partially_approved') }}" class="sidebar-item neon-purple flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/partially_approved') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path></svg>
+                            <span class="flex-1 ms-3 font-medium sidebar-text">Waiting Director</span>
+                            @if(isset($countMyWaitingDirector) && $countMyWaitingDirector > 0)
+                                <span class="sidebar-badge bg-purple-100 text-purple-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countMyWaitingDirector }}</span>
+                            @endif
+                        </a>
+                    </li>
+
+                    {{-- 5. Approved --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'approved') }}" class="sidebar-item neon-green flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/approved') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="ms-3 font-medium sidebar-text">Approved</span>
+                        </a>
+                    </li>
+
+                    {{-- 6. Rejected --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'rejected') }}" class="sidebar-item neon-red flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/rejected') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="flex-1 ms-3 font-medium sidebar-text">Rejected</span>
+                            @if(isset($countRejected) && $countRejected > 0) <span class="sidebar-badge bg-red-100 text-red-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countRejected }}</span> @endif
+                        </a>
+                    </li>
+
+                    {{-- 7. Completed --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'completed') }}" class="sidebar-item neon-teal flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/completed') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <span class="ms-3 font-medium sidebar-text">Completed</span>
+                        </a>
+                    </li>
+
+                    {{-- 8. Department Activity --}}
+                    <li>
+                        <a href="{{ route('requisitions.department') }}" class="sidebar-item neon-indigo flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('requisitions.department') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            <span class="flex-1 ms-3 font-medium sidebar-text">Department Activity</span>
                         </a>
                     </li>
                 @endif

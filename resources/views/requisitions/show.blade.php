@@ -1,270 +1,238 @@
 <x-app-layout>
-    <div class="pt-2 pb-12 min-h-screen">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    {{-- LOGIKA ROLE & AKSES --}}
+    @php
+        $user = Auth::user();
+        $isRequester = $user->employee_id == $requisition->requester_id;
+
+        // Cek apakah User ini adalah Approver yang sedang gilirannya?
+        $currentApprover = $requisition->approvalQueues()
+                            ->where('approver_id', $user->employee_id)
+                            ->where('status', 'PENDING')
+                            ->first();
+
+        $isPendingApprover = $currentApprover ? true : false;
+
+        // Cek Status Edit (Hanya Draft/Rejected & Pemilik)
+        $canEdit = in_array($requisition->status_flow, ['DRAFT', 'REJECTED']) && $isRequester;
+    @endphp
+
+    <div class="pt-6 pb-12 min-h-screen bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-<div class="flex items-center justify-between mb-6 animate-fade-in-down">
+            {{-- 1. HEADER & ACTION BUTTONS --}}
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
 
-                <div class="flex items-center space-x-4">
-                    <a href="{{ url()->previous() }}" class="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                {{-- BACK BUTTON & TITLE --}}
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('requisitions.index') }}" class="p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 shadow-sm transition-all">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                     </a>
                     <div>
-                        <h2 class="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
-                            Requisition Details
-                        </h2>
-                        <p class="text-slate-500 text-sm">Reference No: <span class="font-mono font-bold text-slate-700">{{ $requisition->rl_no }}</span></p>
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Requisition Details</h2>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold
+                                @if($requisition->status_flow == 'APPROVED') bg-green-100 text-green-700
+                                @elseif($requisition->status_flow == 'REJECTED') bg-red-100 text-red-700
+                                @elseif($requisition->status_flow == 'DRAFT') bg-gray-100 text-gray-600
+                                @else bg-blue-100 text-blue-700 animate-pulse @endif">
+                                {{ str_replace('_', ' ', $requisition->status_flow) }}
+                            </span>
+                        </div>
+                        <p class="text-slate-500 text-sm mt-1">Ref No: <span class="font-mono font-bold text-blue-600">{{ $requisition->rl_no }}</span></p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3">
+                {{-- ACTION GROUP (KANAN ATAS) --}}
+                <div class="mt-4 md:mt-0 flex gap-3">
 
-                    @if(in_array($requisition->status_flow, ['DRAFT', 'REJECTED']) && Auth::id() == $requisition->requester_id)
-                    <a href="{{ route('requisitions.edit', $requisition->id) }}" class="flex items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm">
-                        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        Edit
+                    {{-- TOMBOL PREVIEW / PRINT PDF (Selalu Muncul untuk Semua User) --}}
+                    <a href="{{ route('requisitions.print', $requisition->id) }}" target="_blank" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 hover:text-blue-600 transition shadow-sm flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        Preview / Print PDF
                     </a>
+
+                    {{-- TOMBOL EDIT (Dikembalikan Sesuai Request) --}}
+                    @if($canEdit)
+                        <a href="{{ route('requisitions.edit', $requisition->id) }}" class="px-5 py-2.5 bg-orange-50 text-orange-600 font-bold rounded-xl border border-orange-200 hover:bg-orange-100 transition shadow-sm flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            Edit Data
+                        </a>
                     @endif
 
-                    <a href="{{ route('requisitions.print', $requisition->id) }}" target="_blank" class="group flex items-center px-5 py-2.5 bg-slate-800 text-white text-sm font-bold rounded-xl hover:bg-slate-700 transition-all shadow-lg hover:shadow-slate-500/30">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                        Print PDF
-                    </a>
                 </div>
             </div>
-
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                <div class="lg:col-span-2 space-y-6 animate-fade-in-up">
+                {{-- LEFT COLUMN: DETAIL CONTENT --}}
+                <div class="lg:col-span-2 space-y-8">
 
-                    <div class="bg-white relative rounded-[1.5rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
-
-                        @php
-                            $statusColor = match($requisition->status_flow) {
-                                'ON_PROGRESS' => 'bg-orange-500',
-                                'PARTIALLY_APPROVED' => 'bg-purple-500',
-                                'APPROVED' => 'bg-green-500',
-                                'REJECTED' => 'bg-red-500',
-                                'WAITING_SUPPLY' => 'bg-yellow-500',
-                                'COMPLETED' => 'bg-teal-500',
-                                default => 'bg-slate-500'
-                            };
-                        @endphp
-                        <div class="h-1.5 w-full {{ $statusColor }}"></div>
-
-                        <div class="p-8 md:p-10">
-
-                            <div class="flex justify-between items-start border-b border-slate-100 pb-6 mb-6">
-                                <div class="flex items-center">
-                                    <img src="{{ asset('images/Logo_PT_ASM.jpg') }}" alt="Logo" class="h-12 w-auto mr-4 mix-blend-multiply">
-                                    <div>
-                                        <h3 class="text-lg font-extrabold text-slate-800">PT. Amarin Ship Management</h3>
-                                        <p class="text-xs text-slate-400 font-medium tracking-wide">INTERNAL REQUISITION FORM</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <span class="block text-xs text-slate-400 uppercase tracking-wider font-bold">Request Date</span>
-                                    <span class="block text-lg font-bold text-slate-700">{{ \Carbon\Carbon::parse($requisition->request_date)->format('d F Y') }}</span>
-                                </div>
+                    {{-- INFO CARD --}}
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                            <div>
+                                <p class="text-xs text-slate-400 font-bold uppercase">Requester</p>
+                                <p class="text-slate-700 font-bold mt-1">{{ $requisition->requester->full_name }}</p>
                             </div>
-
-                            <div class="grid grid-cols-2 gap-6 mb-8">
-                                <div>
-                                    <label class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Requester</label>
-                                    <div class="flex items-center mt-1">
-                                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 mr-2">
-                                            {{ substr($requisition->requester->full_name, 0, 1) }}
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-bold text-slate-800">{{ $requisition->requester->full_name }}</p>
-                                            <p class="text-xs text-slate-500">{{ $requisition->requester->position->position_name ?? '-' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Department</label>
-                                    <p class="text-sm font-bold text-slate-800 mt-2">{{ $requisition->requester->department->department_name ?? '-' }}</p>
-                                </div>
-                                <div>
-                                    <label class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Subject / Purpose</label>
-                                    <p class="text-sm font-bold text-slate-800 mt-2">{{ $requisition->subject }}</p>
-                                </div>
-                                <div>
-                                    <label class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Required Date</label>
-                                    <p class="text-sm font-bold text-red-600 mt-2 flex items-center">
-                                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                        {{ \Carbon\Carbon::parse($requisition->required_date)->format('d M Y') }}
-                                    </p>
-                                </div>
+                            <div>
+                                <p class="text-xs text-slate-400 font-bold uppercase">Required Date</p>
+                                <p class="text-blue-600 font-bold mt-1">{{ \Carbon\Carbon::parse($requisition->required_date)->format('d M Y') }}</p>
                             </div>
-
-                            <div class="mb-8">
-                                <label class="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-2 block">Requested Items</label>
-                                <div class="overflow-hidden rounded-xl border border-slate-200">
-                                    <table class="w-full text-sm text-left">
-                                        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-                                            <tr>
-                                                <th class="px-4 py-3 w-10 text-center">#</th>
-                                                <th class="px-4 py-3">Item Description</th>
-                                                <th class="px-4 py-3 text-center">Qty</th>
-                                                <th class="px-4 py-3 text-center">UoM</th>
-                                                <th class="px-4 py-3">Remarks</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100">
-                                            @foreach($requisition->items as $index => $item)
-                                            <tr class="hover:bg-blue-50/50 transition-colors">
-                                                <td class="px-4 py-3 text-center text-slate-400">{{ $index + 1 }}</td>
-                                                <td class="px-4 py-3 font-semibold text-slate-700">
-                                                    {{ $item->item_name }}
-                                                    @if($item->part_number)
-                                                        <span class="block text-xs text-slate-400 font-normal">P/N: {{ $item->part_number }}</span>
-                                                    @endif
-                                                </td>
-                                                <td class="px-4 py-3 text-center font-bold text-slate-800">{{ $item->qty + 0 }}</td>
-                                                <td class="px-4 py-3 text-center text-slate-500 text-xs">{{ $item->uom }}</td>
-                                                <td class="px-4 py-3 text-slate-500 text-xs italic">{{ $item->description ?? '-' }}</td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <div class="col-span-2">
+                                <p class="text-xs text-slate-400 font-bold uppercase">Subject</p>
+                                <p class="text-slate-800 font-bold mt-1">{{ $requisition->subject }}</p>
                             </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div>
-                                    <label class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Additional Remarks</label>
-                                    <div class="mt-2 p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600 italic">
-                                        "{{ $requisition->remark ?? 'No additional remarks provided.' }}"
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Attachments</label>
-                                    <div class="mt-2 space-y-2">
-                                        @if($requisition->attachment_partial)
-                                        <a href="{{ asset('storage/' . $requisition->attachment_partial) }}" target="_blank" class="flex items-center p-3 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition-colors group cursor-pointer">
-                                            <div class="p-2 bg-white rounded-lg text-blue-600 mr-3 shadow-sm">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                                            </div>
-                                            <div class="overflow-hidden">
-                                                <p class="text-xs font-bold text-blue-800 truncate">Supporting Document</p>
-                                                <p class="text-[10px] text-blue-500">Click to view file</p>
-                                            </div>
-                                        </a>
-                                        @else
-                                        <div class="text-xs text-slate-400 italic">No attachments found.</div>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-
                         </div>
-                    </div>
-                </div>
 
-                <div class="lg:col-span-1 space-y-6">
-
-                    <div class="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[2rem] p-6 shadow-lg animate-fade-in-up delay-100">
-                        <h4 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4">Current Status</h4>
-
-                        <div class="flex flex-col items-center text-center">
-                            @php
-                                $badgeStyle = match($requisition->status_flow) {
-                                    'ON_PROGRESS' => 'bg-orange-50 text-orange-600 border-orange-200',
-                                    'PARTIALLY_APPROVED' => 'bg-purple-50 text-purple-600 border-purple-200',
-                                    'APPROVED' => 'bg-green-50 text-green-600 border-green-200',
-                                    'REJECTED' => 'bg-red-50 text-red-600 border-red-200',
-                                    default => 'bg-slate-50 text-slate-600 border-slate-200'
-                                };
-                                $iconStyle = match($requisition->status_flow) {
-                                    'ON_PROGRESS' => 'text-orange-500 bg-orange-100',
-                                    'PARTIALLY_APPROVED' => 'text-purple-500 bg-purple-100',
-                                    'APPROVED' => 'text-green-500 bg-green-100',
-                                    'REJECTED' => 'text-red-500 bg-red-100',
-                                    default => 'text-slate-500 bg-slate-100'
-                                };
-                            @endphp
-
-                            <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 {{ $iconStyle }} shadow-inner">
-                                <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    @if($requisition->status_flow == 'APPROVED')
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    @elseif($requisition->status_flow == 'REJECTED')
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                    @else
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    @endif
-                                </svg>
+                        {{-- ITEMS TABLE --}}
+                        <div class="mt-8">
+                            <h3 class="text-sm font-bold text-slate-400 uppercase mb-3">Items Requested</h3>
+                            <div class="overflow-hidden rounded-xl border border-slate-200">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                                        <tr>
+                                            <th class="px-4 py-3">Item</th>
+                                            <th class="px-4 py-3 text-center">Qty</th>
+                                            <th class="px-4 py-3">Specs</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                                        @foreach($requisition->items as $item)
+                                        <tr>
+                                            <td class="px-4 py-3 font-bold text-slate-700">{{ $item->item_name }}</td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-lg font-bold">{{ $item->qty + 0 }} {{ $item->uom }}</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-500 italic">{{ $item->description ?? '-' }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
-
-                            <span class="px-4 py-1.5 rounded-full text-xs font-bold border {{ $badgeStyle }} mb-2">
-                                {{ str_replace('_', ' ', $requisition->status_flow) }}
-                            </span>
-                            <p class="text-xs text-slate-400">Last updated: {{ $requisition->updated_at->diffForHumans() }}</p>
                         </div>
                     </div>
 
-                    {{-- Logic: Anda bisa menyesuaikan 'if' ini sesuai logic controller Anda --}}
-                    @if(in_array(Auth::user()->position->position_name, ['Manager', 'Director', 'General Manager']) && in_array($requisition->status_flow, ['ON_PROGRESS', 'PARTIALLY_APPROVED']))
-                    <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2rem] p-6 shadow-xl shadow-blue-500/30 text-white animate-fade-in-up delay-200">
-                        <h4 class="text-sm font-extrabold uppercase tracking-wider mb-4 border-b border-white/20 pb-2">Your Action</h4>
-                        <p class="text-xs text-blue-100 mb-6 leading-relaxed">
-                            Please review the items carefully. Your approval will move this document to the next stage.
-                        </p>
+                    {{-- 🟢 APPROVER ZONE: KHUSUS UNTUK MANAGER/DIREKTUR (PREVIEW + ACTION) --}}
+                    @if($isPendingApprover)
+                        <div class="bg-slate-800 rounded-2xl shadow-xl overflow-hidden border border-slate-700 relative">
+                            <div class="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
+                                <h3 class="text-white font-bold flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    Review & Decision Required
+                                </h3>
+                                <span class="text-xs text-slate-400">You are the current approver</span>
+                            </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <form action="{{ route('requisitions.approve', $requisition->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-1 flex flex-col items-center justify-center">
-                                    <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                    <span class="text-xs">APPROVE</span>
-                                </button>
-                            </form>
+                            {{-- PDF PREVIEW IFRAME --}}
+                            <div class="aspect-w-16 aspect-h-9 h-[500px] bg-white">
+                                <iframe src="{{ route('requisitions.print', $requisition->id) }}" class="w-full h-full"></iframe>
+                            </div>
 
-                            <button onclick="document.getElementById('rejectModal').classList.remove('hidden')" class="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-1 flex flex-col items-center justify-center">
-                                <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                <span class="text-xs">REJECT</span>
-                            </button>
+                            {{-- APPROVAL ACTION BUTTONS --}}
+                            <div class="p-6 bg-slate-800 border-t border-slate-700 flex flex-col md:flex-row gap-4 justify-end items-center">
+                                <form action="{{ route('requisitions.reject', $requisition->id) }}" method="POST" class="w-full md:w-auto">
+                                    @csrf
+                                    <div class="flex gap-2">
+                                        <input type="text" name="note" placeholder="Reason for rejection..." class="w-full md:w-64 px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-red-500 focus:border-red-500 text-sm" required>
+                                        <button type="submit" onclick="return confirm('Reject this request?')" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg shadow-red-500/30">
+                                            Reject
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <form action="{{ route('requisitions.approve', $requisition->id) }}" method="POST" class="w-full md:w-auto">
+                                    @csrf
+                                    <button type="submit" class="w-full px-8 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl transition shadow-lg shadow-green-500/30 flex items-center justify-center">
+                                        <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        Approve Document
+                                    </button>
+                                </form>
+                            </div>
                         </div>
-                    </div>
                     @endif
 
-                    <div class="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[2rem] p-6 shadow-lg animate-fade-in-up delay-300">
-                        <h4 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-6">Approval History</h4>
+                </div>
 
-                        <div class="relative pl-4 border-l-2 border-slate-100 space-y-8">
-                            <div class="relative">
-                                <div class="absolute -left-[21px] bg-blue-500 h-3 w-3 rounded-full border-4 border-white shadow-sm"></div>
-                                <p class="text-xs font-bold text-slate-400 uppercase">Created By</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $requisition->requester->full_name }}</p>
-                                <p class="text-[10px] text-slate-400">{{ $requisition->created_at->format('d M Y, H:i') }}</p>
+                {{-- RIGHT COLUMN: ACTIONS & TRACKING --}}
+                <div class="space-y-6">
+
+                    {{-- 🔵 REQUESTER ZONE: UPLOAD & SUBMIT (STRICT MODE) --}}
+                    @if($isRequester && $requisition->status_flow == 'DRAFT')
+                        <div class="bg-white rounded-2xl shadow-xl border border-blue-100 p-6 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+
+                            <h3 class="text-lg font-black text-slate-800 mb-4">Submission Checklist</h3>
+
+                            {{-- 1. UPLOAD SIGNED DOCUMENT (WAJIB) --}}
+                            <div class="mb-6 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                <p class="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center">
+                                    <svg class="w-4 h-4 mr-1 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                    Step 1: Upload Signed Document <span class="text-red-600 font-bold">*REQUIRED</span>
+                                </p>
+
+                                <div class="mb-3 text-xs text-slate-500 leading-relaxed">
+                                    <ol class="list-decimal list-inside space-y-1">
+                                        <li>Print the PDF (Click button above).</li>
+                                        <li>Sign it (Requester).</li>
+                                        <li>Scan/Photo and upload it here.</li>
+                                    </ol>
+                                </div>
+
+                                @if($requisition->attachment_partial)
+                                    <div class="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200 mb-2">
+                                        <span class="text-xs font-bold text-green-700 flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                            Document Uploaded
+                                        </span>
+                                        <a href="{{ asset('storage/' . $requisition->attachment_partial) }}" target="_blank" class="text-xs text-blue-600 hover:underline">Check File</a>
+                                    </div>
+                                @endif
+
+                                <form action="{{ route('requisitions.upload_partial', $requisition->id) }}" method="POST" enctype="multipart/form-data">
+                                    @csrf
+                                    <input type="file" name="file_partial" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+                                    <button type="submit" class="mt-2 w-full py-2 bg-white border border-slate-300 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-50">
+                                        {{ $requisition->attachment_partial ? 'Replace File' : 'Upload File' }}
+                                    </button>
+                                </form>
                             </div>
 
-                            @if(isset($requisition->approvalQueues)) @foreach($requisition->approvalQueues as $queue)
+                            {{-- 2. SUBMIT BUTTON (PROTECTED) --}}
+                            <div>
+                                <p class="text-xs font-bold text-slate-500 uppercase mb-2">Step 2: Submit to Manager</p>
+                                <form action="{{ route('requisitions.submit', $requisition->id) }}" method="POST" id="submitForm">
+                                    @csrf
+                                    {{-- Pass status file ke JS --}}
+                                    <button type="button" onclick="confirmSubmit({{ $requisition->attachment_partial ? 'true' : 'false' }})" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-1 flex justify-center items-center">
+                                        <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                                        Submit for Approval
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- TRACKING HISTORY --}}
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                        <h3 class="text-sm font-bold text-slate-800 mb-4 uppercase">History</h3>
+                        <div class="space-y-6 border-l-2 border-slate-100 ml-3 pl-6 relative">
+                            @forelse($requisition->approvalQueues as $queue)
                                 <div class="relative">
-                                    @php
-                                        $dotColor = $queue->status == 'APPROVED' ? 'bg-green-500' : ($queue->status == 'REJECTED' ? 'bg-red-500' : 'bg-slate-300');
-                                    @endphp
-                                    <div class="absolute -left-[21px] {{ $dotColor }} h-3 w-3 rounded-full border-4 border-white shadow-sm"></div>
-                                    <p class="text-xs font-bold text-slate-400 uppercase">Approver (Lvl {{ $queue->level_order }})</p>
-
-                                    <p class="text-sm font-bold text-slate-800">
-                                        {{-- Ganti ini sesuai nama kolom relasi user di model ApprovalQueue --}}
-                                        {{ \App\Models\User::find($queue->approver_id)->full_name ?? 'Approver' }}
-                                    </p>
-
-                                    @if($queue->status == 'APPROVED')
-                                        <p class="text-[10px] text-green-600 font-bold bg-green-50 inline-block px-1.5 rounded mt-1">Approved</p>
-                                        <p class="text-[10px] text-slate-400">{{ \Carbon\Carbon::parse($queue->updated_at)->format('d M Y, H:i') }}</p>
-                                    @elseif($queue->status == 'REJECTED')
-                                        <p class="text-[10px] text-red-600 font-bold bg-red-50 inline-block px-1.5 rounded mt-1">Rejected</p>
-                                        <p class="text-[10px] text-slate-400">{{ \Carbon\Carbon::parse($queue->updated_at)->format('d M Y, H:i') }}</p>
-                                    @else
-                                        <p class="text-[10px] text-orange-500 font-bold bg-orange-50 inline-block px-1.5 rounded mt-1">Pending</p>
-                                    @endif
+                                    <span class="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm
+                                        {{ $queue->status == 'APPROVED' ? 'bg-green-500' : ($queue->status == 'REJECTED' ? 'bg-red-500' : 'bg-yellow-400') }}">
+                                    </span>
+                                    <p class="text-sm font-bold text-slate-800">{{ $queue->level_order == 1 ? 'Manager' : 'Director' }}</p>
+                                    <p class="text-xs font-bold {{ $queue->status == 'APPROVED' ? 'text-green-600' : 'text-yellow-600' }}">{{ $queue->status }}</p>
+                                    <p class="text-xs text-slate-400 mt-1">{{ $queue->approver->full_name }}</p>
                                 </div>
-                                @endforeach
-                            @endif
+                            @empty
+                                <div class="relative">
+                                    <span class="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-slate-200 border-2 border-white"></span>
+                                    <p class="text-sm font-bold text-slate-400">Waiting submission...</p>
+                                </div>
+                            @endforelse
                         </div>
                     </div>
 
@@ -273,42 +241,37 @@
         </div>
     </div>
 
-    <div id="rejectModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="document.getElementById('rejectModal').classList.add('hidden')"></div>
+    {{-- JAVASCRIPT VALIDASI KETAT --}}
+    <script>
+        function confirmSubmit(hasFile) {
+            // STRICT CHECK: JIKA FILE BELUM ADA, ERROR DAN STOP.
+            if (!hasFile) {
+                Swal.fire({
+                    title: 'Upload Required!',
+                    text: '⛔ You MUST upload the signed document (Step 1) before submitting to Manager.',
+                    icon: 'error',
+                    confirmButtonColor: '#1e293b', // Slate-800
+                    confirmButtonText: 'OK, I will upload'
+                });
+                return; // Stop eksekusi
+            }
 
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                <form action="{{ route('requisitions.reject', $requisition->id) }}" method="POST">
-                    @csrf
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                            </div>
-                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                <h3 class="text-lg leading-6 font-bold text-slate-900" id="modal-title">Reject Requisition</h3>
-                                <div class="mt-2">
-                                    <p class="text-sm text-slate-500 mb-4">Are you sure you want to reject this request? Please provide a reason.</p>
-                                    <textarea name="note" rows="3" class="w-full border-slate-300 rounded-xl shadow-sm focus:border-red-500 focus:ring-red-500 text-sm" placeholder="Reason for rejection (Required)..." required></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-slate-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="submit" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                            Confirm Reject
-                        </button>
-                        <button type="button" onclick="document.getElementById('rejectModal').classList.add('hidden')" class="mt-3 w-full inline-flex justify-center rounded-xl border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
+            // JIKA FILE ADA, BARU KONFIRMASI SUBMIT
+            Swal.fire({
+                title: 'Submit Request?',
+                text: "The request will be sent to your Manager for approval. Physical document can follow later.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Yes, Submit!',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('submitForm').submit();
+                }
+            })
+        }
+    </script>
 </x-app-layout>
 
 {{-- <x-app-layout>
