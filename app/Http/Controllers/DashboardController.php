@@ -14,20 +14,37 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    // 1. FUNGSI UTAMA DASHBOARD
-// 1. FUNGSI UTAMA DASHBOARD
-public function index()
+    public function index()
     {
         $user = Auth::user();
+        $userPos = $user->position->position_name ?? '';
 
-        // Cek Role (Safe Check)
-        $isSuperAdmin = $user->position && $user->position->position_name === 'Super Admin';
-        $isApprover = ($user->position && in_array($user->position->position_name, ['Manager', 'Director']));
+        // 1. ROLE DEFINITION
+        $approverRoles = [
+            'Manager',
+            'Director',
+            'Managing Director',
+            'Deputy Managing Director',
+            'General Manager',
+            'President Director'
+        ];
 
-        // Mode Switch
-        $currentMode = session('active_role', ($isApprover ? 'approver' : 'requester'));
+        $isSuperAdmin = ($userPos === 'Super Admin');
+        $isDirector = in_array($userPos, ['Director', 'Managing Director', 'Deputy Managing Director', 'General Manager', 'President Director']);
+        $isManager = ($userPos === 'Manager');
+        $isApprover = in_array($userPos, $approverRoles);
 
-        // --- 1. STATISTICS COUNTER ---
+        // --- [FIX: LANDING PAGE INTERCEPTION] ---
+        // Jika Approver belum memilih mode, tampilkan Landing Page
+        if ($isApprover && !session()->has('active_role')) {
+            return view('landing');
+        }
+
+        // Jika sudah memilih, atau bukan approver, tentukan mode
+        $defaultMode = $isApprover ? 'approver' : 'requester';
+        $currentMode = session('active_role', $defaultMode);
+
+        // 3. INITIALIZE STATISTICS
         $stats = [
             'my_actions' => 0,
             'waiting_director' => 0,
@@ -38,31 +55,50 @@ public function index()
             'total_all' => 0,
         ];
 
-        // QUERY BUILDER DASAR
+        // 4. BASE QUERY BUILDER
         $queryRL = RequisitionLetter::query();
 
-        // FILTER BASE
-        if (!$isSuperAdmin) {
-            if ($currentMode == 'approver' && $isApprover) {
-                // Manager lihat data departemennya/perusahaannya
+        if ($isSuperAdmin) {
+            // No Filter
+        } elseif ($currentMode == 'approver') {
+
+            // FILTER SCOPE DATA
+            if ($isDirector) {
+                // Director: All Company Data
                 $queryRL->where('company_id', $user->company_id);
 
-                // ACTION: Hitung Tugas Approval Saya
-                $stats['my_actions'] = ApprovalQueue::where('approver_id', $user->employee_id)
-                                        ->where('status', 'PENDING')->count();
-            } else {
-                // Requester lihat punya sendiri
-                $queryRL->where('requester_id', $user->employee_id);
+                // My Action: PARTIALLY_APPROVED
+                $stats['my_actions'] = RequisitionLetter::where('company_id', $user->company_id)
+                                        ->where('status_flow', 'PARTIALLY_APPROVED')
+                                        ->count();
 
-                // ACTION: Draft/Revisi
-                $stats['my_actions'] = RequisitionLetter::where('requester_id', $user->employee_id)
-                                        ->whereIn('status_flow', ['DRAFT', 'REJECTED'])->count();
+            } elseif ($isManager) {
+                // Manager: Department Data
+                $queryRL->where('company_id', $user->company_id);
+
+                // Get Subordinates
+                $userModel = new User();
+                $userDb = $userModel->getConnection()->getDatabaseName();
+                $deptIds = DB::connection($userModel->getConnectionName())
+                            ->table($userDb . '.tbl_employee')
+                            ->where('department_id', $user->department_id)
+                            ->pluck('employee_id');
+
+                $queryRL->whereIn('requester_id', $deptIds);
+
+                // My Action: Approval Queue PENDING
+                $stats['my_actions'] = ApprovalQueue::where('approver_id', $user->employee_id)
+                                        ->where('status', 'PENDING')
+                                        ->count();
             }
+
         } else {
-            $stats['my_actions'] = 0;
+            // Requester Mode
+            $queryRL->where('requester_id', $user->employee_id);
+            $stats['my_actions'] = (clone $queryRL)->whereIn('status_flow', ['DRAFT', 'REJECTED'])->count();
         }
 
-        // HITUNG MONITORING
+        // 5. CALCULATE WIDGETS
         $stats['waiting_approval'] = (clone $queryRL)->where('status_flow', 'ON_PROGRESS')->count();
         $stats['waiting_director'] = (clone $queryRL)->where('status_flow', 'PARTIALLY_APPROVED')->count();
         $stats['waiting_supply']   = (clone $queryRL)->where('status_flow', 'WAITING_SUPPLY')->count();
@@ -70,192 +106,59 @@ public function index()
         $stats['rejected']         = (clone $queryRL)->where('status_flow', 'REJECTED')->count();
         $stats['total_all']        = (clone $queryRL)->count();
 
-
-        // LOGIKA: HITUNG PRIORITY
-        $allRLs = (clone $queryRL)->get(); 
-        $priorityStats = [
-            'Top Urgent' => 0, 'Urgent' => 0, 'Normal' => 0, 'Outstanding' => 0
-        ];
+        // 6. PRIORITY STATS
+        $allRLs = (clone $queryRL)->get();
+        $priorityStats = ['Top Urgent' => 0, 'Urgent' => 0, 'Normal' => 0, 'Outstanding' => 0];
 
         foreach ($allRLs as $rl) {
             if ($rl->required_date && $rl->request_date) {
-                $reqDate = Carbon::parse($rl->request_date);
                 $dueDate = Carbon::parse($rl->required_date);
-
                 if ($dueDate->isPast() && !in_array($rl->status_flow, ['COMPLETED', 'REJECTED'])) {
                     $priorityStats['Outstanding']++;
                     continue;
                 }
-                $diffDays = $reqDate->diffInDays($dueDate, false);
-
-                if ($diffDays <= 2) { $priorityStats['Top Urgent']++; } 
-                elseif ($diffDays <= 5) { $priorityStats['Urgent']++; } 
-                else { $priorityStats['Normal']++; }
+                $diff = Carbon::parse($rl->request_date)->diffInDays($dueDate, false);
+                if ($diff <= 2) $priorityStats['Top Urgent']++;
+                elseif ($diff <= 5) $priorityStats['Urgent']++;
+                else $priorityStats['Normal']++;
             } else {
                 $priorityStats['Normal']++;
             }
         }
 
-        // --- WIDGET BARU: TREN BULANAN (KHUSUS APPROVER) ---
-        $trendData = ['labels' => [], 'data' => []];
-        if ($currentMode == 'approver' || $isSuperAdmin) {
-            for ($i = 5; $i >= 0; $i--) {
-                $date = Carbon::now()->subMonths($i);
-                $start = $date->copy()->startOfMonth();
-                $end = $date->copy()->endOfMonth();
-                
-                // Query Count per Bulan
-                $count = (clone $queryRL)->whereBetween('created_at', [$start, $end])->count();
-                
-                $trendData['labels'][] = $date->format('M Y');
-                $trendData['data'][] = $count;
-            }
-        }
-
-        // --- WIDGET: UPCOMING DEADLINES ---
-        $upcomingDeadlines = (clone $queryRL)
-                                ->whereNotIn('status_flow', ['COMPLETED', 'REJECTED'])
-                                ->whereNotNull('required_date')
-                                ->where('required_date', '>=', now())
-                                ->orderBy('required_date', 'asc')
-                                ->with('requester')
-                                ->limit(5)
-                                ->get();
-
-        // --- RECENT ACTIVITY TABLE ---
+        // 7. EXTRAS
         $recentActivities = (clone $queryRL)->with(['requester'])->latest()->limit(5)->get();
+        $upcomingDeadlines = (clone $queryRL)->whereNotIn('status_flow', ['COMPLETED', 'REJECTED'])
+                                ->whereNotNull('required_date')->where('required_date', '>=', now())
+                                ->orderBy('required_date', 'asc')->with('requester')->limit(5)->get();
 
-        // --- DATA CHART COMPOSITION ---
         $chartData = [
-            'labels' => ['Waiting Approval', 'Waiting Director', 'Waiting Supply', 'Completed', 'Rejected'],
-            'data' => [ $stats['waiting_approval'], $stats['waiting_director'], $stats['waiting_supply'], $stats['completed'], $stats['rejected'] ],
+            'labels' => ['Waiting Approval', 'Waiting Director', 'Final Approved', 'Completed', 'Rejected'],
+            'data' => [$stats['waiting_approval'], $stats['waiting_director'], $stats['waiting_supply'], $stats['completed'], $stats['rejected']],
             'colors' => ['#f97316', '#9333ea', '#eab308', '#14b8a6', '#ef4444']
         ];
 
-        // --- DATA MASTER ---
         $masterData = [
             'employees' => User::count(),
             'departments' => Department::count(),
             'companies' => Company::count(),
         ];
 
-        // RETURN VIEW BERDASARKAN ROLE
-        if ($isSuperAdmin) {
-            return view('dashboard', compact('stats', 'recentActivities', 'chartData', 'masterData', 'currentMode', 'isApprover', 'priorityStats', 'upcomingDeadlines'));
-        }
+        $viewName = $isSuperAdmin ? 'dashboard' : ($currentMode == 'approver' ? 'dashboard_approver' : 'dashboard_requester');
 
-        if ($currentMode == 'approver') {
-            return view('dashboard_approver', compact('stats', 'recentActivities', 'chartData', 'masterData', 'currentMode', 'isApprover', 'priorityStats', 'upcomingDeadlines', 'trendData'));
-        }
-
-        return view('dashboard_requester', compact('stats', 'recentActivities', 'chartData', 'masterData', 'currentMode', 'isApprover', 'priorityStats', 'upcomingDeadlines'));
+        return view($viewName, compact(
+            'stats', 'recentActivities', 'chartData', 'masterData',
+            'currentMode', 'isApprover', 'priorityStats', 'upcomingDeadlines'
+        ));
     }
 
-
-    // 2. FUNGSI MENYIMPAN PILIHAN PERAN
     public function selectRole($role)
-        {
-            if ($role === 'reset') {
-                session()->forget('active_role'); // Hapus sesi
-                return redirect()->route('dashboard'); // Akan otomatis diarahkan ke Landing Page
-            }
-
-            session(['active_role' => $role]);
+    {
+        if ($role === 'reset') {
+            session()->forget('active_role');
             return redirect()->route('dashboard');
         }
-
-    // --- PRIVATE METHODS UNTUK MEMISAHKAN LOGIC VIEW ---
-
-    private function requesterDashboard($user)
-    {
-        $viewType = 'Requester';
-
-        // Data Statistik Requester (Milik Sendiri)
-        $countDraft = RequisitionLetter::where('requester_id', $user->employee_id)->where('status_flow', 'DRAFT')->count();
-        $countPending = RequisitionLetter::where('requester_id', $user->employee_id)->where('status_flow', 'ON_PROGRESS')->count();
-        $countApproved = RequisitionLetter::where('requester_id', $user->employee_id)->where('status_flow', 'APPROVED')->count();
-        $countRejected = RequisitionLetter::where('requester_id', $user->employee_id)->where('status_flow', 'REJECTED')->count();
-        $countTotal = $countDraft + $countPending + $countApproved + $countRejected;
-
-        // Tabel: List Surat Saya
-        $recent_rls = RequisitionLetter::where('requester_id', $user->employee_id)
-                        ->orderBy('created_at', 'desc')->limit(10)->get();
-
-        $chartData = json_encode([$countDraft, $countPending, $countApproved, $countRejected]);
-
-        // Data Master (Untuk Info Header)
-        $countEmployees = User::count();
-        $countDepartments = Department::count();
-        $countCompanies = Company::count();
-
-        // Kita kirim variable $isApprover = true/false agar sidebar tetap muncul menu sesuai hak akses asli
-        // Tapi viewType memberi tahu sedang mode apa
-        $isApprover = in_array($user->position->position_name ?? '', ['Manager', 'Director']);
-
-        return view('dashboard', compact(
-            'viewType', 'isApprover',
-            'countTotal', 'countDraft', 'countPending', 'countApproved', 'countRejected',
-            'recent_rls', 'chartData',
-            'countEmployees', 'countDepartments', 'countCompanies'
-        ));
-    }
-
-    private function approverDashboard($user)
-    {
-        $viewType = 'Approver';
-
-        // Data Statistik Approver (Tugas Approval)
-        $countDraft = 0; // Approver tidak melihat draft orang lain
-        $countPending = ApprovalQueue::where('approver_id', $user->employee_id)->where('status', 'PENDING')->count();
-        $countApproved = ApprovalQueue::where('approver_id', $user->employee_id)->where('status', 'APPROVED')->count();
-        $countRejected = ApprovalQueue::where('approver_id', $user->employee_id)->where('status', 'REJECTED')->count();
-        $countTotal = $countPending + $countApproved + $countRejected;
-
-        // Tabel: List Antrian Approval Saya
-        $recent_rls = RequisitionLetter::whereHas('approvalQueues', function($q) use ($user) {
-                            $q->where('approver_id', $user->employee_id);
-                        })
-                        ->with(['approvalQueues' => function($q) use ($user) {
-                            $q->where('approver_id', $user->employee_id);
-                        }])
-                        ->get()
-                        ->sortBy(function($rl) {
-                            return $rl->approvalQueues->first()->status === 'PENDING' ? 0 : 1;
-                        });
-
-        $chartData = json_encode([0, $countPending, $countApproved, $countRejected]);
-
-        $countEmployees = User::count();
-        $countDepartments = Department::count();
-        $countCompanies = Company::count();
-        $isApprover = true;
-
-        return view('dashboard', compact(
-            'viewType', 'isApprover',
-            'countTotal', 'countDraft', 'countPending', 'countApproved', 'countRejected',
-            'recent_rls', 'chartData',
-            'countEmployees', 'countDepartments', 'countCompanies'
-        ));
-    }
-
-    private function superAdminDashboard()
-    {
-        // (Copy logika Super Admin dari chat sebelumnya kesini)
-        // ... (Singkatnya sama seperti yang sudah jalan) ...
-        $totalEmployees = User::count();
-        $totalRL = RequisitionLetter::count();
-        $totalPending = RequisitionLetter::where('status_flow', 'ON_PROGRESS')->count();
-
-        $companies = Company::all();
-        $labels = []; $series = [];
-        foreach ($companies as $comp) {
-            $labels[] = $comp->company_code;
-            $series[] = RequisitionLetter::where('company_id', $comp->company_id)->count();
-        }
-        $chartLabels = $labels; $chartSeries = $series;
-
-        $globalActivities = RequisitionLetter::with(['company', 'requester'])->latest()->limit(10)->get();
-
-        return view('dashboard_superadmin', compact('totalEmployees', 'totalRL', 'totalPending', 'chartLabels', 'chartSeries', 'globalActivities'));
+        session(['active_role' => $role]);
+        return redirect()->route('dashboard');
     }
 }

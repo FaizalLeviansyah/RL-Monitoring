@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>RL Monitoring - Executive Portal</title>
+    <title>RL Monitoring - Portal</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
@@ -56,7 +56,7 @@
                 </span>
             </h1>
             <p class="text-xl text-slate-500 font-medium max-w-2xl mx-auto">
-                Precision Procurement. Executive Control. <span class="text-blue-600 font-bold">PT Amarin Ship Management.</span>
+                Precision Procurement Control. <span class="text-blue-600 font-bold">PT Amarin Ship Management.</span>
             </p>
         </div>
 

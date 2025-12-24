@@ -85,7 +85,7 @@
                 @if(isset($rl->company) && $rl->company->logo_path && file_exists(public_path('images/' . $rl->company->logo_path)))
                     <img src="{{ public_path('images/' . $rl->company->logo_path) }}" class="logo">
                 @elseif(isset($rl->company))
-                   <b>{{ $rl->company->company_code }}</b>
+                    <b>{{ $rl->company->company_code }}</b>
                 @endif
             </td>
             <td class="company-info">
@@ -165,7 +165,7 @@
                         @if($item->description) <br><span style="color:#555; font-size:8pt;">{{ $item->description }}</span> @endif
                     </td>
                     <td class="text-center">{{ $item->part_number ?? '-' }}</td>
-                    <td class="text-center">{{ $item->qty }}</td>
+                    <td class="text-center">{{ $item->qty + 0 }}</td>
                     <td class="text-center">{{ $item->uom }}</td>
                     <td class="text-center">{{ $item->stock_on_hand }}</td>
                     <td>{{ $item->remark ?? '' }}</td>
@@ -194,8 +194,6 @@
             <td class="sig-box">
                 <div class="sig-title">Requested By,</div>
                 <br><br><br><br> <div class="sig-name">{{ $rl->requester->full_name }}</div>
-
-                {{-- FIX: Panggil Helper formatJabatan --}}
                 <div class="sig-pos">{{ formatJabatan($rl->requester) }}</div>
             </td>
 
@@ -209,20 +207,19 @@
                         $mgrApp = $rl->approvalQueues->where('level_order', 1)->first();
                     }
 
-                    if ($mgrApp) {
+                    if ($mgrApp && $mgrApp->status == 'APPROVED') {
                         $mgrName = $mgrApp->approver->full_name;
-                        $mgrUser = $mgrApp->approver; // Object User
+                        $mgrUser = $mgrApp->approver;
                     } else {
-                        $mgrName = $manager->full_name ?? '( ........................... )';
-                        $mgrUser = $manager; // Object User (Plan)
+                        // FIX: Gunakan optional() dan ?? null agar aman jika $manager tidak dikirim Controller
+                        $mgrObj = $manager ?? null;
+                        $mgrName = optional($mgrObj)->full_name ?? '( ........................... )';
+                        $mgrUser = $mgrObj;
                     }
                 @endphp
 
                 <br><br><br><br>
-
                 <div class="sig-name">{{ $mgrName }}</div>
-
-                {{-- FIX: Panggil Helper formatJabatan untuk Manager --}}
                 <div class="sig-pos">{{ formatJabatan($mgrUser) }}</div>
             </td>
 
@@ -236,20 +233,19 @@
                         $dirApp = $rl->approvalQueues->where('level_order', 2)->first();
                     }
 
-                    if ($dirApp) {
+                    if ($dirApp && $dirApp->status == 'APPROVED') {
                         $dirName = $dirApp->approver->full_name;
                         $dirUser = $dirApp->approver;
                     } else {
-                        $dirName = $director->full_name ?? '( ........................... )';
-                        $dirUser = $director;
+                        // FIX: Gunakan optional() dan ?? null agar aman jika $director tidak dikirim Controller
+                        $dirObj = $director ?? null;
+                        $dirName = optional($dirObj)->full_name ?? '( ........................... )';
+                        $dirUser = $dirObj;
                     }
                 @endphp
 
                 <br><br><br><br>
-
                 <div class="sig-name">{{ $dirName }}</div>
-
-                {{-- FIX: Panggil Helper formatJabatan untuk Director --}}
                 <div class="sig-pos">{{ formatJabatan($dirUser) }}</div>
             </td>
         </tr>
