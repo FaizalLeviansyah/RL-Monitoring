@@ -249,22 +249,79 @@
                     </li>
                 @endif
 
+                {{-- === MENU MONITORING (UNTUK ADMIN & APPROVER) === --}}
                 @if($showMonitoringMenu)
-                <li class="pt-4 mt-2 mb-2 section-title"><div class="px-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Live Monitoring</div></li>
+                    <li class="pt-4 mt-2 mb-2 section-title">
+                        <div class="px-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Live Monitoring</div>
+                    </li>
 
-                <li><a href="{{ route('requisitions.status', 'on_progress') }}" class="sidebar-item neon-orange flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/on_progress') || request('ref') == 'on_progress') ? 'active' : '' }}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="flex-1 ms-3 font-medium sidebar-text">Waiting Approval</span>@if(isset($countPendingApprove) && $countPendingApprove > 0) <span class="sidebar-badge bg-orange-100 text-orange-700 rounded-full">{{ $countPendingApprove }}</span> @endif</a></li>
+                    {{-- 1. Waiting Approval (My Tasks) --}}
+                    {{-- Menggunakan $countPendingTask (Tugas Saya) --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'on_progress') }}" class="sidebar-item neon-orange flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/on_progress') || request('ref') == 'on_progress') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="flex-1 ms-3 font-medium sidebar-text">Waiting Approval</span>
+                            @if(isset($countPendingTask) && $countPendingTask > 0)
+                                <span class="sidebar-badge bg-orange-100 text-orange-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countPendingTask }}</span>
+                            @endif
+                        </a>
+                    </li>
 
-                <li><a href="{{ route('requisitions.status', 'partially_approved') }}" class="sidebar-item neon-purple flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/partially_approved') || request('ref') == 'partially_approved') ? 'active' : '' }}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path></svg><span class="flex-1 ms-3 font-medium sidebar-text">Waiting Director</span>@if($countWaitingDirector > 0) <span class="sidebar-badge bg-purple-100 text-purple-700 rounded-full">{{ $countWaitingDirector }}</span> @endif</a></li>
+                    {{-- 2. Waiting Director (Global) --}}
+                    {{-- FIX: Gunakan $countGlobalWaitingDirector --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'partially_approved') }}" class="sidebar-item neon-purple flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/partially_approved') || request('ref') == 'partially_approved') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path></svg>
+                            <span class="flex-1 ms-3 font-medium sidebar-text">Waiting Director</span>
+                            @if(isset($countGlobalWaitingDirector) && $countGlobalWaitingDirector > 0)
+                                <span class="sidebar-badge bg-purple-100 text-purple-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countGlobalWaitingDirector }}</span>
+                            @endif
+                        </a>
+                    </li>
 
-                <li><a href="{{ route('requisitions.status', 'approved') }}" class="sidebar-item neon-green flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/approved') || request('ref') == 'approved') ? 'active' : '' }}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="ms-3 font-medium sidebar-text">Final Approved</span></a></li>
+                    {{-- 3. Final Approved (Global) --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'approved') }}" class="sidebar-item neon-green flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/approved') || request('ref') == 'approved') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="ms-3 font-medium sidebar-text">Final Approved</span>
+                        </a>
+                    </li>
 
-                <li><a href="{{ route('requisitions.status', 'waiting_supply') }}" class="sidebar-item neon-yellow flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/waiting_supply') || request('ref') == 'waiting_supply') ? 'active' : '' }}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"></path></svg><span class="flex-1 ms-3 font-medium sidebar-text">Waiting Supply</span>@if($countWaitingSupply > 0) <span class="sidebar-badge bg-yellow-100 text-yellow-700 rounded-full">{{ $countWaitingSupply }}</span> @endif</a></li>
+                    {{-- 4. Waiting Supply (Global) --}}
+                    {{-- FIX: Gunakan $countGlobalWaitingSupply --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'waiting_supply') }}" class="sidebar-item neon-yellow flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/waiting_supply') || request('ref') == 'waiting_supply') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"></path></svg>
+                            <span class="flex-1 ms-3 font-medium sidebar-text">Waiting Supply</span>
+                            @if(isset($countGlobalWaitingSupply) && $countGlobalWaitingSupply > 0)
+                                <span class="sidebar-badge bg-yellow-100 text-yellow-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countGlobalWaitingSupply }}</span>
+                            @endif
+                        </a>
+                    </li>
 
-                <li><a href="{{ route('requisitions.status', 'rejected') }}" class="sidebar-item neon-red flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/rejected') || request('ref') == 'rejected') ? 'active' : '' }}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="flex-1 ms-3 font-medium sidebar-text">Rejected</span>@if($countRejected > 0) <span class="sidebar-badge bg-red-100 text-red-700 rounded-full">{{ $countRejected }}</span> @endif</a></li>
+                    {{-- 5. Rejected --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'rejected') }}" class="sidebar-item neon-red flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/rejected') || request('ref') == 'rejected') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="flex-1 ms-3 font-medium sidebar-text">Rejected</span>
+                        </a>
+                    </li>
 
-                <li><a href="{{ route('requisitions.status', 'completed') }}" class="sidebar-item neon-teal flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/completed') || request('ref') == 'completed') ? 'active' : '' }}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="ms-3 font-medium sidebar-text">Completed</span></a></li>
+                    {{-- 6. Completed --}}
+                    <li>
+                        <a href="{{ route('requisitions.status', 'completed') }}" class="sidebar-item neon-teal flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/completed') || request('ref') == 'completed') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="ms-3 font-medium sidebar-text">Completed</span>
+                        </a>
+                    </li>
 
-                <li><a href="{{ route('requisitions.department') }}" class="sidebar-item neon-indigo flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('requisitions.department') ? 'active' : '' }}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg><span class="flex-1 ms-3 font-medium sidebar-text">Department Activity</span></a></li>
+                    {{-- 7. Department Activity --}}
+                    <li>
+                        <a href="{{ route('requisitions.department') }}" class="sidebar-item neon-indigo flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('requisitions.department') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
+                            <span class="flex-1 ms-3 font-medium sidebar-text">Department Activity</span>
+                        </a>
+                    </li>
                 @endif
 
                 <li class="pt-6 mt-2 mb-2 border-t border-slate-100"></li>
