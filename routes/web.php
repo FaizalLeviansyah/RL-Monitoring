@@ -76,6 +76,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/monitoring', [GlobalMonitoringController::class, 'index'])->name('monitoring.index');
     });
 
+    Route::middleware(['can:super_admin'])->group(function () {
+    Route::post('/requisitions/{id}/rollback', [RequisitionController::class, 'rollback'])
+        ->name('requisitions.rollback');
+});
 });
 
 // DEBUG ROUTE (Boleh dihapus nanti)
