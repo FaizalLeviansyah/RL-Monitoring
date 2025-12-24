@@ -404,11 +404,11 @@ class RequisitionController extends Controller
         return $pdf->stream($fileName);
     }
 
-    public function previewTemp(Request $request)
+public function previewTemp(Request $request)
     {
-        // Kode lama Bapak untuk preview sebelum save
+        // Validasi
         $request->validate([
-            'request_date' => 'required|date',
+            'required_date' => 'required|date',
             'subject' => 'required|string',
             'items' => 'required|array',
         ]);
@@ -416,33 +416,52 @@ class RequisitionController extends Controller
         $user = Auth::user()->load(['department', 'position']);
         $company = \App\Models\Company::find($user->company_id);
 
-        // Buat Dummy Object untuk Preview
         $rl = new RequisitionLetter();
-        $rl->rl_no = "DRAFT-PREVIEW";
-        $rl->request_date = $request->request_date;
+
+        // PERUBAHAN DISINI: Ambil nomor dari input hidden, jika tidak ada pakai fallback
+        $rl->rl_no = $request->input('temp_rl_no', 'DRAFT-PREVIEW');
+
+        $rl->request_date = now();
+        $rl->required_date = $request->required_date;
         $rl->subject = $request->subject;
         $rl->status_flow = 'DRAFT';
         $rl->remark = $request->remark;
         $rl->setRelation('requester', $user);
         $rl->setRelation('company', $company);
 
-        // Items
+        // Items logic (Tetap sama)
         $items = collect();
         if($request->has('items')){
             foreach ($request->items as $itemData) {
-                $items->push(new RequisitionItem($itemData));
+                if(!empty($itemData['item_name'])) {
+                    $items->push(new RequisitionItem($itemData));
+                }
             }
         }
         $rl->setRelation('items', $items);
 
-        // Dummy Managers
+        // Logic Pejabat (Tetap sama)
         $manager = User::where('department_id', $user->department_id)
                     ->whereHas('position', fn($q) => $q->where('position_name', 'Manager'))->first();
+
+        $directorRole = 'Director';
+        if ($company && $company->company_code == 'ASM') {
+            $directorRole = 'Managing Director';
+        }
+
         $director = User::where('company_id', $user->company_id)
-                    ->whereHas('position', fn($q) => $q->where('position_name', 'Director'))->first();
+                    ->whereHas('position', fn($q) => $q->where('position_name', $directorRole))->first();
+
+        if (!$director) {
+             $director = User::where('company_id', $user->company_id)
+                    ->whereHas('position', function($q) {
+                        $q->whereIn('position_name', ['Director', 'General Manager', 'President Director']);
+                    })->first();
+        }
 
         $pdf = Pdf::loadView('requisitions.pdf', compact('rl', 'manager', 'director'));
         $pdf->setPaper('a4', 'portrait');
+
         return $pdf->stream('preview.pdf');
     }
 
