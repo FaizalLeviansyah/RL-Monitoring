@@ -29,39 +29,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // --- REQUISITION ROUTES ---
-    // Custom Routes harus diatas Resource Controller
-    Route::get('/requisitions/department', [RequisitionController::class, 'departmentActivity'])
-        ->name('requisitions.department');
+    // ====================================================
+    // --- REQUISITION ROUTES (CLEANED & FIXED) ---
+    // ====================================================
 
-    Route::get('/requisitions/status/{status}', [RequisitionController::class, 'listByStatus'])
-        ->name('requisitions.status');
+    // 1. Action Routes (Tombol-tombol)
+    Route::post('/requisitions/preview', [RequisitionController::class, 'previewTemp'])->name('requisitions.preview'); // FIX: Preview Modal
+    Route::post('/requisitions/{id}/submit', [RequisitionController::class, 'submit'])->name('requisitions.submit');   // FIX: Submit Trigger
+    Route::get('/requisitions/{id}/print', [RequisitionController::class, 'print'])->name('requisitions.print');       // FIX: Print PDF Filename Safe
+    Route::get('/requisitions/{id}/revise', [RequisitionController::class, 'revise'])->name('requisitions.revise');
 
-    Route::post('/requisitions/{id}/submit-draft', [RequisitionController::class, 'submitDraft'])
-        ->name('requisitions.submit-draft');
+    // 2. Approval Routes (Action oleh Manager/Direktur)
+    Route::post('/requisitions/{id}/approve', [RequisitionController::class, 'approve'])->name('requisitions.approve');
+    Route::post('/requisitions/{id}/reject', [RequisitionController::class, 'reject'])->name('requisitions.reject');
 
-    Route::get('/requisitions/{id}/print', [RequisitionController::class, 'printPdf'])
-        ->name('requisitions.print');
+    // 3. Filter & Menu Routes
+    Route::get('/requisitions/department', [RequisitionController::class, 'departmentActivity'])->name('requisitions.department');
+    Route::get('/requisitions/status/{status}', [RequisitionController::class, 'listByStatus'])->name('requisitions.status');
 
-    Route::post('/requisitions/preview-temp', [RequisitionController::class, 'previewTemp'])
-        ->name('requisitions.preview-temp');
+    // 4. Upload Routes (Support Files)
+    Route::post('/requisitions/{id}/upload-partial', [RequisitionController::class, 'uploadPartial'])->name('requisitions.upload_partial');
+    Route::post('/requisitions/{id}/upload-final', [RequisitionController::class, 'uploadFinal'])->name('requisitions.upload_final');
+    Route::post('/requisitions/{id}/upload-evidence', [RequisitionController::class, 'uploadEvidence'])->name('requisitions.upload_evidence');
 
-    Route::get('/requisitions/{id}/revise', [RequisitionController::class, 'revise'])
-        ->name('requisitions.revise');
-
-    Route::post('/requisitions/{id}/upload-partial', [RequisitionController::class, 'uploadPartial'])
-        ->name('requisitions.upload_partial');
-    Route::post('/requisitions/{id}/upload-final', [RequisitionController::class, 'uploadFinal'])
-        ->name('requisitions.upload_final');
-    Route::post('/requisitions/{id}/upload-evidence', [RequisitionController::class, 'uploadEvidence'])
-        ->name('requisitions.upload_evidence');
-
+    // 5. RESOURCE CONTROLLER (Harus paling bawah agar ID tidak bentrok dengan slug lain)
+    // Menangani: index, create, store, show, edit, update, destroy
     Route::resource('requisitions', RequisitionController::class);
 
-    // --- APPROVAL ROUTES ---
-    Route::post('/approval/action', [ApprovalController::class, 'action'])->name('approval.action');
-    Route::post('/approvals/{id}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
-    Route::post('/approvals/{id}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
 
     // --- SUPPLY ROUTES ---
     Route::post('/supply/store', [SupplyController::class, 'store'])->name('supply.store');
@@ -82,35 +76,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/monitoring', [GlobalMonitoringController::class, 'index'])->name('monitoring.index');
     });
 
-    // --- TAMBAHKAN ROUTE KHUSUS INI ---
-
-    // 1. Route untuk Print PDF
-    Route::get('/requisitions/{id}/print', [RequisitionController::class, 'print'])->name('requisitions.print');
-
-    // 2. Route untuk Approve
-    Route::post('/requisitions/{id}/approve', [RequisitionController::class, 'approve'])->name('requisitions.approve');
-
-    // 3. Route untuk Reject (Ini yang bikin error tadi)
-    Route::post('/requisitions/{id}/reject', [RequisitionController::class, 'reject'])->name('requisitions.reject');
-
-    // 4. Route Filter Status (Menu Sidebar: Waiting, Rejected, dll)
-    Route::get('/requisitions/status/{status}', [RequisitionController::class, 'listByStatus'])->name('requisitions.status');
-
-    // 5. Route Department Activity
-    Route::get('/department-activity', [RequisitionController::class, 'departmentActivity'])->name('requisitions.department');
-
-    // Route untuk Requester melakukan Submit
-    Route::post('/requisitions/{id}/submit', [RequisitionController::class, 'submit'])->name('requisitions.submit');
 });
 
-// DEBUG ROUTE (Opsional, bisa dihapus saat production)
+// DEBUG ROUTE (Boleh dihapus nanti)
 Route::get('/cek-db', function () {
     $dbName = DB::connection()->getDatabaseName();
-    $hasColumn = Schema::hasColumn('requisition_letters', 'attachment_partial');
     return [
         'Database' => $dbName,
-        'Tabel requisition_letters' => Schema::hasTable('requisition_letters') ? 'YA' : 'TIDAK',
-        'Kolom attachment_partial' => $hasColumn ? 'YA' : 'TIDAK',
+        'Status' => 'Connected'
     ];
 });
 
