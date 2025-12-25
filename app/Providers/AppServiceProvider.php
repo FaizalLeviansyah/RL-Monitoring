@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use App\Models\RequisitionLetter;
 use App\Models\ApprovalQueue;
 
@@ -17,6 +18,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Gate untuk Super Admin (Sesuai Middleware can:super_admin)
+        Gate::define('super_admin', function ($user) {
+            // Pastikan user punya posisi dan namanya 'Super Admin'
+            return $user->position && $user->position->position_name === 'Super Admin';
+        });
+
         // LOGIC SMART COUNTER (GLOBAL)
         View::composer('*', function ($view) {
 
