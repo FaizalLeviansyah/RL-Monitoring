@@ -17,7 +17,6 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* --- BACKGROUND MEWAH (Ambient Mesh) --- */
         .bg-executive-dashboard {
             background-color: #f8fafc;
             background-image:
@@ -25,10 +24,9 @@
                 radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.05) 0px, transparent 50%),
                 linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
-            background-attachment: fixed; /* Agar background tetap saat scroll */
+            background-attachment: fixed;
         }
 
-        /* Glass Effect untuk Navbar & Sidebar */
         .glass-panel {
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(12px);
@@ -37,12 +35,8 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.6);
         }
 
-        /* Transisi Sidebar Halus */
-        .sidebar-transition {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        .sidebar-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 
-        /* Neon Active State pada Menu */
         .sidebar-item { position: relative; overflow: hidden; transition: all 0.3s ease; white-space: nowrap; }
         .sidebar-item::before {
             content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
@@ -50,7 +44,7 @@
         }
         .sidebar-item:hover::before, .sidebar-item.active::before { opacity: 1; }
 
-        /* Warna Neon per Status (Copy dari sebelumnya, dipersingkat) */
+        /* Warna Neon */
         .neon-blue:hover, .neon-blue.active { background: rgba(59, 130, 246, 0.1); color: #2563eb; } .neon-blue::before { background: #2563eb; box-shadow: 0 0 10px #2563eb; }
         .neon-orange:hover, .neon-orange.active { background: rgba(249, 115, 22, 0.1); color: #ea580c; } .neon-orange::before { background: #ea580c; box-shadow: 0 0 10px #ea580c; }
         .neon-purple:hover, .neon-purple.active { background: rgba(147, 51, 234, 0.1); color: #7e22ce; } .neon-purple::before { background: #7e22ce; box-shadow: 0 0 10px #7e22ce; }
@@ -59,14 +53,9 @@
         .neon-red:hover, .neon-red.active { background: rgba(220, 38, 38, 0.1); color: #b91c1c; } .neon-red::before { background: #b91c1c; box-shadow: 0 0 10px #b91c1c; }
         .neon-teal:hover, .neon-teal.active { background: rgba(13, 148, 136, 0.1); color: #0f766e; } .neon-teal::before { background: #0f766e; box-shadow: 0 0 10px #0f766e; }
         .neon-indigo:hover, .neon-indigo.active { background: rgba(79, 70, 229, 0.1); color: #4338ca; } .neon-indigo::before { background: #4338ca; box-shadow: 0 0 10px #4338ca; }
+        .neon-pink:hover, .neon-pink.active { background: rgba(236, 72, 153, 0.1); color: #db2777; } .neon-pink::before { background: #db2777; box-shadow: 0 0 10px #db2777; }
 
-        /* Mobile Overlay Backdrop */
-        #mobile-backdrop {
-            background-color: rgba(15, 23, 42, 0.5);
-            backdrop-filter: blur(4px);
-        }
-
-        /* Mode Collapsed (Mini Sidebar) */
+        #mobile-backdrop { background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); }
         .sidebar-collapsed .sidebar-text, .sidebar-collapsed .section-title, .sidebar-collapsed .sidebar-badge { display: none; }
         .sidebar-collapsed .sidebar-item { justify-content: center; padding-left: 0; padding-right: 0; }
         .sidebar-collapsed .sidebar-item svg { margin-right: 0; }
@@ -89,16 +78,15 @@
     $showMonitoringMenu = $isSuperAdmin || $isApprover;
 @endphp
 
+    {{-- NAVBAR --}}
     <nav class="fixed top-0 z-50 w-full glass-panel h-16 transition-all duration-300">
         <div class="px-3 lg:px-5 lg:pl-3 h-full">
             <div class="flex items-center justify-between h-full">
-
                 <div class="flex items-center justify-start rtl:justify-end">
                     <button id="toggle-sidebar-btn" type="button" class="inline-flex items-center p-2 text-sm text-slate-500 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-200 transition-transform active:scale-95 mr-2">
                         <span class="sr-only">Toggle sidebar</span>
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path></svg>
                     </button>
-
                     <a href="{{ route('dashboard') }}" class="flex ms-1 md:me-24 group items-center">
                         <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-1.5 rounded-lg mr-3 shadow-lg shadow-blue-500/30 group-hover:rotate-6 transition-transform duration-300">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -108,7 +96,6 @@
                         </span>
                     </a>
                 </div>
-
                 <div class="flex items-center">
                     <div class="flex items-center ms-3">
                         <div class="hidden md:flex flex-col items-end mr-4">
@@ -152,6 +139,7 @@
 
     <div id="mobile-backdrop" class="fixed inset-0 z-30 hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
 
+    {{-- SIDEBAR --}}
     <aside id="main-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen pt-20 glass-panel sidebar-transition transform -translate-x-full lg:translate-x-0 shadow-2xl lg:shadow-none" aria-label="Sidebar">
         <div class="h-full px-3 pb-4 overflow-y-auto overflow-x-hidden">
             <ul class="space-y-2 font-medium">
@@ -163,27 +151,47 @@
                     </a>
                 </li>
 
+                {{-- === MENU ADMIN (SUPER ADMIN) === --}}
                 @if($isSuperAdmin)
-                    <li class="pt-4 mt-2 mb-2 section-title"><div class="px-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Admin Control</div></li>
-                    <li><a href="{{ route('admin.master-items.index') }}" class="sidebar-item neon-teal flex items-center p-3 rounded-xl text-slate-600"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg><span class="ms-3 font-medium sidebar-text">Master Items</span></a></li>
-                    <li><a href="{{ route('admin.users.index') }}" class="sidebar-item neon-indigo flex items-center p-3 rounded-xl text-slate-600"><svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg><span class="ms-3 font-medium sidebar-text">Manage Users</span></a></li>
+                    <li class="pt-4 mt-2 mb-2 section-title">
+                        <div class="px-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Admin Control</div>
+                    </li>
+
+                    <li>
+                        <a href="{{ route('admin.master-items.index') }}" class="sidebar-item neon-teal flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('admin.master-items.*') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                            <span class="ms-3 font-medium sidebar-text">Master Items</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ route('admin.users.index') }}" class="sidebar-item neon-indigo flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
+                            <span class="ms-3 font-medium sidebar-text">Manage Users</span>
+                        </a>
+                    </li>
+
+                    {{-- FIX HOVER GLOBAL DATA --}}
+                    <li>
+                        <a href="{{ route('admin.monitoring.index') }}"
+                           class="sidebar-item neon-pink flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('admin.monitoring*') ? 'active' : '' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            <span class="ms-3 font-medium sidebar-text">Global Data</span>
+                        </a>
+                    </li>
                 @endif
 
-{{-- === MENU UNTUK REQUESTER (MY REQUESTS) === --}}
+                {{-- === MENU REQUESTER === --}}
                 @if($showRequesterMenu)
                     <li class="pt-4 mt-2 mb-2 section-title">
                         <div class="px-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">My Requests</div>
                     </li>
-
-                    {{-- 1. Create New --}}
                     <li>
                         <a href="{{ route('requisitions.create') }}" class="sidebar-item neon-red flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('requisitions.create') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M5 5V.13a2.96 2.96 0 0 0-1.293.749L.879 3.707A2.96 2.96 0 0 0 .13 5H5Z"/><path d="M6.737 11.061a2.961 2.961 0 0 1 .81-1.515l6.117-6.116A4.839 4.839 0 0 1 16 2.141V2a1.97 1.97 0 0 0-1.933-2H7v5a2 2 0 0 1-2 2H0v11a1.969 1.969 0 0 0 1.933 2h12.134A1.97 1.97 0 0 0 16 18v-3.093l-1.546 1.546c-.413.413-.94.695-1.513.81l-3.4.679a2.947 2.947 0 0 1-1.85-.227 2.96 2.96 0 0 1-1.635-3.257l.681-3.397Z"/></svg>
                             <span class="ms-3 font-medium sidebar-text">Create New RL</span>
                         </a>
                     </li>
-
-                    {{-- 2. Drafts --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'draft') }}" class="sidebar-item neon-blue flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/draft') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
@@ -191,20 +199,15 @@
                             @if(isset($countDraft) && $countDraft > 0) <span class="sidebar-badge bg-slate-100 text-slate-600 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countDraft }}</span> @endif
                         </a>
                     </li>
-
-                    {{-- 3. On Progress (Waiting Manager) --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'on_progress') }}" class="sidebar-item neon-orange flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/on_progress') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             <span class="flex-1 ms-3 font-medium sidebar-text">Waiting Approval</span>
-                            {{-- GUNAKAN VARIABEL KHUSUS REQUESTER --}}
                             @if(isset($countMyOnProgress) && $countMyOnProgress > 0)
                                 <span class="sidebar-badge bg-orange-100 text-orange-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countMyOnProgress }}</span>
                             @endif
                         </a>
                     </li>
-
-                    {{-- 4. Waiting Director (Menu Baru untuk Requester agar transparan) --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'partially_approved') }}" class="sidebar-item neon-purple flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/partially_approved') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path></svg>
@@ -214,16 +217,12 @@
                             @endif
                         </a>
                     </li>
-
-                    {{-- 5. Approved --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'approved') }}" class="sidebar-item neon-green flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/approved') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             <span class="ms-3 font-medium sidebar-text">Approved</span>
                         </a>
                     </li>
-
-                    {{-- 6. Rejected --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'rejected') }}" class="sidebar-item neon-red flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/rejected') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -231,16 +230,12 @@
                             @if(isset($countRejected) && $countRejected > 0) <span class="sidebar-badge bg-red-100 text-red-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countRejected }}</span> @endif
                         </a>
                     </li>
-
-                    {{-- 7. Completed --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'completed') }}" class="sidebar-item neon-teal flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/completed') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             <span class="ms-3 font-medium sidebar-text">Completed</span>
                         </a>
                     </li>
-
-                    {{-- 8. Department Activity --}}
                     <li>
                         <a href="{{ route('requisitions.department') }}" class="sidebar-item neon-indigo flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('requisitions.department') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
@@ -249,26 +244,22 @@
                     </li>
                 @endif
 
-                {{-- === MENU MONITORING (UNTUK ADMIN & APPROVER) === --}}
+                {{-- === MENU MONITORING === --}}
                 @if($showMonitoringMenu)
                     <li class="pt-4 mt-2 mb-2 section-title">
                         <div class="px-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Live Monitoring</div>
                     </li>
 
-                    {{-- 1. Waiting Approval (My Tasks) --}}
-                    {{-- Menggunakan $countPendingTask (Tugas Saya) --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'on_progress') }}" class="sidebar-item neon-orange flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/on_progress') || request('ref') == 'on_progress') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             <span class="flex-1 ms-3 font-medium sidebar-text">Waiting Approval</span>
-                            @if(isset($countPendingTask) && $countPendingTask > 0)
-                                <span class="sidebar-badge bg-orange-100 text-orange-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countPendingTask }}</span>
+                            @if(isset($countGlobalOnProgress) && $countGlobalOnProgress > 0)
+                                <span class="sidebar-badge bg-orange-100 text-orange-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2">{{ $countGlobalOnProgress }}</span>
                             @endif
                         </a>
                     </li>
 
-                    {{-- 2. Waiting Director (Global) --}}
-                    {{-- FIX: Gunakan $countGlobalWaitingDirector --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'partially_approved') }}" class="sidebar-item neon-purple flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/partially_approved') || request('ref') == 'partially_approved') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path></svg>
@@ -279,7 +270,6 @@
                         </a>
                     </li>
 
-                    {{-- 3. Final Approved (Global) --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'approved') }}" class="sidebar-item neon-green flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/approved') || request('ref') == 'approved') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -287,8 +277,6 @@
                         </a>
                     </li>
 
-                    {{-- 4. Waiting Supply (Global) --}}
-                    {{-- FIX: Gunakan $countGlobalWaitingSupply --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'waiting_supply') }}" class="sidebar-item neon-yellow flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/waiting_supply') || request('ref') == 'waiting_supply') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"></path></svg>
@@ -299,7 +287,6 @@
                         </a>
                     </li>
 
-                    {{-- 5. Rejected --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'rejected') }}" class="sidebar-item neon-red flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/rejected') || request('ref') == 'rejected') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -307,7 +294,6 @@
                         </a>
                     </li>
 
-                    {{-- 6. Completed --}}
                     <li>
                         <a href="{{ route('requisitions.status', 'completed') }}" class="sidebar-item neon-teal flex items-center p-3 rounded-xl text-slate-600 {{ (request()->is('requisitions/status/completed') || request('ref') == 'completed') ? 'active' : '' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -315,13 +301,15 @@
                         </a>
                     </li>
 
-                    {{-- 7. Department Activity --}}
-                    <li>
-                        <a href="{{ route('requisitions.department') }}" class="sidebar-item neon-indigo flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('requisitions.department') ? 'active' : '' }}">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
-                            <span class="flex-1 ms-3 font-medium sidebar-text">Department Activity</span>
-                        </a>
-                    </li>
+                    {{-- FIX: Department Activity Disembunyikan untuk Super Admin --}}
+                    @if(!$isSuperAdmin)
+                        <li>
+                            <a href="{{ route('requisitions.department') }}" class="sidebar-item neon-indigo flex items-center p-3 rounded-xl text-slate-600 {{ request()->routeIs('requisitions.department') ? 'active' : '' }}">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
+                                <span class="flex-1 ms-3 font-medium sidebar-text">Department Activity</span>
+                            </a>
+                        </li>
+                    @endif
                 @endif
 
                 <li class="pt-6 mt-2 mb-2 border-t border-slate-100"></li>
@@ -341,19 +329,15 @@
             const toggleBtn = document.getElementById('toggle-sidebar-btn');
             const backdrop = document.getElementById('mobile-backdrop');
 
-            // Cek LocalStorage
             const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
             if (isCollapsed && window.innerWidth >= 1024) { collapseSidebar(); }
 
-            // Toggle Handler
             toggleBtn.addEventListener('click', function() {
                 if (window.innerWidth < 1024) {
-                    // Mobile: Show/Hide Drawer
                     sidebar.classList.toggle('-translate-x-full');
                     backdrop.classList.toggle('hidden');
                     setTimeout(() => backdrop.classList.toggle('opacity-0'), 10);
                 } else {
-                    // Desktop: Expand/Collapse Mini Sidebar
                     if (sidebar.classList.contains('w-64')) {
                         collapseSidebar();
                         localStorage.setItem('sidebar-collapsed', 'true');
@@ -364,7 +348,6 @@
                 }
             });
 
-            // Backdrop Click (Close Sidebar Mobile)
             backdrop.addEventListener('click', function() {
                 sidebar.classList.add('-translate-x-full');
                 backdrop.classList.add('opacity-0');

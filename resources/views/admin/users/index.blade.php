@@ -82,16 +82,41 @@
                         <th class="px-6 py-4 text-xs font-bold text-left text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+ <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                         @foreach($users as $user)
+
+                        {{-- 1. Definisikan Warna Berdasarkan Company Code di sini --}}
+                        @php
+                            $cc = $user->company->company_code ?? '-';
+
+                            // Warna untuk Badge (Teks gelap, background terang)
+                            $badgeClass = match($cc) {
+                                'ASM' => 'bg-blue-100 text-blue-800 border-blue-200',
+                                'ACS' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                                'CTP' => 'bg-red-100 text-red-800 border-red-200',
+                                default => 'bg-gray-100 text-gray-800 border-gray-200'
+                            };
+
+                            // Warna untuk Avatar Profil (Gradient cerah)
+                            $avatarGradient = match($cc) {
+                                'ASM' => 'from-blue-500 to-blue-700',
+                                'ACS' => 'from-yellow-400 to-yellow-600', // Kuning agak gelap agar teks putih terbaca
+                                'CTP' => 'from-red-500 to-red-700',
+                                default => 'from-gray-400 to-gray-600'
+                            };
+                        @endphp
+
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+
+                            {{-- KOLOM 1: PROFILE & NAMA --}}
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-10 w-10">
                                         @if($user->profile_photo_path)
                                             <img class="h-10 w-10 rounded-full object-cover border-2 border-white shadow-sm" src="{{ asset('storage/'.$user->profile_photo_path) }}" alt="">
                                         @else
-                                            <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold shadow-sm">
+                                            {{-- Gunakan variabel $avatarGradient di sini --}}
+                                            <div class="h-10 w-10 rounded-full bg-gradient-to-tr {{ $avatarGradient }} flex items-center justify-center text-white font-bold shadow-sm text-sm">
                                                 {{ substr($user->full_name, 0, 1) }}
                                             </div>
                                         @endif
@@ -103,28 +128,27 @@
                                     </div>
                                 </div>
                             </td>
+
+                            {{-- KOLOM 2: COMPANY BADGE --}}
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @php
-                                    $cc = $user->company->company_code ?? '-';
-                                    $badgeColor = match($cc) {
-                                        'ASM' => 'bg-blue-100 text-blue-800 border-blue-200',
-                                        'ACS' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
-                                        'CTP' => 'bg-red-100 text-red-800 border-red-200',
-                                        default => 'bg-gray-100 text-gray-800 border-gray-200'
-                                    };
-                                @endphp
-                                <span class="{{ $badgeColor }} px-2.5 py-0.5 rounded-md text-xs font-bold border">
+                                <span class="{{ $badgeClass }} px-2.5 py-0.5 rounded-md text-xs font-bold border">
                                     {{ $cc }}
                                 </span>
                             </td>
+
+                            {{-- KOLOM 3: DEPARTMENT --}}
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                 {{ $user->department->department_name ?? '-' }}
                             </td>
+
+                            {{-- KOLOM 4: STATUS --}}
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                     <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span> Active
                                 </span>
                             </td>
+
+                            {{-- KOLOM 5: ACTIONS --}}
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                 <a href="{{ route('admin.users.edit', $user->employee_id) }}" class="text-blue-600 hover:text-blue-900 font-bold transition">Edit</a>
                                 <span class="text-gray-300">|</span>
