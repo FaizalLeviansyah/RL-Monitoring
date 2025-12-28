@@ -1,7 +1,6 @@
 <x-app-layout>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    {{-- LOGIKA ROLE & AKSES --}}
     @php
         $user = Auth::user();
         $isRequester = $user->employee_id == $requisition->requester_id;
@@ -24,7 +23,6 @@
             {{-- 1. HEADER & ACTION BUTTONS --}}
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
 
-                {{-- BACK BUTTON & TITLE --}}
                 <div class="flex items-center gap-4">
                     <a href="{{ route('requisitions.index') }}" class="p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 shadow-sm transition-all">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -34,6 +32,7 @@
                             <h2 class="text-3xl font-black text-slate-800 tracking-tight">Requisition Details</h2>
                             <span class="px-3 py-1 rounded-full text-xs font-bold
                                 @if($requisition->status_flow == 'APPROVED') bg-green-100 text-green-700
+                                @elseif($requisition->status_flow == 'COMPLETED') bg-teal-100 text-teal-700
                                 @elseif($requisition->status_flow == 'REJECTED') bg-red-100 text-red-700
                                 @elseif($requisition->status_flow == 'DRAFT') bg-gray-100 text-gray-600
                                 @else bg-blue-100 text-blue-700 animate-pulse @endif">
@@ -47,20 +46,42 @@
                 {{-- ACTION GROUP (KANAN ATAS) --}}
                 <div class="mt-4 md:mt-0 flex gap-3">
 
-                    {{-- TOMBOL PREVIEW / PRINT PDF (Selalu Muncul untuk Semua User) --}}
-                    <a href="{{ route('requisitions.print', $requisition->id) }}" target="_blank" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 hover:text-blue-600 transition shadow-sm flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                        Preview / Print PDF
-                    </a>
+                    {{-- [1] SMART PREVIEW BUTTON --}}
+                    @if($requisition->attachment_partial)
+                        <a href="{{ asset('storage/' . $requisition->attachment_partial) }}" target="_blank" class="px-5 py-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold rounded-xl hover:bg-indigo-100 transition shadow-sm flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            View Signed Doc
+                        </a>
+                    @else
+                        <a href="{{ route('requisitions.print', $requisition->id) }}" target="_blank" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 hover:text-blue-600 transition shadow-sm flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                            Print System PDF
+                        </a>
+                    @endif
 
-                    {{-- TOMBOL EDIT (Dikembalikan Sesuai Request) --}}
+                    {{-- [2] ADMIN ROLLBACK --}}
+                    @can('super_admin')
+                        @if(in_array($requisition->status_flow, ['ON_PROGRESS', 'PARTIALLY_APPROVED']))
+                            <button type="button" onclick="confirmRollback('{{ $requisition->status_flow }}')" class="px-5 py-2.5 bg-red-600 text-white font-bold rounded-xl shadow-lg hover:bg-red-700 transition flex items-center border border-red-500">
+                                <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                Admin Rollback
+                            </button>
+
+                            <form id="rollbackForm" action="{{ route('requisitions.rollback', $requisition->id) }}" method="POST" class="hidden">
+                                @csrf
+                                <input type="hidden" name="reason" id="rollback_reason">
+                                <input type="hidden" name="target" id="rollback_target">
+                            </form>
+                        @endif
+                    @endcan
+
+                    {{-- [3] EDIT DATA --}}
                     @if($canEdit)
                         <a href="{{ route('requisitions.edit', $requisition->id) }}" class="px-5 py-2.5 bg-orange-50 text-orange-600 font-bold rounded-xl border border-orange-200 hover:bg-orange-100 transition shadow-sm flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Edit Data
                         </a>
                     @endif
-
                 </div>
             </div>
 
@@ -86,7 +107,6 @@
                             </div>
                         </div>
 
-                        {{-- ITEMS TABLE --}}
                         <div class="mt-8">
                             <h3 class="text-sm font-bold text-slate-400 uppercase mb-3">Items Requested</h3>
                             <div class="overflow-hidden rounded-xl border border-slate-200">
@@ -114,7 +134,7 @@
                         </div>
                     </div>
 
-                    {{-- 🟢 APPROVER ZONE: KHUSUS UNTUK MANAGER/DIREKTUR (PREVIEW + ACTION) --}}
+                    {{-- 🟢 APPROVER ZONE: KHUSUS UNTUK MANAGER/DIREKTUR --}}
                     @if($isPendingApprover)
                         <div class="bg-slate-800 rounded-2xl shadow-xl overflow-hidden border border-slate-700 relative">
                             <div class="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
@@ -125,12 +145,15 @@
                                 <span class="text-xs text-slate-400">You are the current approver</span>
                             </div>
 
-                            {{-- PDF PREVIEW IFRAME --}}
+                            {{-- SMART PREVIEW --}}
                             <div class="aspect-w-16 aspect-h-9 h-[500px] bg-white">
-                                <iframe src="{{ route('requisitions.print', $requisition->id) }}" class="w-full h-full"></iframe>
+                                @if($requisition->attachment_partial)
+                                    <iframe src="{{ asset('storage/' . $requisition->attachment_partial) }}" class="w-full h-full"></iframe>
+                                @else
+                                    <iframe src="{{ route('requisitions.print', $requisition->id) }}" class="w-full h-full"></iframe>
+                                @endif
                             </div>
 
-                            {{-- APPROVAL ACTION BUTTONS --}}
                             <div class="p-6 bg-slate-800 border-t border-slate-700 flex flex-col md:flex-row gap-4 justify-end items-center">
                                 <form action="{{ route('requisitions.reject', $requisition->id) }}" method="POST" class="w-full md:w-auto">
                                     @csrf
@@ -158,25 +181,68 @@
                 {{-- RIGHT COLUMN: ACTIONS & TRACKING --}}
                 <div class="space-y-6">
 
-                    {{-- 🔵 REQUESTER ZONE: UPLOAD & SUBMIT (STRICT MODE) --}}
+                    {{-- 🔵 REQUESTER ZONE: UPLOAD & SUBMIT (DRAFT) --}}
                     @if($isRequester && $requisition->status_flow == 'DRAFT')
                         <div class="bg-white rounded-2xl shadow-xl border border-blue-100 p-6 relative overflow-hidden">
                             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
 
-                            <h3 class="text-lg font-black text-slate-800 mb-4">Submission Checklist</h3>
+                           {{-- BAGIAN FILE UPLOAD DENGAN TOMBOL HAPUS (X) --}}
+                            @if($requisition->attachment_partial)
+                                <div class="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200 mb-4 group transition-all hover:bg-green-100">
+                                    <div class="flex items-center gap-3 overflow-hidden">
+                                        {{-- Ikon Dokumen --}}
+                                        <div class="bg-white p-1.5 rounded-md shadow-sm border border-green-100">
+                                            <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        </div>
 
-                            {{-- 1. UPLOAD SIGNED DOCUMENT (WAJIB) --}}
+                                        <div class="flex flex-col">
+                                            <span class="text-xs font-bold text-green-800">Document Uploaded</span>
+                                            <a href="{{ asset('storage/' . $requisition->attachment_partial) }}" target="_blank" class="text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-medium truncate max-w-[150px]">
+                                                View / Check File
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {{-- TOMBOL SILANG (HAPUS FILE) DENGAN SWEETALERT --}}
+                                    <form id="removeFileForm" action="{{ route('requisitions.remove_partial', $requisition->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                        {{-- Ubah type="submit" jadi type="button" dan tambah onclick --}}
+                                        <button type="button" onclick="confirmRemoveFile()" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Remove File">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            @endif
+
+                            {{-- PDF PREVIEW --}}
+                            @if($requisition->attachment_partial)
+                                <div class="mb-6">
+                                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Uploaded Document Preview</h4>
+                                    <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                        <iframe src="{{ asset('storage/' . $requisition->attachment_partial) }}" class="w-full h-64" frameborder="0"></iframe>
+                                    </div>
+                                    <div class="text-right mt-1">
+                                        <a href="{{ asset('storage/' . $requisition->attachment_partial) }}" target="_blank" class="text-xs text-blue-600 hover:underline font-bold">
+                                            Open in Full Window ↗
+                                        </a>
+                                    </div>
+                                </div>
+                            @endif
+
                             <div class="mb-6 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
                                 <p class="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center">
                                     <svg class="w-4 h-4 mr-1 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                                     Step 1: Upload Signed Document <span class="text-red-600 font-bold">*REQUIRED</span>
                                 </p>
 
+                                {{-- INSTRUKSI DETAIL UNTUK REQUESTER --}}
                                 <div class="mb-3 text-xs text-slate-500 leading-relaxed">
                                     <ol class="list-decimal list-inside space-y-1">
                                         <li>Print the PDF (Click button above).</li>
-                                        <li>Sign it (Requester).</li>
-                                        <li>Scan/Photo and upload it here.</li>
+                                        <li><strong>Sign it yourself</strong> (Requester).</li>
+                                        <li><strong>Request Manager's Wet Signature</strong> (Offline/Physical).</li>
+                                        <li>Scan the document (Contains <strong>2 signatures</strong>).</li>
+                                        <li>Upload the scanned file here.</li>
                                     </ol>
                                 </div>
 
@@ -199,18 +265,57 @@
                                 </form>
                             </div>
 
-                            {{-- 2. SUBMIT BUTTON (PROTECTED) --}}
                             <div>
                                 <p class="text-xs font-bold text-slate-500 uppercase mb-2">Step 2: Submit to Manager</p>
                                 <form action="{{ route('requisitions.submit', $requisition->id) }}" method="POST" id="submitForm">
                                     @csrf
-                                    {{-- Pass status file ke JS --}}
                                     <button type="button" onclick="confirmSubmit({{ $requisition->attachment_partial ? 'true' : 'false' }})" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-1 flex justify-center items-center">
                                         <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                                         Submit for Approval
                                     </button>
                                 </form>
                             </div>
+                        </div>
+                    @endif
+
+                    {{-- 🟢 NEW: KONFIRMASI BARANG DATANG (Hanya muncul jika sudah APPROVED) --}}
+                    @if($isRequester && $requisition->status_flow == 'APPROVED')
+                        <div class="bg-white rounded-2xl shadow-xl border border-green-100 p-6 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-500"></div>
+
+                            <h3 class="text-lg font-black text-slate-800 mb-2">📦 Item Arrival Confirmation</h3>
+                            <p class="text-sm text-slate-500 mb-4">Has the item arrived? Please upload a photo/delivery note to close this ticket.</p>
+
+                            <form action="{{ route('requisitions.upload_evidence', $requisition->id) }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <div class="mb-4">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Evidence / Photo</label>
+                                    <input type="file" name="evidence_photo" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" required>
+                                </div>
+
+                                <button type="submit" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg shadow-green-500/30 transition flex justify-center items-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Confirm Received & Complete Ticket
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+
+                    {{-- 🏁 TAMPILAN JIKA SUDAH COMPLETED --}}
+                    @if($requisition->status_flow == 'COMPLETED')
+                        <div class="bg-slate-100 rounded-xl p-6 border border-slate-200 mt-6 text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                                <svg class="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800">Transaction Completed</h3>
+                            <p class="text-slate-500 text-sm mb-4">This requisition has been fulfilled and closed.</p>
+
+                            @if($requisition->evidence_photo)
+                                <div class="mt-2">
+                                    <p class="text-xs font-bold text-slate-400 uppercase mb-2">Evidence:</p>
+                                    <img src="{{ asset('storage/' . $requisition->evidence_photo) }}" class="h-32 mx-auto rounded-lg border border-slate-300 shadow-sm">
+                                </div>
+                            @endif
                         </div>
                     @endif
 
@@ -235,41 +340,129 @@
                             @endforelse
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- JAVASCRIPT VALIDASI KETAT --}}
+    {{-- JAVASCRIPT --}}
     <script>
+        // --- 1. LOGIC SUBMIT (Requester) ---
         function confirmSubmit(hasFile) {
-            // STRICT CHECK: JIKA FILE BELUM ADA, ERROR DAN STOP.
+            if (typeof Swal === 'undefined') {
+                alert('Error: SweetAlert2 resource not loaded.');
+                return;
+            }
+
             if (!hasFile) {
                 Swal.fire({
                     title: 'Upload Required!',
-                    text: '⛔ You MUST upload the signed document (Step 1) before submitting to Manager.',
+                    text: '⛔ You MUST upload the signed document (Step 1) before submitting.',
                     icon: 'error',
-                    confirmButtonColor: '#1e293b', // Slate-800
+                    confirmButtonColor: '#1e293b',
                     confirmButtonText: 'OK, I will upload'
                 });
-                return; // Stop eksekusi
+                return;
             }
 
-            // JIKA FILE ADA, BARU KONFIRMASI SUBMIT
+            // MODAL WARNING UPDATE: Tanya apakah sudah ada 2 TTD?
             Swal.fire({
-                title: 'Submit Request?',
-                text: "The request will be sent to your Manager for approval. Physical document can follow later.",
-                icon: 'question',
+                title: '⚠️ Final Check!',
+                html: "Before submitting, please confirm:<br><br><strong>Does the uploaded file contain BOTH your signature AND your Manager's signature?</strong>",
+                icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#2563eb',
                 cancelButtonColor: '#94a3b8',
-                confirmButtonText: 'Yes, Submit!',
+                confirmButtonText: 'Yes, Both Signatures are Present!',
+                cancelButtonText: 'No, let me check'
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.getElementById('submitForm').submit();
                 }
-            })
+            });
+        }
+
+        // --- 2. LOGIC ROLLBACK (Admin) ---
+        function confirmRollback(statusRaw) {
+            if (typeof Swal === 'undefined') {
+                alert('Error: SweetAlert2 resource not loaded.');
+                return;
+            }
+
+            let currentStatus = String(statusRaw).trim().toUpperCase();
+            let inputOptions = {};
+            let defaultVal = 'TO_DRAFT';
+
+            if (currentStatus === 'PARTIALLY_APPROVED') {
+                inputOptions = {
+                    'TO_MANAGER': '⬅️ Back to Manager (Step 1)',
+                    'TO_DRAFT':   '⏮️ Reset to Draft (Requester)'
+                };
+                defaultVal = 'TO_MANAGER';
+            }
+            else if (currentStatus === 'ON_PROGRESS') {
+                inputOptions = {
+                    'TO_DRAFT': '⏮️ Reset to Draft (Requester)'
+                };
+            } else {
+                Swal.fire('Error', 'Current status ('+currentStatus+') is not valid for rollback.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: '⚠️ Admin Rollback',
+                text: "Choose rollback target level:",
+                icon: 'warning',
+                input: 'radio',
+                inputOptions: inputOptions,
+                inputValue: defaultVal,
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Next ➡️',
+                inputValidator: (value) => {
+                    if (!value) return 'You need to choose a target!'
+                }
+            }).then((step1) => {
+                if (step1.isConfirmed) {
+                    const targetLevel = step1.value;
+                    Swal.fire({
+                        title: '📝 Reason Required',
+                        text: 'Please explain why this rollback is necessary:',
+                        input: 'textarea',
+                        inputPlaceholder: 'e.g. Wrong attachment, Budget revision...',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        confirmButtonText: 'Execute Rollback 🚀',
+                        inputValidator: (value) => {
+                            if (!value || value.length < 5) return 'Reason is too short (min 5 chars)!'
+                        }
+                    }).then((step2) => {
+                        if (step2.isConfirmed) {
+                            document.getElementById('rollback_target').value = targetLevel;
+                            document.getElementById('rollback_reason').value = step2.value;
+                            document.getElementById('rollbackForm').submit();
+                        }
+                    });
+                }
+            });
+        }
+
+        // --- 3. LOGIC REMOVE FILE (Requester) ---
+        function confirmRemoveFile() {
+            Swal.fire({
+                title: 'Remove File?',
+                text: "Are you sure you want to delete this uploaded document? You will need to upload again.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33', // Merah untuk bahaya
+                cancelButtonColor: '#3085d6', // Biru untuk batal
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Submit form secara manual via JS
+                    document.getElementById('removeFileForm').submit();
+                }
+            });
         }
     </script>
 </x-app-layout>

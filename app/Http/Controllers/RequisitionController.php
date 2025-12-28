@@ -211,10 +211,11 @@ public function departmentActivity()
         return view('requisitions.edit', compact('requisition', 'masterItems'));
     }
 
-    public function update(Request $request, $id)
+public function update(Request $request, $id)
     {
         $rl = RequisitionLetter::findOrFail($id);
 
+        // ... (Validasi security dan input tetap sama) ...
         if (!in_array($rl->status_flow, ['DRAFT', 'REJECTED'])) {
             return abort(403);
         }
@@ -227,11 +228,11 @@ public function departmentActivity()
 
         // Update Header
         $rl->update([
+            'request_date'  => now(),
             'subject'       => $request->subject,
             'required_date' => $request->required_date,
             'priority'      => $request->priority,
             'remark'        => $request->remark,
-            // Jika REJECTED -> ON_PROGRESS (Auto Resubmit)
             'status_flow'   => ($rl->status_flow == 'REJECTED') ? 'ON_PROGRESS' : $rl->status_flow,
         ]);
 
@@ -337,10 +338,9 @@ public function submit($id)
 public function approve($id)
     {
         $user = Auth::user();
-        // Load relasi lengkap biar data WA lengkap
         $rl = RequisitionLetter::with(['requester', 'approvalQueues.approver'])->findOrFail($id);
 
-        // 1. Cari antrian milik user ini
+        // Cari antrian PENDING milik user ini
         $queue = $rl->approvalQueues()
                     ->where('approver_id', $user->employee_id)
                     ->where('status', 'PENDING')
@@ -350,21 +350,30 @@ public function approve($id)
             return back()->with('error', 'No pending approval found for you.');
         }
 
-        // 2. Update Status Queue User Ini jadi APPROVED
+        // 1. Update Status Queue User Ini jadi APPROVED
         $queue->update([
             'status' => 'APPROVED',
             'updated_at' => now()
         ]);
 
-        // 3. LOGIKA LANJUTAN (BERJENJANG)
+        // 2. LOGIKA TRANSISI LEVEL
 
-        // --- SKENARIO A: MANAGER (Level 1) APPROVE ---
+        // --- SKENARIO A: MANAGER (Level 1) SELESAI ---
         if ($queue->level_order == 1) {
             $rl->update(['status_flow' => 'PARTIALLY_APPROVED']);
 
-            // -> KIRIM WA KE DIREKTUR (Level 2)
+            // [NEW] AKTIFKAN ANTRIAN LEVEL 2 (DIREKTUR)
+            // Ubah status antrian Direktur dari SCHEDULED -> PENDING
+            $rl->approvalQueues()
+               ->where('level_order', 2)
+               ->where('status', 'SCHEDULED')
+               ->update(['status' => 'PENDING']);
+
+            // KIRIM WA KE DIREKTUR (Level 2)
             try {
+                // Ambil data Direktur yang baru saja diaktifkan antriannya
                 $nextQueue = $rl->approvalQueues()->where('level_order', 2)->first();
+
                 if ($nextQueue && $nextQueue->approver->phone) {
                     $director = $nextQueue->approver;
                     $link = route('requisitions.show', $rl->id);
@@ -385,11 +394,11 @@ public function approve($id)
             }
         }
 
-        // --- SKENARIO B: DIREKTUR (Level 2) APPROVE ---
+        // --- SKENARIO B: DIREKTUR (Level 2) SELESAI ---
         elseif ($queue->level_order == 2) {
             $rl->update(['status_flow' => 'APPROVED']);
 
-            // -> KIRIM WA KABAR GEMBIRA KE REQUESTER
+            // KIRIM WA KE REQUESTER
             try {
                 if ($rl->requester->phone) {
                     $link = route('requisitions.show', $rl->id);
@@ -553,6 +562,31 @@ public function previewTemp(Request $request)
         return back()->with('success', 'Document uploaded successfully!');
     }
 
+    // FITUR: HAPUS FILE UPLOAD (JIKA SALAH UPLOAD)
+    public function removePartial($id)
+    {
+        $rl = RequisitionLetter::findOrFail($id);
+
+        // Hanya boleh hapus jika masih DRAFT
+        if ($rl->status_flow !== 'DRAFT') {
+            return back()->with('error', 'Cannot remove file. Document is already processed.');
+        }
+
+        // Hapus file fisik dan update database
+        if ($rl->attachment_partial) {
+            try {
+                // Hapus file dari folder storage (Opsional, agar hemat space)
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($rl->attachment_partial);
+            } catch (\Exception $e) {
+                // Abaikan jika file fisik tidak ketemu, lanjut hapus data di DB
+            }
+
+            $rl->update(['attachment_partial' => null]);
+        }
+
+        return back()->with('success', 'File removed successfully. Please upload the correct one.');
+    }
+
     public function uploadFinal(Request $request, $id)
     {
         $request->validate(['file_final' => 'required|mimes:pdf|max:5120']);
@@ -582,55 +616,151 @@ public function previewTemp(Request $request)
     // 5. PRIVATE HELPERS
     // =========================================================================
 
-    private function generateApprovalQueue($rl)
+    // FITUR: ADMIN ROLLBACK (RESET TO DRAFT)
+// FITUR: ADMIN HIERARCHICAL ROLLBACK
+   // FITUR: ADMIN HIERARCHICAL ROLLBACK (WITH POLITE NOTIFICATION)
+    public function rollback(Request $request, $id)
     {
-        $rl->load('company'); // Pastikan relasi diload
+        // 1. Validasi Input
+        $request->validate([
+            'reason' => 'required|string|min:5',
+            'target' => 'required|in:TO_DRAFT,TO_MANAGER'
+        ]);
 
-        // 1. Bersihkan antrian lama
+        $rl = RequisitionLetter::with(['requester', 'approvalQueues.approver'])->findOrFail($id);
+        $adminReason = $request->reason;
+        $target = $request->target;
+
+        // Cek apakah status valid untuk di-rollback
+        if (!in_array($rl->status_flow, ['ON_PROGRESS', 'PARTIALLY_APPROVED'])) {
+            return back()->with('error', 'Cannot rollback. Document is currently not in progress.');
+        }
+
+        // Cari siapa yang sedang "memegang" dokumen ini SEBELUM di-rollback (untuk dikabari)
+        $activeQueue = $rl->approvalQueues()->where('status', 'PENDING')->first();
+        $currentHolder = $activeQueue ? $activeQueue->approver : null;
+
+        // 2. EKSEKUSI DATABASE (BYPASS APPROVAL)
+        DB::transaction(function () use ($rl, $target) {
+
+            // --- OPSI A: MUNDUR KE MANAGER (Hanya jika posisi di Direktur) ---
+            if ($target === 'TO_MANAGER') {
+                if ($rl->status_flow !== 'PARTIALLY_APPROVED') {
+                    throw new \Exception("Cannot rollback to Manager from current stage.");
+                }
+
+                $rl->update(['status_flow' => 'ON_PROGRESS']);
+
+                // Reset Direktur -> SCHEDULED (Menunggu lagi)
+                $rl->approvalQueues()->where('level_order', 2)
+                   ->update(['status' => 'SCHEDULED', 'updated_at' => null]);
+
+                // Reset Manager -> PENDING (Harus kerja lagi)
+                $rl->approvalQueues()->where('level_order', 1)
+                   ->update(['status' => 'PENDING', 'updated_at' => null]);
+            }
+
+            // --- OPSI B: RESET TOTAL KE DRAFT (Dari tahap manapun) ---
+            elseif ($target === 'TO_DRAFT') {
+                $rl->update(['status_flow' => 'DRAFT']);
+
+                // Reset Semua Antrian seolah-olah baru
+                // Level 1 (Manager) -> PENDING (Siap terima submit ulang)
+                // Level 2 (Direktur) -> SCHEDULED (Terkunci)
+                $rl->approvalQueues()->where('level_order', 1)->update(['status' => 'PENDING', 'updated_at' => null]);
+                $rl->approvalQueues()->where('level_order', 2)->update(['status' => 'SCHEDULED', 'updated_at' => null]);
+            }
+        });
+
+        // 3. NOTIFIKASI WA "SOPAN" & INFORMATIF
+        try {
+            // A. KABAR KE REQUESTER (Wajib tahu nasib dokumennya)
+            if ($rl->requester->phone) {
+                $statusMsg = ($target === 'TO_DRAFT') ? 'DRAFT (Revisi)' : 'MANAGER (Review Ulang)';
+
+                $msg  = "🔄 *STATUS UPDATE: ROLLBACK*\n\n";
+                $msg .= "Dear {$rl->requester->full_name},\n";
+                $msg .= "Dokumen RL *{$rl->rl_no}* telah dikembalikan statusnya menjadi *{$statusMsg}* oleh Admin.\n\n";
+                $msg .= "📝 *Catatan Admin:* \"{$adminReason}\"\n";
+                $msg .= "👉 Silakan cek aplikasi untuk tindak lanjut.";
+
+                WaService::send($rl->requester->phone, $msg);
+            }
+
+            // B. KABAR KE PEMEGANG DOKUMEN (Agar tidak kaget/buang waktu)
+            // Ini menjawab concern Bapak: "Sopannya bagaimana?" -> Memberi info bahwa dokumen ditarik.
+            if ($currentHolder && $currentHolder->phone) {
+                $msg  = "ℹ️ *NOTIFICATION: DOCUMENT RECALLED*\n\n";
+                $msg .= "Dear Mr/Ms. {$currentHolder->full_name},\n";
+                $msg .= "Mohon abaikan notifikasi approval sebelumnya untuk RL No: *{$rl->rl_no}*.\n\n";
+                $msg .= "Dokumen tersebut telah *DITARIK KEMBALI (RECALLED)* oleh Admin ke tahap sebelumnya untuk keperluan revisi/koreksi data.\n\n";
+                $msg .= "📝 *Alasan:* \"{$adminReason}\"\n";
+                $msg .= "_Anda akan menerima notifikasi baru jika dokumen diajukan kembali._";
+
+                WaService::send($currentHolder->phone, $msg);
+            }
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("WA Rollback Notification Error: " . $e->getMessage());
+        }
+
+        return back()->with('success', 'Rollback executed successfully. Relevant parties notified.');
+    }
+
+
+    private function sendWhatsappNotification($phone, $message) {
+        try {
+            if ($phone) WaService::send($phone, $message);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("WA Error: " . $e->getMessage());
+        }
+    }
+
+private function generateApprovalQueue($rl)
+    {
+        // 1. BERSIHKAN ANTRIAN LAMA
         $rl->approvalQueues()->delete();
 
-        // 2. Cari Manager
+        if (!$rl->requester) return;
+
+        // 2. LEVEL 1: MANAGER (Status: PENDING - Langsung Aktif)
         $manager = User::where('department_id', $rl->requester->department_id)
                     ->whereHas('position', function($q) {
                         $q->where('position_name', 'Manager');
                     })->first();
 
-        // 3. Cari Direktur (Logic ASM)
-        $directorRole = 'Director';
-        if ($rl->company && $rl->company->company_code == 'ASM') {
-            $directorRole = 'Managing Director';
+        if ($manager) {
+            ApprovalQueue::create([
+                'rl_id' => $rl->id,
+                'approver_id' => $manager->employee_id,
+                'level_order' => 1,
+                'status' => 'PENDING', // <--- Level 1 Aktif Duluan
+            ]);
         }
+
+        // 3. LEVEL 2: DIREKTUR (Status: SCHEDULED - Menunggu Giliran)
+        $directorRole = ($rl->company && $rl->company->company_code == 'ASM')
+                        ? 'Managing Director'
+                        : 'Director';
 
         $director = User::where('company_id', $rl->company_id)
                     ->whereHas('position', function($q) use ($directorRole) {
                         $q->where('position_name', $directorRole);
                     })->first();
 
-        // Fallback: Jika spesifik role tidak ketemu, cari Director umum
         if (!$director) {
              $director = User::where('company_id', $rl->company_id)
                     ->whereHas('position', function($q) {
-                        $q->where('position_name', 'Director');
+                        $q->whereIn('position_name', ['Director', 'General Manager', 'President Director']);
                     })->first();
         }
 
-        // 4. Masukkan ke Antrian
-
-        // Level 1: Manager
-        if ($manager) {
-            $rl->approvalQueues()->create([
-                'approver_id' => $manager->employee_id,
-                'level_order' => 1,
-                'status'      => 'PENDING'
-            ]);
-        }
-
-        // Level 2: Director / MD
         if ($director) {
-            $rl->approvalQueues()->create([
+            ApprovalQueue::create([
+                'rl_id' => $rl->id,
                 'approver_id' => $director->employee_id,
                 'level_order' => 2,
-                'status'      => 'PENDING'
+                'status' => 'SCHEDULED', // <--- PERUBAHAN DISINI (Jangan PENDING dulu)
             ]);
         }
     }
