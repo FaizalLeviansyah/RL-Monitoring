@@ -1,8 +1,5 @@
 <x-app-layout>
-    {{-- 1. LOAD SWEETALERT2 (CDN) --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    {{-- 2. MODAL PREVIEW PDF (Hidden by default) --}}
     <div id="previewModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm" aria-hidden="true" onclick="closePreview()"></div>
@@ -371,7 +368,11 @@
             form.submit();
         }
     </script>
-</x-app-layout>
+</x-app-layout> --}}
+
+
+
+
 
 {{-- <x-app-layout>
     <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">

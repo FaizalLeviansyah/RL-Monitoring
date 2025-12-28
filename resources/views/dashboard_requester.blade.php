@@ -12,13 +12,13 @@
                         Here is your request overview.
                     </p>
                 </div>
-                
+
                 <div class="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
                     <a href="{{ route('requisitions.create') }}" class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-bold text-white transition-all duration-200 bg-blue-600 font-pj rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30">
                         <svg class="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         Create New Request
                     </a>
-                    
+
                     @if($isApprover)
                     <div class="p-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center">
                         <a href="{{ route('dashboard.select_role', 'approver') }}" class="px-4 py-2 rounded-lg text-xs font-bold text-gray-500 hover:text-blue-600 transition">Approver View</a>
@@ -86,7 +86,7 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
+
                 <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-md border-t-4 border-blue-500 p-6">
                      <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg font-extrabold text-gray-800 dark:text-white flex items-center">
@@ -94,7 +94,7 @@
                         </h3>
                         <a href="{{ route('requisitions.status', 'on_progress') }}" class="text-sm font-bold text-blue-600 hover:text-blue-800">View All</a>
                      </div>
-                     
+
                      @include('dashboard.partials.activity_table')
                 </div>
 
@@ -102,7 +102,7 @@
                      <h3 class="text-lg font-extrabold text-gray-800 dark:text-white mb-4 flex items-center">
                         <span class="mr-2">⏱️</span> Deadline Analysis
                      </h3>
-                     
+
                      <div class="relative h-48 w-full mb-4">
                         <canvas id="priorityChart"></canvas>
                      </div>
@@ -152,7 +152,7 @@
 
         </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -169,9 +169,9 @@
                         borderRadius: 6, barThickness: 30
                     }]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { y: { display: false }, x: { grid: { display: false } } }
                 }

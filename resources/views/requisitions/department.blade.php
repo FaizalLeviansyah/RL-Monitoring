@@ -2,7 +2,6 @@
     <div class="pt-6 pb-12 min-h-screen bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {{-- HEADER --}}
             <div class="flex justify-between items-center mb-8 animate-fade-in-down">
                 <div>
                     <h2 class="text-2xl font-black text-slate-800 tracking-tight">Department Activity</h2>
@@ -17,7 +16,6 @@
                 </div>
             </div>
 
-            {{-- LIST CARD --}}
             <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden">
                 @if($requisitions->count() > 0)
                     <div class="overflow-x-auto">
@@ -75,7 +73,6 @@
                         </table>
                     </div>
 
-                    {{-- Pagination --}}
                     <div class="p-6 border-t border-slate-100">
                         {{ $requisitions->links() }}
                     </div>
