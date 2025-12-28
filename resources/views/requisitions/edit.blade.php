@@ -1,11 +1,9 @@
 <x-app-layout>
-    {{-- SWEETALERT --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <div class="pt-6 pb-12 min-h-screen bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {{-- HEADER --}}
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 animate-fade-in-down">
                 <div>
                     <h2 class="text-3xl font-black text-slate-800 tracking-tight">Edit Requisition</h2>
@@ -15,40 +13,32 @@
                 </div>
             </div>
 
-            {{-- FORM CARD --}}
             <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden relative">
-                {{-- Indikator Warna Header (Orange menandakan Edit Mode) --}}
                 <div class="h-2 bg-gradient-to-r from-orange-400 via-pink-500 to-red-500"></div>
 
                 <form action="{{ route('requisitions.update', $requisition->id) }}" method="POST" class="p-8" id="editForm">
                     @csrf
                     @method('PUT')
 
-                    {{-- SECTION A: HEADER INFO --}}
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 border-b border-slate-100 pb-8">
 
-                        {{-- To Dept --}}
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">To Department</label>
                             <input type="text" value="Purchasing / Procurement" readonly
                                 class="w-full bg-slate-100 border-slate-200 rounded-xl text-slate-500 font-bold cursor-not-allowed py-3 px-4 shadow-inner">
                         </div>
 
-                        {{-- Required Date --}}
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Required Date <span class="text-red-500">*</span></label>
-                            {{-- FIX: min="{{ date('Y-m-d') }}" agar tidak bisa pilih masa lalu --}}
                             <input type="date" name="required_date" id="required_date"
                                 min="{{ date('Y-m-d') }}"
                                 value="{{ old('required_date', $requisition->required_date) }}"
                                 class="w-full bg-white border-2 border-orange-100 rounded-xl text-slate-800 font-bold focus:ring-orange-500 focus:border-orange-500 py-3 px-4 shadow-sm" required>
                         </div>
 
-                        {{-- Priority --}}
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Priority Level <span class="text-red-500">*</span></label>
                             <div class="relative">
-                                {{-- FIX: Logic Selected agar sesuai database tapi bisa diganti --}}
                                 <select name="priority" id="priority" class="w-full bg-slate-50 border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-bold text-slate-700 py-3 px-4 appearance-none">
                                     <option value="Normal" {{ $requisition->priority == 'Normal' ? 'selected' : '' }}>🟢 Normal (Routine)</option>
                                     <option value="Urgent" {{ $requisition->priority == 'Urgent' ? 'selected' : '' }}>🟠 Urgent (Important)</option>
@@ -60,7 +50,6 @@
                             </div>
                         </div>
 
-                        {{-- Subject --}}
                         <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Subject / Purpose <span class="text-red-500">*</span></label>
                             <input type="text" name="subject"
@@ -69,14 +58,12 @@
                                 required>
                         </div>
 
-                        {{-- Request Date (Read Only saat Edit agar konsisten) --}}
                         <div>
                              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Request Date</label>
                              <input type="date" value="{{ $requisition->request_date }}" readonly
                                 class="w-full bg-slate-100 border-slate-200 rounded-xl text-slate-500 font-bold py-3 px-4 cursor-not-allowed">
                         </div>
 
-                        {{-- Remarks --}}
                         <div class="md:col-span-3">
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Justification / Remarks</label>
                             <textarea name="remark" rows="2"
@@ -84,7 +71,6 @@
                         </div>
                     </div>
 
-                    {{-- SECTION B: ITEMS TABLE --}}
                     <div class="mb-8">
                         <div class="flex justify-between items-end mb-4">
                             <h3 class="text-lg font-bold text-slate-800">Requested Items</h3>
@@ -107,13 +93,11 @@
                                     </tr>
                                 </thead>
                                 <tbody id="itemsContainer" class="bg-white divide-y divide-slate-100">
-                                    {{-- JS akan mengisi ini --}}
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    {{-- ACTIONS --}}
                     <div class="flex justify-end items-center pt-6 border-t border-slate-100 gap-4">
                         <a href="{{ route('requisitions.show', $requisition->id) }}" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition shadow-sm">
                             Cancel
@@ -130,10 +114,9 @@
         </div>
     </div>
 
-{{-- JAVASCRIPT LOGIC --}}
     <script>
-        const masterItems = @json($masterItems); // Data Master dari Controller
-        const existingItems = @json($requisition->items); // Data yang tersimpan di DB
+        const masterItems = @json($masterItems);
+        const existingItems = @json($requisition->items);
         let rowCount = 0;
 
         const uomOptions = [
@@ -147,42 +130,33 @@
                     addItemRow(item.item_name, item.qty, item.uom, item.description, item.id);
                 });
             } else {
-                addItemRow(); // Default baris kosong jika tidak ada item
+                addItemRow();
             }
         });
 
-        // Function Add Row dengan Logic "Legacy Item"
         function addItemRow(name = '', qty = '', uom = '', desc = '', id = null) {
             const container = document.getElementById('itemsContainer');
             const row = document.createElement('tr');
             row.className = 'hover:bg-orange-50/30 transition-colors group relative';
 
-            // --- LOGIC DROPDOWN ITEM YANG DIPERBAIKI ---
             let itemsHtml = `<option value="">-- Select Item --</option>`;
             let isMatchFound = false;
 
-            // 1. Loop Master Item
             masterItems.forEach(item => {
-                // Cek kesamaan nama (Case Insensitive agar lebih aman)
-                // Pastikan kedua sisi string ada isinya sebelum toUpperCase
+
                 const dbName = (name || '').toUpperCase().trim();
                 const masterName = (item.item_name || '').toUpperCase().trim();
 
                 const isSelected = (dbName === masterName);
                 if (isSelected) isMatchFound = true;
 
-                // Render Option
                 itemsHtml += `<option value="${item.id}" ${isSelected ? 'selected' : ''}>${item.item_name}</option>`;
             });
 
-            // 2. Jaring Pengaman (Fallback):
-            // Jika ada nama barang tersimpan, TAPI tidak ketemu di Master Item
-            // Maka tambahkan sebagai opsi manual agar data tidak hilang visualnya
             if (name && !isMatchFound) {
                 itemsHtml += `<option value="custom" selected>${name} (Item Tidak Terdaftar/Legacy)</option>`;
             }
 
-            // --- BUILD UOM DROPDOWN ---
             let uomHtml = `<option value="">-Select-</option>`;
             uomOptions.forEach(opt => {
                 const isSelected = (opt === uom) ? 'selected' : '';
@@ -192,7 +166,6 @@
             const formattedQty = qty ? Math.round(qty) : '';
             const idInput = id ? `<input type="hidden" name="items[${rowCount}][id]" value="${id}">` : '';
 
-            // --- RENDER HTML BARIS ---
             row.innerHTML = `
                 <td class="px-4 py-3 align-top">
                     ${idInput}
@@ -230,14 +203,12 @@
             rowCount++;
         }
 
-        // Logic Auto Fill
+
         function autoFillItem(selectElement) {
             const selectedId = selectElement.value;
             const row = selectElement.closest('tr');
 
-            // Cek apakah user memilih item "custom/legacy"?
             if (selectedId === 'custom') {
-                // Jangan ubah apa-apa, biarkan nilai lama
                 return;
             }
 
@@ -246,7 +217,7 @@
             if (itemData) {
                 row.querySelector('.item-name-input').value = itemData.item_name;
 
-                // Auto Select UOM
+
                 const uomSelect = row.querySelector('.uom-select');
                 const targetUom = (itemData.uom || '').toUpperCase().trim();
                 for (let i = 0; i < uomSelect.options.length; i++) {
@@ -256,11 +227,9 @@
                     }
                 }
 
-                // Auto Fill Specs
                 const specs = itemData.description || itemData.specification || itemData.specs || '';
                 row.querySelector('.desc-input').value = specs;
             } else {
-                // Reset jika pilih "-- Select --"
                 row.querySelector('.item-name-input').value = '';
                 row.querySelector('.desc-input').value = '';
                 row.querySelector('.uom-select').selectedIndex = 0;
@@ -271,13 +240,11 @@
             btn.closest('tr').remove();
         }
 
-        // Validasi Submit
         function submitEdit() {
             const form = document.getElementById('editForm');
             const subject = form.querySelector('input[name="subject"]').value.trim();
             const reqDate = document.getElementById('required_date').value;
 
-            // Validasi Tanggal
             const today = new Date().toISOString().split('T')[0];
             if (reqDate < today) {
                 Swal.fire({
@@ -294,7 +261,6 @@
                 return;
             }
 
-            // Validasi Item Kosong
             const itemSelects = document.querySelectorAll('.item-select');
             let itemEmpty = false;
             itemSelects.forEach(sel => {

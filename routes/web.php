@@ -76,11 +76,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/monitoring', [GlobalMonitoringController::class, 'index'])->name('monitoring.index');
     });
 
+    //Roll back features
     Route::middleware(['can:super_admin'])->group(function () {
-    Route::post('/requisitions/{id}/rollback', [RequisitionController::class, 'rollback'])
-        ->name('requisitions.rollback');
+        Route::post('/requisitions/{id}/rollback', [RequisitionController::class, 'rollback'])
+            ->name('requisitions.rollback');
+    });
 });
-});
+
+Route::delete('/requisitions/{id}/remove-partial', [RequisitionController::class, 'removePartial'])
+    ->name('requisitions.remove_partial');
 
 // DEBUG ROUTE (Boleh dihapus nanti)
 Route::get('/cek-db', function () {
