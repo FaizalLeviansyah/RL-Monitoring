@@ -139,29 +139,37 @@
             const row = document.createElement('tr');
             row.className = 'hover:bg-orange-50/30 transition-colors group relative';
 
+            // --- LOGIC ITEM NAME ---
             let itemsHtml = `<option value="">-- Select Item --</option>`;
             let isMatchFound = false;
-
             masterItems.forEach(item => {
-
                 const dbName = (name || '').toUpperCase().trim();
                 const masterName = (item.item_name || '').toUpperCase().trim();
-
                 const isSelected = (dbName === masterName);
                 if (isSelected) isMatchFound = true;
-
                 itemsHtml += `<option value="${item.id}" ${isSelected ? 'selected' : ''}>${item.item_name}</option>`;
             });
-
             if (name && !isMatchFound) {
-                itemsHtml += `<option value="custom" selected>${name} (Item Tidak Terdaftar/Legacy)</option>`;
+                itemsHtml += `<option value="custom" selected>${name} (Legacy/Custom)</option>`;
             }
 
+            // --- LOGIC UOM (PERBAIKAN UTAMA) ---
             let uomHtml = `<option value="">-Select-</option>`;
+            let isUomFound = false;
+
+            // Bersihkan UoM dari database agar cocok
+            const currentUom = (uom || '').toUpperCase().trim();
+
             uomOptions.forEach(opt => {
-                const isSelected = (opt === uom) ? 'selected' : '';
-                uomHtml += `<option value="${opt}" ${isSelected}>${opt}</option>`;
+                const isSelected = (opt === currentUom);
+                if (isSelected) isUomFound = true;
+                uomHtml += `<option value="${opt}" ${isSelected ? 'selected' : ''}>${opt}</option>`;
             });
+
+            // JIKA UOM LAMA TIDAK ADA DI LIST, TAMBAHKAN PAKSA (Supaya tidak Null)
+            if (currentUom && !isUomFound) {
+                uomHtml += `<option value="${currentUom}" selected>${currentUom} (Legacy)</option>`;
+            }
 
             const formattedQty = qty ? Math.round(qty) : '';
             const idInput = id ? `<input type="hidden" name="items[${rowCount}][id]" value="${id}">` : '';
@@ -170,29 +178,25 @@
                 <td class="px-4 py-3 align-top">
                     ${idInput}
                     <input type="hidden" name="items[${rowCount}][item_name]" class="item-name-input" value="${name}">
-
                     <select onchange="autoFillItem(this)" class="item-select w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block p-2.5 font-semibold shadow-sm">
                         ${itemsHtml}
                     </select>
                 </td>
-
                 <td class="px-4 py-3 align-top">
                     <input type="number" step="1" min="1" name="items[${rowCount}][qty]" value="${formattedQty}" required
                         class="qty-input bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 text-center font-bold shadow-sm">
                 </td>
-
                 <td class="px-4 py-3 align-top">
+                    {{-- Tambahkan class 'uom-select' agar bisa dicek validasinya --}}
                     <select name="items[${rowCount}][uom]" class="uom-select bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 text-center shadow-sm" required>
                         ${uomHtml}
                     </select>
                 </td>
-
                 <td class="px-4 py-3 align-top">
                     <textarea name="items[${rowCount}][description]" rows="1"
                         class="desc-input block p-2.5 w-full text-sm text-slate-900 bg-slate-50 rounded-lg border border-slate-200 focus:ring-orange-500 focus:border-orange-500 shadow-sm"
                         placeholder="Specs...">${desc}</textarea>
                 </td>
-
                 <td class="px-4 py-3 align-middle text-center">
                     <button type="button" onclick="removeRow(this)" class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -201,6 +205,53 @@
             `;
             container.appendChild(row);
             rowCount++;
+        }
+
+        // --- UPDATE VALIDASI TOMBOL SUBMIT ---
+        function submitEdit() {
+            const form = document.getElementById('editForm');
+            const subject = form.querySelector('input[name="subject"]').value.trim();
+            const reqDate = document.getElementById('required_date').value;
+
+            // 1. Cek Tanggal
+            const today = new Date().toISOString().split('T')[0];
+            if (reqDate < today) {
+                Swal.fire({icon: 'warning', title: 'Invalid Date', text: 'Required Date cannot be in the past.', confirmButtonColor: '#ea580c'});
+                return;
+            }
+
+            // 2. Cek Subject
+            if (!subject) {
+                Swal.fire({icon: 'warning', title: 'Missing Subject', confirmButtonColor: '#ea580c'});
+                return;
+            }
+
+            // 3. Cek Kelengkapan Item (Nama & UoM)
+            const itemSelects = document.querySelectorAll('.item-select');
+            const uomSelects = document.querySelectorAll('.uom-select'); // Ambil semua dropdown UoM
+            let itemEmpty = false;
+            let uomEmpty = false;
+
+            itemSelects.forEach(sel => { if(!sel.value) itemEmpty = true; });
+            uomSelects.forEach(sel => { if(!sel.value) uomEmpty = true; }); // Cek apakah UoM kosong
+
+            if (itemSelects.length === 0) {
+                Swal.fire({icon: 'warning', title: 'No Items', text: 'Please add at least one item.', confirmButtonColor: '#ea580c'});
+                return;
+            }
+
+            if (itemEmpty) {
+                Swal.fire({icon: 'warning', title: 'Incomplete Item', text: 'Please select an item name for all rows.', confirmButtonColor: '#ea580c'});
+                return;
+            }
+
+            // PESAN ERROR KHUSUS JIKA UOM KOSONG
+            if (uomEmpty) {
+                Swal.fire({icon: 'warning', title: 'Missing UoM', text: 'Please select Unit of Measure (UoM) for all items.', confirmButtonColor: '#ea580c'});
+                return;
+            }
+
+            form.submit();
         }
 
 
@@ -238,41 +289,6 @@
 
         function removeRow(btn) {
             btn.closest('tr').remove();
-        }
-
-        function submitEdit() {
-            const form = document.getElementById('editForm');
-            const subject = form.querySelector('input[name="subject"]').value.trim();
-            const reqDate = document.getElementById('required_date').value;
-
-            const today = new Date().toISOString().split('T')[0];
-            if (reqDate < today) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid Date',
-                    text: 'Required Date cannot be in the past.',
-                    confirmButtonColor: '#ea580c'
-                });
-                return;
-            }
-
-            if (!subject) {
-                Swal.fire({icon: 'warning', title: 'Missing Subject', confirmButtonColor: '#ea580c'});
-                return;
-            }
-
-            const itemSelects = document.querySelectorAll('.item-select');
-            let itemEmpty = false;
-            itemSelects.forEach(sel => {
-                if(!sel.value) itemEmpty = true;
-            });
-
-            if (itemEmpty && itemSelects.length > 0) {
-                Swal.fire({icon: 'warning', title: 'Incomplete Item', text: 'Please select an item for all rows.', confirmButtonColor: '#ea580c'});
-                return;
-            }
-
-            form.submit();
         }
     </script>
 </x-app-layout>

@@ -215,15 +215,18 @@ public function update(Request $request, $id)
     {
         $rl = RequisitionLetter::findOrFail($id);
 
-        // ... (Validasi security dan input tetap sama) ...
         if (!in_array($rl->status_flow, ['DRAFT', 'REJECTED'])) {
             return abort(403);
         }
 
+        // 1. TAMBAHKAN VALIDASI ITEM DETAIL DI SINI
         $request->validate([
-            'required_date' => 'required|date',
-            'subject'       => 'required|string|max:255',
-            'items'         => 'required|array|min:1',
+            'required_date'     => 'required|date',
+            'subject'           => 'required|string|max:255',
+            'items'             => 'required|array|min:1',
+            'items.*.item_name' => 'required|string',  // Validasi Nama Item
+            'items.*.qty'       => 'required|numeric', // Validasi Qty
+            'items.*.uom'       => 'required|string',  // Validasi UoM (Wajib Isi)
         ]);
 
         // Update Header
@@ -246,14 +249,14 @@ public function update(Request $request, $id)
                 [
                     'item_name'   => $itemData['item_name'],
                     'qty'         => $itemData['qty'],
-                    'uom'         => $itemData['uom'],
+                    // 2. TAMBAHKAN FALLBACK 'UNIT' JIKA NULL (SAFETY NET)
+                    'uom'         => $itemData['uom'] ?? 'UNIT',
                     'description' => $itemData['description'] ?? null,
                     'status_item' => 'WAITING'
                 ]
             );
         }
 
-        // Jika status berubah jadi ON_PROGRESS (Resubmit), generate ulang queue
         if ($rl->wasChanged('status_flow') && $rl->status_flow == 'ON_PROGRESS') {
              $this->generateApprovalQueue($rl);
         }
