@@ -2,6 +2,150 @@
     <div class="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
+            {{-- ============================================================ --}}
+            {{-- 🚨 NEW FEATURE: DYNAMIC ARRIVAL ALERT (FANCY ENGLISH)      --}}
+            {{-- ============================================================ --}}
+            @if(isset($waitingConfirmation) && $waitingConfirmation->count() > 0)
+                @php
+                    // LOGIC: DYNAMIC MOOD & COPYWRITING (ENGLISH PROFESSIONAL)
+                    $alertStatus = 'safe';
+                    $alertColor = 'from-emerald-500 to-teal-600';
+                    $shadowColor = 'shadow-emerald-500/20';
+                    $iconColor = 'text-emerald-600';
+                    $bgColor = 'bg-emerald-100';
+
+                    // Default State (Safe/Green)
+                    $titleText = "IN-TRANSIT / AWAITING DELIVERY";
+                    $descText = "Requisitions have been approved and are currently in the procurement pipeline. Kindly confirm receipt once the goods are in your possession.";
+
+                    foreach($waitingConfirmation as $rl) {
+                        $dueDate = \Carbon\Carbon::parse($rl->required_date);
+
+                        if ($dueDate->isPast()) {
+                            // CRITICAL (RED) - Bahasa tegas & mendesak
+                            $alertStatus = 'overdue';
+                            $alertColor = 'from-rose-600 to-red-700';
+                            $shadowColor = 'shadow-rose-500/30';
+                            $iconColor = 'text-rose-600';
+                            $bgColor = 'bg-rose-100';
+
+                            $titleText = "⚠️ CRITICAL: DELIVERY OVERDUE";
+                            $descText = "Several items have exceeded their expected delivery date. Immediate physical verification and system confirmation are required to close these tickets.";
+
+                            break; // Prioritas tertinggi
+                        }
+                        elseif ($dueDate->diffInDays(now()) <= 3) {
+                            // WARNING (ORANGE) - Bahasa antisipasi
+                            if ($alertStatus != 'overdue') {
+                                $alertStatus = 'warning';
+                                $alertColor = 'from-orange-400 to-amber-500';
+                                $shadowColor = 'shadow-orange-500/30';
+                                $iconColor = 'text-orange-600';
+                                $bgColor = 'bg-orange-100';
+
+                                $titleText = "⚡ ARRIVAL IMMINENT";
+                                $descText = "Shipments are scheduled to arrive shortly. Please be on standby to inspect and confirm receipt upon arrival.";
+                            }
+                        }
+                    }
+                @endphp
+
+                <div class="mb-10 bg-gradient-to-r {{ $alertColor }} rounded-3xl shadow-xl {{ $shadowColor }} p-1 relative overflow-hidden transform hover:scale-[1.01] transition duration-300 animate-fade-in-down">
+                    {{-- Background Decoration --}}
+                    <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
+                    <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 bg-white opacity-10 rounded-full blur-2xl"></div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-[1.4rem] p-6 md:p-8 relative z-10">
+                        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+
+                            {{-- Kiri: Teks Peringatan Dinamis --}}
+                            <div class="flex items-start gap-5 max-w-2xl">
+                                <div class="p-4 {{ $bgColor }} {{ $iconColor }} rounded-2xl shadow-sm relative">
+                                    @if($alertStatus == 'overdue')
+                                        <span class="absolute top-0 right-0 -mt-1 -mr-1 flex h-3 w-3">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                        </span>
+                                    @endif
+
+                                    @if($alertStatus == 'safe')
+                                        {{-- Icon Truck (Aman) --}}
+                                        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
+                                    @elseif($alertStatus == 'warning')
+                                        {{-- Icon Jam (Waspada) --}}
+                                        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    @else
+                                        {{-- Icon Seru (Bahaya) --}}
+                                        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    @endif
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase">{{ $titleText }}</h3>
+                                    <p class="text-slate-500 dark:text-slate-300 mt-2 text-sm leading-relaxed">
+                                        {{ $descText }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {{-- Kanan: List Item (Indikator Per Item) --}}
+                            <div class="flex flex-col gap-3 w-full lg:w-[480px]">
+                                @foreach($waitingConfirmation as $rl)
+                                    @php
+                                        $itemDate = \Carbon\Carbon::parse($rl->required_date);
+                                        $isLate = $itemDate->isPast();
+                                        $isNear = $itemDate->diffInDays(now()) <= 3;
+
+                                        // Warna Border per Item
+                                        $borderColor = 'border-slate-100 hover:border-emerald-300';
+                                        $tagColor = 'bg-emerald-100 text-emerald-700';
+                                        $tagText = 'On Track';
+
+                                        if ($isLate) {
+                                            $borderColor = 'border-red-100 hover:border-red-400 bg-red-50/30';
+                                            $tagColor = 'bg-red-100 text-red-700';
+                                            $tagText = 'LATE';
+                                        } elseif ($isNear) {
+                                            $borderColor = 'border-orange-100 hover:border-orange-400 bg-orange-50/30';
+                                            $tagColor = 'bg-orange-100 text-orange-700';
+                                            $tagText = 'Due Soon';
+                                        }
+                                    @endphp
+
+                                    <a href="{{ route('requisitions.show', $rl->id) }}" class="group relative flex items-center justify-between p-3 bg-white {{ $borderColor }} border-2 rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer">
+
+                                        {{-- Sisi Kiri: Info Tiket --}}
+                                        <div class="flex items-center gap-3 overflow-hidden">
+                                            <div class="bg-slate-100 text-slate-600 font-mono font-bold text-[10px] px-2 py-1 rounded-lg border border-slate-200">
+                                                {{ $rl->rl_no }}
+                                            </div>
+                                            <div class="flex flex-col truncate">
+                                                <span class="text-sm font-bold text-slate-700 truncate">{{ $rl->subject }}</span>
+                                                <div class="flex items-center gap-2 mt-0.5">
+                                                    <span class="text-[10px] font-bold {{ $tagColor }} px-1.5 py-0.5 rounded">{{ $tagText }}</span>
+                                                    <span class="text-[10px] text-slate-400">Due: {{ $itemDate->format('d M') }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Sisi Kanan: Tombol Confirm --}}
+                                        <div class="pl-2">
+                                            <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold group-hover:bg-slate-900 transition-all shadow-lg">
+                                                Confirm
+                                                <svg class="w-3 h-3 transition-transform transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                            </div>
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            @endif
+            {{-- ============================================================ --}}
+
+
+            {{-- 2. DASHBOARD HEADER --}}
             <div class="flex flex-col md:flex-row justify-between items-end mb-8">
                 <div>
                     <h2 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 tracking-tight">
@@ -13,20 +157,21 @@
                     </p>
                 </div>
 
-                @if($isApprover)
+                @if($isApprover ?? false)
                 <div class="mt-4 md:mt-0 p-1 bg-white dark:bg-gray-800 rounded-full shadow-md border border-gray-200 dark:border-gray-700 flex">
                     <a href="{{ route('dashboard.select_role', 'approver') }}"
                        class="px-6 py-2 rounded-full text-sm font-bold transition-all transform duration-200 {{ $currentMode == 'approver' ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg scale-105' : 'text-gray-500 hover:text-blue-600' }}">
-                       Approver
+                        Approver
                     </a>
                     <a href="{{ route('dashboard.select_role', 'requester') }}"
                        class="px-6 py-2 rounded-full text-sm font-bold transition-all transform duration-200 {{ $currentMode == 'requester' ? 'bg-gradient-to-r from-indigo-600 to-purple-500 text-white shadow-lg scale-105' : 'text-gray-500 hover:text-purple-600' }}">
-                       Requester
+                        Requester
                     </a>
                 </div>
                 @endif
             </div>
 
+            {{-- 3. MY ACTION ALERT (OLD - FOR DRAFTS/REJECTED) --}}
             @if($stats['my_actions'] > 0)
             <div class="mb-8 relative overflow-hidden rounded-2xl shadow-xl shadow-red-500/20 animate-fade-in-down">
                 <div class="absolute inset-0 bg-gradient-to-r from-red-600 via-orange-500 to-red-500 animate-gradient-x"></div>
@@ -37,7 +182,7 @@
                         </div>
                         <div>
                             <h4 class="font-extrabold text-gray-800 dark:text-white text-lg">Action Required!</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-300">Ada <strong class="text-red-600 text-lg">{{ $stats['my_actions'] }} dokumen</strong> menunggu respon Anda.</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">Ada <strong class="text-red-600 text-lg">{{ $stats['my_actions'] }} dokumen</strong> (Draft/Rejected) menunggu respon Anda.</p>
                         </div>
                     </div>
                     <a href="{{ $currentMode == 'approver' ? route('requisitions.status', 'on_progress') : route('requisitions.status', 'draft') }}"
@@ -48,13 +193,13 @@
             </div>
             @endif
 
+            {{-- 4. STATS GRID --}}
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
 
                 <div class="relative overflow-hidden rounded-2xl shadow-lg shadow-orange-500/20 group hover:-translate-y-1 transition duration-300 bg-gradient-to-br from-orange-400 to-red-500">
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
                     </div>
-
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -73,7 +218,6 @@
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
                     </div>
-
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -92,7 +236,6 @@
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform -rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" /><path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
                     </div>
-
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -111,7 +254,6 @@
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
                     </div>
-
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -130,7 +272,6 @@
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform -rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
                     </div>
-
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
@@ -141,7 +282,7 @@
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </div>
                         </div>
-                        <div class="mt-3 text-[10px] font-medium bg-white/20 w-fit px-2 py-0.5 rounded backdrop-blur-sm">Declined Request</div>
+                        <div class="mt-3 text-[10px] font-medium bg-white/20 w-fit px-2 py-0.5 rounded backdrop-blur-sm">Action Needed</div>
                     </div>
                 </div>
 
@@ -195,85 +336,15 @@
                             </h3>
                             <a href="#" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">Lihat Semua</a>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
-                                <thead class="text-xs text-indigo-900 bg-indigo-50 dark:bg-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                    <tr>
-                                        <th class="px-6 py-4 font-bold">RL Number</th>
-                                        <th class="px-6 py-4 font-bold">Subject</th>
-                                        <th class="px-6 py-4 font-bold">Status</th>
-                                        <th class="px-6 py-4 font-bold text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                                    @forelse($recentActivities as $rl)
-                                    <tr class="hover:bg-indigo-50/30 transition-colors group">
-                                        <td class="px-6 py-4">
-                                            <div class="font-bold text-gray-800 dark:text-white group-hover:text-indigo-600 transition">{{ $rl->rl_no }}</div>
-                                            <div class="text-[10px] font-bold text-gray-400 mt-0.5 uppercase">{{ $rl->created_at->diffForHumans() }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">{{ Str::limit($rl->subject, 35) }}</td>
-                                        <td class="px-6 py-4">
-                                            @php
-                                                $badges = [
-                                                    'DRAFT' => 'bg-gray-100 text-gray-600',
-                                                    'ON_PROGRESS' => 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700',
-                                                    'PARTIALLY_APPROVED' => 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-700',
-                                                    'WAITING_SUPPLY' => 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-700',
-                                                    'COMPLETED' => 'bg-gradient-to-r from-teal-100 to-teal-200 text-teal-700',
-                                                    'REJECTED' => 'bg-gradient-to-r from-red-100 to-red-200 text-red-700',
-                                                ];
-                                            @endphp
-                                            <span class="{{ $badges[$rl->status_flow] ?? 'bg-gray-100' }} px-3 py-1 rounded-full text-xs font-bold inline-block shadow-sm">
-                                                {{ str_replace('_', ' ', $rl->status_flow) }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 text-right">
-                                            <a href="{{ route('requisitions.show', $rl->id) }}" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    @empty
-                                    <tr><td colspan="4" class="text-center py-8 text-gray-400 italic font-medium">Belum ada aktivitas.</td></tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
+
+                        {{-- INCLUDE ACTIVITY TABLE PARTIAL --}}
+                        @include('dashboard.partials.activity_table')
+
                     </div>
                 </div>
 
+                {{-- KOLOM KANAN: PIE CHART & LEGEND --}}
                 <div class="space-y-8">
-
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border-t-4 border-red-500">
-                        <h3 class="text-lg font-extrabold text-gray-800 dark:text-white mb-6 flex items-center">
-                            <span class="text-2xl mr-2">📅</span> Deadlines
-                        </h3>
-                        <div class="space-y-4">
-                            @forelse($upcomingDeadlines as $rl)
-                            <div class="flex items-start p-3 rounded-xl bg-gray-50 hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-gray-100">
-                                <div class="flex-shrink-0 w-14 text-center bg-gradient-to-b from-red-500 to-red-600 text-white rounded-lg py-2 mr-3 shadow-lg shadow-red-500/30">
-                                    <span class="block text-lg font-bold leading-none">{{ \Carbon\Carbon::parse($rl->required_date)->format('d') }}</span>
-                                    <span class="block text-[10px] uppercase font-bold text-red-100">{{ \Carbon\Carbon::parse($rl->required_date)->format('M') }}</span>
-                                </div>
-                                <div class="flex-1 min-w-0 pt-1">
-                                    <p class="text-sm font-bold text-gray-900 truncate dark:text-white">
-                                        {{ $rl->rl_no }}
-                                    </p>
-                                    <p class="text-xs text-gray-500 truncate mb-1">
-                                        {{ $rl->requester->full_name ?? '-' }}
-                                    </p>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-white border border-gray-200 text-gray-600 shadow-sm">
-                                        {{ str_replace('_', ' ', $rl->status_flow) }}
-                                    </span>
-                                </div>
-                            </div>
-                            @empty
-                            <div class="text-center py-6 text-gray-400 text-sm font-medium">Tidak ada deadline mendesak.</div>
-                            @endforelse
-                        </div>
-                    </div>
-
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border-t-4 border-teal-500">
                         <h3 class="text-lg font-extrabold text-gray-800 dark:text-white mb-6 flex items-center">
                             <span class="text-2xl mr-2">🍩</span> Composition
@@ -343,8 +414,8 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
+
             </div>
 
         </div>
@@ -372,7 +443,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '65%', // Lebih tebal sedikit
+                    cutout: '65%',
                     plugins: { legend: { display: false } }
                 }
             });
@@ -418,8 +489,6 @@
         });
     </script>
 </x-app-layout>
-
-
 
 
 
