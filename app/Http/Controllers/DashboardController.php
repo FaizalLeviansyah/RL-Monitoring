@@ -14,11 +14,11 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index()
+public function index()
     {
         $user = Auth::user();
         $userPos = $user->position->position_name ?? '';
-
+        
         // 1. ROLE DEFINITION
         $approverRoles = [
             'Manager',
@@ -34,79 +34,62 @@ class DashboardController extends Controller
         $isManager = ($userPos === 'Manager');
         $isApprover = in_array($userPos, $approverRoles);
 
-        // --- [FIX: LANDING PAGE INTERCEPTION] ---
-        // Jika Approver belum memilih mode, tampilkan Landing Page
+        // 2. MODE DETERMINATION
         if ($isApprover && !session()->has('active_role')) {
             return view('landing');
         }
 
-        // Jika sudah memilih, atau bukan approver, tentukan mode
-        $defaultMode = $isApprover ? 'approver' : 'requester';
-        $currentMode = session('active_role', $defaultMode);
+        if ($isSuperAdmin) {
+            $currentMode = 'admin';
+        } elseif ($isApprover) {
+            $currentMode = session('active_role', 'approver');
+        } else {
+            $currentMode = 'requester';
+        }
 
-        // 3. INITIALIZE STATISTICS
-        $stats = [
-            'my_actions' => 0,
-            'waiting_director' => 0,
-            'waiting_supply' => 0,
-            'completed' => 0,
-            'rejected' => 0,
-            'waiting_approval' => 0,
-            'total_all' => 0,
-        ];
-
-        // 4. BASE QUERY BUILDER
+        // 3. BASE QUERY BUILDER
         $queryRL = RequisitionLetter::query();
+        $myActionsCount = 0;
+        $waitingConfirmation = collect();
 
         if ($isSuperAdmin) {
             // No Filter
         } elseif ($currentMode == 'approver') {
-
-            // FILTER SCOPE DATA
             if ($isDirector) {
-                // Director: All Company Data
                 $queryRL->where('company_id', $user->company_id);
-
-                // My Action: PARTIALLY_APPROVED
-                $stats['my_actions'] = RequisitionLetter::where('company_id', $user->company_id)
-                                        ->where('status_flow', 'PARTIALLY_APPROVED')
-                                        ->count();
-
+                $myActionsCount = RequisitionLetter::where('company_id', $user->company_id)
+                                    ->where('status_flow', 'PARTIALLY_APPROVED')->count();
             } elseif ($isManager) {
-                // Manager: Department Data
                 $queryRL->where('company_id', $user->company_id);
-
-                // Get Subordinates
-                $userModel = new User();
-                $userDb = $userModel->getConnection()->getDatabaseName();
-                $deptIds = DB::connection($userModel->getConnectionName())
-                            ->table($userDb . '.tbl_employee')
+                $deptIds = DB::table('tbl_employee')
                             ->where('department_id', $user->department_id)
                             ->pluck('employee_id');
-
                 $queryRL->whereIn('requester_id', $deptIds);
-
-                // My Action: Approval Queue PENDING
-                $stats['my_actions'] = ApprovalQueue::where('approver_id', $user->employee_id)
-                                        ->where('status', 'PENDING')
-                                        ->count();
+                $myActionsCount = ApprovalQueue::where('approver_id', $user->employee_id)
+                                    ->where('status', 'PENDING')->count();
             }
-
         } else {
             // Requester Mode
             $queryRL->where('requester_id', $user->employee_id);
-            $stats['my_actions'] = (clone $queryRL)->whereIn('status_flow', ['DRAFT', 'REJECTED'])->count();
+            $myActionsCount = (clone $queryRL)->whereIn('status_flow', ['DRAFT', 'REJECTED'])->count();
+            $waitingConfirmation = (clone $queryRL)->where('status_flow', 'APPROVED')->latest()->get();
         }
 
-        // 5. CALCULATE WIDGETS
-        $stats['waiting_approval'] = (clone $queryRL)->where('status_flow', 'ON_PROGRESS')->count();
-        $stats['waiting_director'] = (clone $queryRL)->where('status_flow', 'PARTIALLY_APPROVED')->count();
-        $stats['waiting_supply']   = (clone $queryRL)->where('status_flow', 'WAITING_SUPPLY')->count();
-        $stats['completed']        = (clone $queryRL)->where('status_flow', 'COMPLETED')->count();
-        $stats['rejected']         = (clone $queryRL)->where('status_flow', 'REJECTED')->count();
-        $stats['total_all']        = (clone $queryRL)->count();
+        // 4. CALCULATE STATISTICS (Single Source of Truth)
+        // Kita clone agar query utama tidak terganggu
+        $stats = [
+            'draft'            => (clone $queryRL)->where('status_flow', 'DRAFT')->count(),
+            'waiting_approval' => (clone $queryRL)->where('status_flow', 'ON_PROGRESS')->count(),
+            'waiting_director' => (clone $queryRL)->where('status_flow', 'PARTIALLY_APPROVED')->count(),
+            'waiting_supply'   => (clone $queryRL)->where('status_flow', 'WAITING_SUPPLY')->count(),
+            'approved'         => (clone $queryRL)->where('status_flow', 'APPROVED')->count(), // [PENTING] Status Sedang Dikirim
+            'completed'        => (clone $queryRL)->where('status_flow', 'COMPLETED')->count(),
+            'rejected'         => (clone $queryRL)->where('status_flow', 'REJECTED')->count(),
+            'total_all'        => (clone $queryRL)->count(),
+            'my_actions'       => $myActionsCount
+        ];
 
-        // 6. PRIORITY STATS
+        // 5. PRIORITY & DEADLINE ANALYSIS
         $allRLs = (clone $queryRL)->get();
         $priorityStats = ['Top Urgent' => 0, 'Urgent' => 0, 'Normal' => 0, 'Outstanding' => 0];
 
@@ -126,18 +109,34 @@ class DashboardController extends Controller
             }
         }
 
-        // 7. EXTRAS
+        // 6. EXTRA DATA
         $recentActivities = (clone $queryRL)->with(['requester'])->latest()->limit(5)->get();
-        $upcomingDeadlines = (clone $queryRL)->whereNotIn('status_flow', ['COMPLETED', 'REJECTED'])
-                                ->whereNotNull('required_date')->where('required_date', '>=', now())
-                                ->orderBy('required_date', 'asc')->with('requester')->limit(5)->get();
+        
+        $upcomingDeadlines = (clone $queryRL)
+            ->whereNotIn('status_flow', ['COMPLETED', 'REJECTED'])
+            ->whereNotNull('required_date')
+            ->where('required_date', '>=', now())
+            ->orderBy('required_date', 'asc')
+            ->with('requester')
+            ->limit(5)
+            ->get();
 
+        // 7. CHART DATA (FIX: Menambahkan 'approved' ke dalam dataset)
         $chartData = [
-            'labels' => ['Waiting Approval', 'Waiting Director', 'Final Approved', 'Completed', 'Rejected'],
-            'data' => [$stats['waiting_approval'], $stats['waiting_director'], $stats['waiting_supply'], $stats['completed'], $stats['rejected']],
-            'colors' => ['#f97316', '#9333ea', '#eab308', '#14b8a6', '#ef4444']
+            'labels' => ['Manager Review', 'Director Review', 'Procurement', 'In Delivery', 'Completed', 'Rejected'],
+            'data' => [
+                $stats['waiting_approval'], 
+                $stats['waiting_director'], 
+                $stats['waiting_supply'], 
+                $stats['approved'], // <--- DATA INI YANG SEBELUMNYA HILANG
+                $stats['completed'], 
+                $stats['rejected']
+            ],
+            // Warna: Orange, Purple, Yellow, Blue, Teal, Red
+            'colors' => ['#f97316', '#9333ea', '#eab308', '#3b82f6', '#14b8a6', '#ef4444']
         ];
 
+        // 8. MASTER DATA
         $masterData = [
             'employees' => User::count(),
             'departments' => Department::count(),
@@ -147,8 +146,15 @@ class DashboardController extends Controller
         $viewName = $isSuperAdmin ? 'dashboard' : ($currentMode == 'approver' ? 'dashboard_approver' : 'dashboard_requester');
 
         return view($viewName, compact(
-            'stats', 'recentActivities', 'chartData', 'masterData',
-            'currentMode', 'isApprover', 'priorityStats', 'upcomingDeadlines'
+            'stats', 
+            'recentActivities', 
+            'chartData', 
+            'masterData',
+            'currentMode', 
+            'isApprover', 
+            'priorityStats', 
+            'upcomingDeadlines', 
+            'waitingConfirmation'
         ));
     }
 
