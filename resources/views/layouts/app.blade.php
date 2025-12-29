@@ -217,10 +217,20 @@
                             @endif
                         </a>
                     </li>
+                   {{-- 5. Approved --}}
                     <li>
-                        <a href="{{ route('requisitions.status', 'approved') }}" class="sidebar-item neon-green flex items-center p-3 rounded-xl text-slate-600 {{ request()->is('requisitions/status/approved') ? 'active' : '' }}">
+                        <a href="{{ route('requisitions.status', 'approved') }}" 
+                           class="sidebar-item neon-green flex items-center p-3 rounded-xl text-slate-600 
+                           {{-- LOGIKA BARU: Cek URL ATAU Cek Variabel activeMenu --}}
+                           {{ (request()->is('requisitions/status/approved') || (isset($activeMenu) && $activeMenu == 'approved')) ? 'active' : '' }}">
+                            
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             <span class="ms-3 font-medium sidebar-text">Approved</span>
+                            
+                            {{-- Badge Counter --}}
+                            @if(isset($countMyApprovals) && $countMyApprovals > 0) 
+                                <span class="sidebar-badge bg-green-100 text-green-700 rounded-full font-bold text-xs px-2 py-0.5 ml-2 animate-pulse">{{ $countMyApprovals }}</span> 
+                            @endif
                         </a>
                     </li>
                     <li>

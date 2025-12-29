@@ -20,7 +20,6 @@ class AppServiceProvider extends ServiceProvider
     {
         // Gate untuk Super Admin (Sesuai Middleware can:super_admin)
         Gate::define('super_admin', function ($user) {
-            // Pastikan user punya posisi dan namanya 'Super Admin'
             return $user->position && $user->position->position_name === 'Super Admin';
         });
 
@@ -32,7 +31,6 @@ class AppServiceProvider extends ServiceProvider
                 $userId = $user->employee_id;
 
                 // --- 1. COUNTER KHUSUS REQUESTER (MY REQUESTS) ---
-                // Menghitung dokumen milik user sendiri
 
                 // Draft
                 $countDraft = RequisitionLetter::where('requester_id', $userId)
@@ -44,9 +42,15 @@ class AppServiceProvider extends ServiceProvider
                                 ->where('status_flow', 'ON_PROGRESS')
                                 ->count();
 
-                // Waiting Director (Sedang di Direktur) - PENTING untuk Requester
+                // Waiting Director (Sedang di Direktur)
                 $countMyWaitingDirector = RequisitionLetter::where('requester_id', $userId)
                                 ->where('status_flow', 'PARTIALLY_APPROVED')
+                                ->count();
+
+                // [BARU] Approved (Siap Konfirmasi Kedatangan Barang)
+                // Ini untuk badge merah di sidebar menu "Approved"
+                $countMyApprovals = RequisitionLetter::where('requester_id', $userId)
+                                ->where('status_flow', 'APPROVED')
                                 ->count();
 
                 // Rejected (Butuh Revisi)
@@ -56,29 +60,29 @@ class AppServiceProvider extends ServiceProvider
 
 
                 // --- 2. COUNTER KHUSUS APPROVER (MONITORING/TASKS) ---
-                // Menghitung antrian pekerjaan (To-Do List)
 
                 // Antrian Approval Saya (Pending Tasks)
                 $countPendingTask = ApprovalQueue::where('approver_id', $userId)
-                                        ->where('status', 'PENDING')
-                                        ->count();
+                                    ->where('status', 'PENDING')
+                                    ->count();
 
-                // Global Monitoring (Untuk Dashboard)
+                // Global Monitoring (Untuk Dashboard Admin/Manager)
                 $countGlobalOnProgress = RequisitionLetter::where('status_flow', 'ON_PROGRESS')->count();
                 $countGlobalWaitingDirector = RequisitionLetter::where('status_flow', 'PARTIALLY_APPROVED')->count();
                 $countGlobalWaitingSupply = RequisitionLetter::where('status_flow', 'WAITING_SUPPLY')->count();
 
 
-                // Share variabel ke semua View dengan nama yang SPESIFIK
+                // Share variabel ke semua View
                 $view->with([
                     // Requester Vars
                     'countDraft' => $countDraft,
-                    'countMyOnProgress' => $countMyOnProgress,       // GANTI VARIABEL INI
+                    'countMyOnProgress' => $countMyOnProgress,
                     'countMyWaitingDirector' => $countMyWaitingDirector,
+                    'countMyApprovals' => $countMyApprovals, // <-- VARIABEL BARU DIKIRIM KE VIEW
                     'countRejected' => $countRejected,
 
                     // Approver Vars
-                    'countPendingTask' => $countPendingTask,         // GANTI VARIABEL INI
+                    'countPendingTask' => $countPendingTask,
                     'countGlobalOnProgress' => $countGlobalOnProgress,
                     'countGlobalWaitingDirector' => $countGlobalWaitingDirector,
                     'countGlobalWaitingSupply' => $countGlobalWaitingSupply,

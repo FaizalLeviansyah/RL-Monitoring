@@ -88,16 +88,28 @@ public function listByStatus(Request $request, $status = 'DRAFT')
         return view('requisitions.index', compact('requisitions', 'statusUpper'));
     }
 
-    public function show($id)
+public function show($id)
     {
         $requisition = RequisitionLetter::with([
             'requester.department',
             'requester.position',
             'items',
-            'approvalQueues.approver' // Load history approval
+            'approvalQueues.approver'
         ])->findOrFail($id);
 
-        return view('requisitions.show', compact('requisition'));
+       $activeMenu = '';
+        switch ($requisition->status_flow) {
+            case 'DRAFT': $activeMenu = 'draft'; break;
+            case 'ON_PROGRESS':
+            case 'PARTIALLY_APPROVED':
+            case 'WAITING_SUPPLY': $activeMenu = 'on_progress'; break;
+            case 'APPROVED': $activeMenu = 'approved'; break; // <--- Target kita
+            case 'COMPLETED': $activeMenu = 'completed'; break;
+            case 'REJECTED': $activeMenu = 'rejected'; break;
+        }
+
+        // PASTIKAN activeMenu ADA DISINI:
+        return view('requisitions.show', compact('requisition', 'activeMenu'));
     }
 
 public function departmentActivity()

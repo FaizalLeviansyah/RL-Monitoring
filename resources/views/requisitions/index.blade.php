@@ -1,7 +1,11 @@
 <x-app-layout>
+    {{-- 1. LOAD SWEETALERT LIBRARY --}}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <div class="pt-2 pb-8 min-h-screen">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
+            {{-- HEADER SECTION --}}
             <div class="flex flex-col md:flex-row justify-between items-end mb-8 animate-fade-in-down">
                 <div>
                     <div class="flex items-center gap-3 mb-2">
@@ -37,6 +41,7 @@
                 @endif
             </div>
 
+            {{-- FILTER & SEARCH BAR --}}
             <div class="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[2rem] p-4 shadow-sm mb-8 animate-fade-in-up">
                 <form method="GET" action="{{ route('requisitions.status', ['status' => strtolower($statusUpper)]) }}" class="flex flex-col md:flex-row gap-4">
 
@@ -73,6 +78,7 @@
                 </form>
             </div>
 
+            {{-- TABLE CONTAINER --}}
             <div class="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden animate-fade-in-up delay-100 relative min-h-[400px]">
 
                 @php
@@ -136,6 +142,11 @@
 
                                 <td class="px-6 py-5">
                                     <span class="text-slate-600 italic">"{{ Str::limit($rl->subject, 30) }}"</span>
+                                    
+                                    {{-- INDIKATOR OVERDUE DI TABEL (FIXED LOGIC) --}}
+                                    @if($statusUpper == 'DRAFT' && $rl->required_date && \Carbon\Carbon::parse($rl->required_date)->endOfDay()->isPast())
+                                        <span class="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded shadow-sm border border-red-200">Overdue</span>
+                                    @endif
                                 </td>
 
                                 <td class="px-6 py-5 text-center">
@@ -171,14 +182,88 @@
                         </tbody>
                     </table>
                 </div>
-
                 @if($requisitions->hasPages())
                 <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
                     {{ $requisitions->links() }}
                 </div>
                 @endif
             </div>
-
         </div>
     </div>
+
+    {{-- SCRIPT: OVERDUE DRAFT ALERT (DIRECT DB QUERY FIX) --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 1. HITUNG OVERDUE VIA DATABASE (BYPASS PAGINATION)
+            @php
+                $overdueDraftsCount = 0;
+                // Pastikan hanya jalan di halaman Draft
+                if($statusUpper == 'DRAFT') {
+                    // Query langsung ke DB untuk cek semua draft milik user ini
+                    $overdueDraftsCount = \App\Models\RequisitionLetter::where('requester_id', \Illuminate\Support\Facades\Auth::id())
+                        ->where('status_flow', 'DRAFT')
+                        ->whereNotNull('required_date') // Hanya yang ada deadlinenya
+                        ->whereDate('required_date', '<', now()->toDateString()) // Kurang dari hari ini
+                        ->count();
+                }
+            @endphp
+
+            // 2. TAMPILKAN SWEETALERT JIKA ADA
+            // Debugging console log (bisa dihapus nanti)
+            console.log("Overdue Count: {{ $overdueDraftsCount }}");
+
+            @if($overdueDraftsCount > 0)
+                Swal.fire({
+                    title: 'Action Required!',
+                    html: "You have <strong class='text-red-600 text-xl'>{{ $overdueDraftsCount }} Draft Documents</strong> that are overdue (Past Deadline).<br><br><span class='text-sm text-gray-500'>Please update the date, submit, or delete them to keep your dashboard clean.</span>",
+                    icon: 'warning',
+                    iconColor: '#ef4444',
+                    confirmButtonText: 'I Understand',
+                    confirmButtonColor: '#3b82f6', // Blue-500
+                    background: '#ffffff',
+                    backdrop: `rgba(0,0,0,0.4)`,
+                    allowOutsideClick: false
+                });
+            @endif
+        });
+
+        // Table Sorter
+        function sortTable(n, tableId) {
+            var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+            table = document.getElementById(tableId);
+            switching = true;
+            dir = "asc"; 
+            while (switching) {
+                switching = false;
+                rows = table.rows;
+                for (i = 1; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+                    x = rows[i].getElementsByTagName("TD")[n];
+                    y = rows[i + 1].getElementsByTagName("TD")[n];
+                    if (dir == "asc") {
+                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    } else if (dir == "desc") {
+                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount ++;      
+                } else {
+                    if (switchcount == 0 && dir == "asc") {
+                        dir = "desc";
+                        switching = true;
+                    }
+                }
+            }
+        }
+    </script>
 </x-app-layout>
