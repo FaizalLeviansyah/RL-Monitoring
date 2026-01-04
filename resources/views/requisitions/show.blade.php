@@ -1,3 +1,46 @@
+{{-- SCRIPT: GLOBAL ERROR CATCHER (MENANGKAP VALIDASI UPLOAD) --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 1. Cek Apakah Ada Error dari Controller (Laravel Validation)
+            @if($errors->any())
+                let errorMsg = '';
+                @foreach($errors->all() as $error)
+                    errorMsg += '<li>{{ $error }}</li>';
+                @endforeach
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Upload Rejected!',
+                    html: `<ul style="text-align: left; margin-left: 1rem; color: #ef4444; font-weight: bold;">${errorMsg}</ul>`,
+                    footer: 'Please check the file format and try again.',
+                    confirmButtonText: 'OK, I Will Check',
+                    confirmButtonColor: '#1e293b'
+                });
+            @endif
+
+            // 2. Cek Apakah Ada Pesan Sukses (Session 'success')
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: "{{ session('success') }}",
+                    confirmButtonColor: '#3b82f6',
+                    timer: 3000
+                });
+            @endif
+
+            // 3. Cek Apakah Ada Pesan Error Umum (Session 'error')
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: "{{ session('error') }}",
+                    confirmButtonColor: '#ef4444'
+                });
+            @endif
+        });
+    </script>
 <x-app-layout>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -248,7 +291,7 @@
 
                                 <form action="{{ route('requisitions.upload_partial', $requisition->id) }}" method="POST" enctype="multipart/form-data">
                                     @csrf
-                                    <input type="file" name="file_partial" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+                                    <input type="file"  name="file_partial" accept=".pdf,.docx,.jpg,.jpeg" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" onchange="validateDocumentFile(this)" required>
                                     <button type="submit" class="mt-2 w-full py-2 bg-white border border-slate-300 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-50">
                                         {{ $requisition->attachment_partial ? 'Replace File' : 'Upload File' }}
                                     </button>
@@ -280,7 +323,7 @@
                                 @csrf
                                 <div class="mb-4">
                                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Evidence / Photo</label>
-                                    <input type="file" name="evidence_photo" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" required>
+                                    <input type="file" name="evidence_photo" accept="image/jpeg,image/png" capture="environment" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" onchange="validateEvidenceFile(this)" required >
                                 </div>
                                 
                                 {{-- Tombol ini sekarang memicu SweetAlert, bukan langsung submit --}}
@@ -475,6 +518,83 @@
                 });
             });
         @endif
+
+        function validateEvidenceFile(input) {
+            const file = input.files[0];
+            
+            if (file) {
+                // Daftar tipe file yang diizinkan (MIME Types)
+                const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+                
+                // Cek apakah tipe file valid
+                if (!validTypes.includes(file.type)) {
+                    
+                    // 1. Reset Input (Hapus file yang salah)
+                    input.value = ''; 
+
+                    // 2. Munculkan Peringatan
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid File Format!',
+                        text: 'You uploaded a document (' + file.name + '). Please upload a PHOTO (JPG/PNG) only as evidence.',
+                        confirmButtonColor: '#1e293b'
+                    });
+                }
+                
+                // Cek Ukuran File (Misal max 5MB)
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                if (file.size > maxSize) {
+                    input.value = ''; 
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'File Too Large',
+                        text: 'Maximum photo size is 5MB.',
+                        confirmButtonColor: '#1e293b'
+                    });
+                }
+            }
+        }
+
+        function validateDocumentFile(input) {
+            const file = input.files[0];
+            
+            if (file) {
+                // Daftar MIME Types yang diizinkan (PDF, Word, Gambar)
+                const allowedTypes = [
+                    'application/pdf', 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+                    'image/jpeg', 
+                    'image/png', 
+                    'image/jpg'
+                ];
+                
+                // 1. Cek Format File
+                if (!allowedTypes.includes(file.type)) {
+                    input.value = ''; // Reset input
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Format Not Supported!',
+                        html: `File <b>${file.name}</b> is not allowed.<br>Please upload only: <b class="text-red-500">PDF, DOCX, JPG, or PNG</b>.`,
+                        confirmButtonColor: '#1e293b'
+                    });
+                    return;
+                }
+
+                // 2. Cek Ukuran File (Max 5MB)
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                if (file.size > maxSize) {
+                    input.value = ''; // Reset input
+                    
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'File Too Large!',
+                        text: 'Maximum file size is 5MB. Please compress your file.',
+                        confirmButtonColor: '#1e293b'
+                    });
+                }
+            }
+        }
     </script>
 </x-app-layout>
 
