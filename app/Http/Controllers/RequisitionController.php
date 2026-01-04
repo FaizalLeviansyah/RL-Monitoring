@@ -26,53 +26,64 @@ class RequisitionController extends Controller
 
 public function listByStatus(Request $request, $status = 'DRAFT')
     {
-        $statusUpper = strtoupper($status);
         $user = Auth::user();
-
-        // Mapping URL ke Status DB
-        if ($statusUpper == 'WAITING_APPROVAL') $statusUpper = 'ON_PROGRESS';
-        if ($statusUpper == 'WAITING_DIRECTOR') $statusUpper = 'PARTIALLY_APPROVED';
-
-        // 1. Query Dasar
+        
+        // 1. QUERY DASAR & RELASI
         $query = RequisitionLetter::with(['requester.department', 'items', 'approvalQueues'])
                     ->orderBy('created_at', 'desc');
 
-        // 2. Logic Role & Permission Scope
+        // 2. LOGIKA PENENTUAN STATUS (INI YANG KURANG DI KODE BAPAK)
+        if ($status == 'procurement_delivery') {
+            // Flag khusus untuk View agar judulnya benar
+            $statusUpper = 'PROCUREMENT_&_DELIVERY'; 
+        } else {
+            $statusUpper = strtoupper($status);
+        }
+
+        // Mapping URL Legacy (Jaga-jaga link lama)
+        if ($statusUpper == 'WAITING_APPROVAL') $statusUpper = 'ON_PROGRESS';
+        if ($statusUpper == 'WAITING_DIRECTOR') $statusUpper = 'PARTIALLY_APPROVED';
+
+        // 3. LOGIKA ROLE (SCOPE DATA)
         if ($user->position->position_name === 'Super Admin') {
             // Super Admin: Lihat Semua
         }
-        elseif (in_array($user->position->position_name, ['Manager', 'Director', 'Managing Director', 'General Manager'])) {
-
-            // FIX ERROR TABLE NOT FOUND:
-            // Ambil ID bawahan secara terpisah agar aman dari Cross-Database Join
+        elseif (in_array($user->position->position_name, ['Manager', 'Director', 'Managing Director', 'General Manager', 'President Director'])) {
+            // Ambil ID bawahan
             $teamIds = User::where('department_id', $user->department_id)
                            ->where('company_id', $user->company_id)
                            ->pluck('employee_id')
                            ->toArray();
 
-            // APPROVER: Lihat surat sendiri + Queue + Surat Tim
+            // Approver: Lihat punya sendiri + Antrian Approval + Punya Tim
             $query->where(function($q) use ($user, $teamIds) {
                 $q->where('requester_id', $user->employee_id)
                   ->orWhereHas('approvalQueues', function($aq) use ($user) {
                       $aq->where('approver_id', $user->employee_id);
                   })
-                  // Gunakan whereIn (Aman), bukan whereHas
                   ->orWhereIn('requester_id', $teamIds);
             });
         }
         else {
-            // STAFF: Hanya lihat surat miliknya sendiri
+            // Staff: Hanya lihat punya sendiri
             $query->where('requester_id', $user->employee_id);
         }
 
-        // 3. Filter Status Utama (Kecuali user pilih "My Requests" / All)
-        if ($statusUpper !== 'ALL' && $statusUpper !== 'DRAFTS') {
+        // 4. FILTER STATUS UTAMA (BAGIAN INI PENTING)
+        if ($statusUpper == 'PROCUREMENT_&_DELIVERY') {
+             // [FIX] Ambil status WAITING_SUPPLY (Beli) ATAU APPROVED (Kirim)
+             $query->whereIn('status_flow', ['WAITING_SUPPLY', 'APPROVED']);
+        }
+        elseif ($statusUpper !== 'ALL' && $statusUpper !== 'DRAFTS') {
+             // Filter Status Tunggal Biasa
              $query->where('status_flow', $statusUpper);
-        } elseif ($statusUpper == 'DRAFTS') {
+        } 
+        elseif ($statusUpper == 'DRAFTS') {
+             // Filter Draft
              $query->where('status_flow', 'DRAFT');
         }
 
-        // 4. Search & Filter Date
+        // 5. SEARCH & DATE FILTER
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('rl_no', 'like', "%{$request->search}%")
@@ -85,52 +96,53 @@ public function listByStatus(Request $request, $status = 'DRAFT')
         }
 
         $requisitions = $query->paginate(10)->withQueryString();
+        
         return view('requisitions.index', compact('requisitions', 'statusUpper'));
     }
 
-public function show($id)
-    {
-        $requisition = RequisitionLetter::with([
-            'requester.department',
-            'requester.position',
-            'items',
-            'approvalQueues.approver'
-        ])->findOrFail($id);
+    public function show($id)
+        {
+            $requisition = RequisitionLetter::with([
+                'requester.department',
+                'requester.position',
+                'items',
+                'approvalQueues.approver'
+            ])->findOrFail($id);
 
-       $activeMenu = '';
-        switch ($requisition->status_flow) {
-            case 'DRAFT': $activeMenu = 'draft'; break;
-            case 'ON_PROGRESS':
-            case 'PARTIALLY_APPROVED':
-            case 'WAITING_SUPPLY': $activeMenu = 'on_progress'; break;
-            case 'APPROVED': $activeMenu = 'approved'; break; // <--- Target kita
-            case 'COMPLETED': $activeMenu = 'completed'; break;
-            case 'REJECTED': $activeMenu = 'rejected'; break;
+        $activeMenu = '';
+            switch ($requisition->status_flow) {
+                case 'DRAFT': $activeMenu = 'draft'; break;
+                case 'ON_PROGRESS':
+                case 'PARTIALLY_APPROVED':
+                case 'WAITING_SUPPLY': $activeMenu = 'on_progress'; break;
+                case 'APPROVED': $activeMenu = 'approved'; break; // <--- Target kita
+                case 'COMPLETED': $activeMenu = 'completed'; break;
+                case 'REJECTED': $activeMenu = 'rejected'; break;
+            }
+
+            // PASTIKAN activeMenu ADA DISINI:
+            return view('requisitions.show', compact('requisition', 'activeMenu'));
         }
 
-        // PASTIKAN activeMenu ADA DISINI:
-        return view('requisitions.show', compact('requisition', 'activeMenu'));
-    }
+    public function departmentActivity()
+        {
+            $user = Auth::user();
 
-public function departmentActivity()
-    {
-        $user = Auth::user();
+            // 1. Cari ID teman se-departemen & se-PT
+            $teamMemberIds = User::where('department_id', $user->department_id)
+                                ->where('company_id', $user->company_id)
+                                ->pluck('employee_id');
 
-        // 1. Cari ID teman se-departemen & se-PT
-        $teamMemberIds = User::where('department_id', $user->department_id)
-                             ->where('company_id', $user->company_id)
-                             ->pluck('employee_id');
+            // 2. Ambil semua RL milik mereka (kecuali Draft, karena Draft itu privat)
+            $requisitions = RequisitionLetter::with(['requester.department', 'items'])
+                ->whereIn('requester_id', $teamMemberIds)
+                ->where('status_flow', '!=', 'DRAFT') // Draft tidak boleh diintip
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
 
-        // 2. Ambil semua RL milik mereka (kecuali Draft, karena Draft itu privat)
-        $requisitions = RequisitionLetter::with(['requester.department', 'items'])
-            ->whereIn('requester_id', $teamMemberIds)
-            ->where('status_flow', '!=', 'DRAFT') // Draft tidak boleh diintip
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
-        $statusUpper = 'ACTIVITIES';
-        return view('requisitions.department', compact('requisitions', 'statusUpper'));
-    }
+            $statusUpper = 'ACTIVITIES';
+            return view('requisitions.department', compact('requisitions', 'statusUpper'));
+        }
 
     // =========================================================================
     // 2. CREATE, EDIT & ACTION
@@ -279,7 +291,7 @@ public function update(Request $request, $id)
 
     // 7. SUBMIT (PENGGANTI submitDraft)
     // Ini adalah tombol trigger untuk mengubah DRAFT -> ON_PROGRESS
-public function submit($id)
+    public function submit($id)
     {
         $rl = RequisitionLetter::findOrFail($id);
 

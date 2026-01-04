@@ -170,8 +170,10 @@
             </div>
             @endif
 
-            {{-- 4. STATS GRID --}}
+{{-- 4. STATS GRID --}}
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                
+                {{-- CARD 1: WAITING APPROVAL --}}
                 <div class="relative overflow-hidden rounded-2xl shadow-lg shadow-orange-500/20 group hover:-translate-y-1 transition duration-300 bg-gradient-to-br from-orange-400 to-red-500">
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
@@ -190,6 +192,7 @@
                     </div>
                 </div>
 
+                {{-- CARD 2: WAITING DIRECTOR --}}
                 <div class="relative overflow-hidden rounded-2xl shadow-lg shadow-purple-500/20 group hover:-translate-y-1 transition duration-300 bg-gradient-to-br from-purple-500 to-indigo-600">
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
@@ -208,6 +211,7 @@
                     </div>
                 </div>
 
+                {{-- CARD 3: PROCUREMENT & DELIVERY (GABUNGAN) --}}
                 <div class="relative overflow-hidden rounded-2xl shadow-lg shadow-yellow-500/20 group hover:-translate-y-1 transition duration-300 bg-gradient-to-br from-yellow-400 to-orange-500">
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform -rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" /><path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
@@ -215,20 +219,35 @@
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
                             <div>
-                                <p class="text-yellow-100 text-[10px] font-bold uppercase tracking-wider">Waiting Supply</p>
-                                <h3 class="text-3xl font-extrabold mt-1">{{ $stats['waiting_supply'] }}</h3>
+                                <p class="text-yellow-100 text-[10px] font-bold uppercase tracking-wider">Procurement & Delivery</p>
+                                <h3 class="text-3xl font-extrabold mt-1">
+                                    {{ $stats['waiting_supply'] + $stats['approved'] }}
+                                </h3>
                             </div>
                             <div class="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
                             </div>
                         </div>
-                        <div class="mt-3 text-[10px] font-medium bg-white/20 w-fit px-2 py-0.5 rounded backdrop-blur-sm">Procurement Process</div>
+                        
+                        {{-- Rincian Kecil: Buy vs Ship --}}
+                        <div class="mt-3 flex items-center gap-2 text-[10px] font-medium bg-white/20 w-fit px-2 py-1 rounded backdrop-blur-sm">
+                            <span class="flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-yellow-200"></span>
+                                Buy: {{ $stats['waiting_supply'] }}
+                            </span>
+                            <span class="opacity-50">|</span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-200"></span>
+                                Ship: {{ $stats['approved'] }}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
+                {{-- CARD 4: COMPLETED --}}
                 <div class="relative overflow-hidden rounded-2xl shadow-lg shadow-teal-500/20 group hover:-translate-y-1 transition duration-300 bg-gradient-to-br from-teal-400 to-emerald-600">
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform rotate-12 scale-150 group-hover:scale-125 transition duration-500">
-                        <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                        <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
                     </div>
                     <div class="relative p-5 text-white">
                         <div class="flex justify-between items-start">
@@ -244,6 +263,7 @@
                     </div>
                 </div>
 
+                {{-- CARD 5: REJECTED --}}
                 <div class="relative overflow-hidden rounded-2xl shadow-lg shadow-red-500/20 group hover:-translate-y-1 transition duration-300 bg-gradient-to-br from-red-500 to-pink-700">
                     <div class="absolute -right-4 -bottom-4 opacity-20 transform -rotate-12 scale-150 group-hover:scale-125 transition duration-500">
                         <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
@@ -317,26 +337,38 @@
                     </div>
                 </div>
 
-                {{-- KOLOM KANAN: PIE CHART & LEGEND --}}
+{{-- KOLOM KANAN: PIE CHART & LEGEND --}}
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border-t-4 border-teal-500 flex flex-col h-full">
                     <h3 class="text-lg font-extrabold text-gray-800 dark:text-white mb-6 flex items-center">
                         <span class="text-2xl mr-2">🍩</span> Composition
                     </h3>
 
+                    {{-- Chart Canvas --}}
                     <div class="relative h-48 w-full mb-6">
                         <canvas id="statusChart"></canvas>
                     </div>
 
                     @php
                         $total = $stats['total_all'] > 0 ? $stats['total_all'] : 1;
+                        
+                        // 1. Completed
                         $pctCompleted = round(($stats['completed'] / $total) * 100);
-                        $totalOnProgress = $stats['waiting_approval'] + $stats['waiting_director'] + $stats['waiting_supply'] + $stats['approved'];
-                        $pctProcess = round(($totalOnProgress / $total) * 100);
+                        
+                        // 2. Processing (Manager + Director + Supply) -> Kelompok "Paperwork"
+                        $countProcessing = $stats['waiting_approval'] + $stats['waiting_director'] + $stats['waiting_supply'];
+                        $pctProcessing = round(($countProcessing / $total) * 100);
+
+                        // 3. In Delivery (Approved) -> Kelompok "Logistics" (FITUR BARU)
+                        $countDelivery = $stats['approved'];
+                        $pctDelivery = round(($countDelivery / $total) * 100);
+
+                        // 4. Rejected
                         $pctRejected = round(($stats['rejected'] / $total) * 100);
                     @endphp
 
-                    <div class="space-y-5 mb-6">
-                        {{-- Completed --}}
+                    <div class="space-y-4 mb-6">
+                        
+                        {{-- A. Completed (Teal) --}}
                         <div>
                             <div class="flex justify-between items-center text-xs font-bold mb-1">
                                 <span class="text-teal-700">Completed ({{ $pctCompleted }}%)</span>
@@ -347,18 +379,32 @@
                             </div>
                         </div>
 
-                        {{-- On Progress --}}
+                        {{-- B. In Delivery (Blue) -> INI YANG BARU --}}
                         <div>
                             <div class="flex justify-between items-center text-xs font-bold mb-1">
-                                <span class="text-blue-600">On Progress ({{ $pctProcess }}%)</span>
-                                <span class="text-gray-500">{{ $totalOnProgress }}/{{ $stats['total_all'] }}</span>
+                                <span class="text-blue-600 flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    In Delivery ({{ $pctDelivery }}%)
+                                </span>
+                                <span class="text-gray-500">{{ $countDelivery }}/{{ $stats['total_all'] }}</span>
                             </div>
                             <div class="w-full bg-gray-100 rounded-full h-2">
-                                <div class="bg-blue-500 h-2 rounded-full" style="width: {{ $pctProcess }}%"></div>
+                                <div class="bg-blue-500 h-2 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width: {{ $pctDelivery }}%"></div>
                             </div>
                         </div>
 
-                         {{-- Rejected --}}
+                        {{-- C. Processing (Orange) -> Diganti dari "On Progress" --}}
+                        <div>
+                            <div class="flex justify-between items-center text-xs font-bold mb-1">
+                                <span class="text-orange-600">Processing ({{ $pctProcessing }}%)</span>
+                                <span class="text-gray-500">{{ $countProcessing }}/{{ $stats['total_all'] }}</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2">
+                                <div class="bg-orange-400 h-2 rounded-full" style="width: {{ $pctProcessing }}%"></div>
+                            </div>
+                        </div>
+
+                         {{-- D. Rejected (Red) --}}
                          <div>
                             <div class="flex justify-between items-center text-xs font-bold mb-1">
                                 <span class="text-red-600">Rejected ({{ $pctRejected }}%)</span>
@@ -370,37 +416,26 @@
                         </div>
                     </div>
 
-                    {{-- ON PROGRESS DETAIL BREAKDOWN --}}
+                    {{-- ON PROGRESS DETAIL BREAKDOWN (Hanya untuk Processing) --}}
                     <div class="mt-auto bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 border border-slate-100 dark:border-slate-600">
-                        <h4 class="text-[10px] font-extrabold text-slate-400 uppercase mb-3 tracking-wider">On Progress Details</h4>
-                        <div class="grid grid-cols-2 gap-y-3 gap-x-4">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs text-slate-600 dark:text-slate-300 flex items-center">
-                                    <span class="w-2 h-2 rounded-full bg-orange-400 mr-2"></span> Manager
-                                </span>
-                                <span class="text-xs font-bold text-slate-800 dark:text-white">{{ $stats['waiting_approval'] }}</span>
+                        <h4 class="text-[10px] font-extrabold text-slate-400 uppercase mb-3 tracking-wider">Processing Stage Details</h4>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="text-center p-2 bg-white rounded-lg shadow-sm border border-slate-100">
+                                <span class="block text-[10px] text-slate-500">Manager</span>
+                                <span class="font-bold text-orange-600">{{ $stats['waiting_approval'] }}</span>
                             </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs text-slate-600 dark:text-slate-300 flex items-center">
-                                    <span class="w-2 h-2 rounded-full bg-purple-400 mr-2"></span> Director
-                                </span>
-                                <span class="text-xs font-bold text-slate-800 dark:text-white">{{ $stats['waiting_director'] }}</span>
+                            <div class="text-center p-2 bg-white rounded-lg shadow-sm border border-slate-100">
+                                <span class="block text-[10px] text-slate-500">Director</span>
+                                <span class="font-bold text-purple-600">{{ $stats['waiting_director'] }}</span>
                             </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs text-slate-600 dark:text-slate-300 flex items-center">
-                                    <span class="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span> Supply
-                                </span>
-                                <span class="text-xs font-bold text-slate-800 dark:text-white">{{ $stats['waiting_supply'] }}</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs text-slate-600 dark:text-slate-300 flex items-center">
-                                    <span class="w-2 h-2 rounded-full bg-blue-400 mr-2"></span> Delivery
-                                </span>
-                                <span class="text-xs font-bold text-slate-800 dark:text-white">{{ $stats['approved'] }}</span>
+                            <div class="text-center p-2 bg-white rounded-lg shadow-sm border border-slate-100">
+                                <span class="block text-[10px] text-slate-500">Supply</span>
+                                <span class="font-bold text-yellow-600">{{ $stats['waiting_supply'] }}</span>
                             </div>
                         </div>
                     </div>
 
+                    {{-- Footer Stats (Users/Depts/Corps) --}}
                     <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 grid grid-cols-3 gap-2">
                         <div class="text-center">
                             <span class="block text-lg font-black text-gray-800 dark:text-white">{{ $masterData['employees'] }}</span>

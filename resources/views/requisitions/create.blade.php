@@ -1,5 +1,7 @@
 <x-app-layout>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    {{-- 1. PDF PREVIEW MODAL --}}
     <div id="previewModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm" aria-hidden="true" onclick="closePreview()"></div>
@@ -25,7 +27,7 @@
         </div>
     </div>
 
-    {{-- 3. CONTAINER UTAMA --}}
+    {{-- 2. MAIN FORM CONTAINER --}}
     <div class="pt-6 pb-12 min-h-screen bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -49,7 +51,6 @@
 
                 <form action="{{ route('requisitions.store') }}" method="POST" class="p-8" id="rlForm">
                     @csrf
-                    {{-- KIRIM NOMOR SURAT KE PREVIEW --}}
                     <input type="hidden" name="temp_rl_no" value="{{ $newNumber }}">
 
                     {{-- Section A: Header Info --}}
@@ -65,7 +66,6 @@
                         {{-- Required Date --}}
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Required Date <span class="text-red-500">*</span></label>
-                            {{-- FIX: min="{{ date('Y-m-d') }}" Mencegah pilih tanggal kemarin --}}
                             <input type="date" name="required_date" id="required_date"
                                 min="{{ date('Y-m-d') }}"
                                 value="{{ old('required_date', $oldRl->required_date ?? '') }}"
@@ -77,7 +77,6 @@
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Priority Level <span class="text-red-500">*</span></label>
                             <div class="relative">
                                 <select name="priority" id="priority" class="w-full bg-slate-50 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-slate-700 py-3 px-4 appearance-none">
-                                    {{-- FIX: Tambahkan opsi kosong agar user WAJIB memilih --}}
                                     <option value="" selected disabled>-- Select Level --</option>
                                     <option value="Normal">🟢 Normal (Routine)</option>
                                     <option value="Urgent">🟠 Urgent (Important)</option>
@@ -101,7 +100,6 @@
                         {{-- Request Date --}}
                         <div>
                              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Request Date</label>
-                             {{-- FIX: min="{{ date('Y-m-d') }}" --}}
                              <input type="date" name="request_date" id="request_date"
                                 min="{{ date('Y-m-d') }}"
                                 value="{{ old('request_date', date('Y-m-d')) }}"
@@ -174,7 +172,7 @@
         </div>
     </div>
 
-    {{-- === JAVASCRIPT LOGIC === --}}
+    {{-- === JAVASCRIPT LOGIC (VALIDATION & DYNAMIC ROWS) === --}}
     <script>
         const masterItems = @json($masterItems);
         let rowCount = 0;
@@ -194,6 +192,7 @@
             }
         });
 
+        // --- 1. DYNAMIC ROW FUNCTIONS ---
         function addItemRow(name = '', qty = '', uom = '', desc = '', partNo = '') {
             const container = document.getElementById('itemsContainer');
             const row = document.createElement('tr');
@@ -205,7 +204,6 @@
                 itemsHtml += `<option value="${item.id}" ${isSelected}>${item.item_name}</option>`;
             });
 
-            // UOM Dropdown (Default value empty)
             let uomHtml = `<option value="">-Select-</option>`;
             uomOptions.forEach(opt => {
                 const isSelected = (opt === uom) ? 'selected' : '';
@@ -222,24 +220,20 @@
                     </select>
                     <input type="hidden" name="items[${rowCount}][part_number]" class="part-number-input" value="${partNo}">
                 </td>
-
                 <td class="px-4 py-3 align-top">
-                    <input type="number" step="1" min="1" name="items[${rowCount}][qty]" value="${formattedQty}" required
+                    <input type="number" step="1" min="1" name="items[${rowCount}][qty]" value="${formattedQty}" 
                         class="qty-input bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-center font-bold shadow-sm" placeholder="0">
                 </td>
-
                 <td class="px-4 py-3 align-top">
-                    <select name="items[${rowCount}][uom]" class="uom-select bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-center shadow-sm" required>
+                    <select name="items[${rowCount}][uom]" class="uom-select bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-center shadow-sm">
                         ${uomHtml}
                     </select>
                 </td>
-
                 <td class="px-4 py-3 align-top">
                     <textarea name="items[${rowCount}][description]" rows="1"
                         class="desc-input block p-2.5 w-full text-sm text-slate-900 bg-slate-50 rounded-lg border border-slate-200 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
                         placeholder="Specification...">${desc}</textarea>
                 </td>
-
                 <td class="px-4 py-3 align-middle text-center">
                     <button type="button" onclick="removeRow(this)" class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -287,44 +281,44 @@
             else emptyState.classList.add('hidden');
         }
 
-        // --- 3. ADVANCED PREVIEW PROTECTION ---
-        function openPreview() {
+        // --- 2. VALIDATION FUNCTION (PUSAT VALIDASI) ---
+        function runValidation() {
             const form = document.getElementById('rlForm');
 
-            // 1. Ambil Value Header
+            // 1. Header Validation
             const subject = form.querySelector('input[name="subject"]').value.trim();
             const reqDate = form.querySelector('input[name="required_date"]').value;
-            const requestDate = form.querySelector('input[name="request_date"]').value;
             const priority = form.querySelector('select[name="priority"]').value;
 
-            // 2. Proteksi Data Header Kosong
             if (!subject || !reqDate || !priority) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Incomplete Header',
-                    html: 'Please fill in <b>Subject</b>, <b>Required Date</b>, and <b>Priority</b> first!',
+                    html: 'Please fill in <b>Subject</b>, <b>Required Date</b>, and <b>Priority</b>!',
                     confirmButtonColor: '#1e293b'
                 });
-                return;
+                return false;
             }
 
-            // 3. Proteksi Tanggal Lampau (Back-dated protection)
+            // 2. Date Validation
             const today = new Date().toISOString().split('T')[0];
-            if (reqDate < today || requestDate < today) {
+            const requestDate = form.querySelector('input[name="request_date"]').value;
+            
+            if (reqDate < today) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Invalid Date',
-                    text: 'Request Date & Required Date cannot be in the past.',
+                    text: 'Required Date cannot be in the past.',
                     confirmButtonColor: '#1e293b'
                 });
-                return;
+                return false;
             }
 
-            // 4. Proteksi Items (Looping Checking)
+            // 3. Item Validation (Looping Check)
             const rows = document.querySelectorAll('#itemsContainer tr');
             if (rows.length === 0) {
                 Swal.fire({icon: 'warning', title: 'Empty Items', text: 'Please add at least one item.', confirmButtonColor: '#1e293b'});
-                return;
+                return false;
             }
 
             let itemError = null;
@@ -345,10 +339,17 @@
                     text: itemError,
                     confirmButtonColor: '#1e293b'
                 });
-                return;
+                return false;
             }
 
-            // 5. Jika Lolos Semua -> Buka Modal
+            return true;
+        }
+
+        // --- 3. ACTIONS ---
+        function openPreview() {
+            if (!runValidation()) return; // Stop jika tidak valid
+
+            const form = document.getElementById('rlForm');
             const modal = document.getElementById('previewModal');
             form.target = 'pdf_preview_frame';
             form.action = "{{ route('requisitions.preview') }}";
@@ -362,13 +363,28 @@
         }
 
         function submitForm() {
-            const form = document.getElementById('rlForm');
-            form.target = '_self';
-            form.action = "{{ route('requisitions.store') }}";
-            form.submit();
+            // [FIX] Panggil validasi dulu sebelum save draft
+            if (!runValidation()) return; 
+
+            Swal.fire({
+                title: 'Save Draft?',
+                text: "Your document will be saved as Draft.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Save Draft'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.getElementById('rlForm');
+                    form.target = '_self';
+                    form.action = "{{ route('requisitions.store') }}";
+                    form.submit();
+                }
+            });
         }
     </script>
-</x-app-layout> --}}
+</x-app-layout>
 
 
 
