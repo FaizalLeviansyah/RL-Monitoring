@@ -579,7 +579,14 @@ public function previewTemp(Request $request)
 
     public function uploadPartial(Request $request, $id)
     {
-        $request->validate(['file_partial' => 'required|mimes:pdf|max:5120']);
+        // 1. Validasi Ketat: Hanya PDF, DOCX, JPG, JPEG
+        $request->validate([
+            'file_partial' => 'required|file|mimes:pdf,docx,jpg,jpeg|max:5120'
+        ], [
+            'file_partial.mimes' => 'Security Alert: Only PDF, DOCX, JPG, or JPEG files are allowed.',
+            'file_partial.max'   => 'File size too large (Max 5MB).'
+        ]);
+
         $rl = RequisitionLetter::findOrFail($id);
         if ($request->hasFile('file_partial')) {
             $path = $request->file('file_partial')->store('uploads/rl_documents', 'public');
@@ -616,7 +623,14 @@ public function previewTemp(Request $request)
 
     public function uploadFinal(Request $request, $id)
     {
-        $request->validate(['file_final' => 'required|mimes:pdf|max:5120']);
+        // Sama dengan Partial: PDF, DOCX, JPG, JPEG
+        $request->validate([
+            'file_final' => 'required|file|mimes:pdf,docx,jpg,jpeg|max:5120'
+        ], [
+            'file_final.mimes' => 'Security Alert: Only PDF, DOCX, JPG, or JPEG files are allowed.',
+            'file_final.max'   => 'File size too large (Max 5MB).'
+        ]);
+
         $rl = RequisitionLetter::findOrFail($id);
         if ($request->hasFile('file_final')) {
             $path = $request->file('file_final')->store('uploads/rl_documents', 'public');
@@ -628,7 +642,14 @@ public function previewTemp(Request $request)
 
     public function uploadEvidence(Request $request, $id)
     {
-        $request->validate(['evidence_photo' => 'required|image|max:5120']);
+        // 2. Validasi Khusus Foto: JPG, JPEG, PNG, WEBP
+        $request->validate([
+            'evidence_photo' => 'required|file|mimes:jpg,jpeg,png,webp|max:5120'
+        ], [
+            'evidence_photo.mimes' => 'Invalid Format: Please upload a photo (JPG, PNG) only.',
+            'evidence_photo.max'   => 'Photo size too large (Max 5MB).'
+        ]);
+
         $rl = RequisitionLetter::findOrFail($id);
         if ($request->hasFile('evidence_photo')) {
             $path = $request->file('evidence_photo')->store('uploads/evidence', 'public');
